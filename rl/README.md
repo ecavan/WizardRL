@@ -42,10 +42,20 @@ Keep the Mac awake for long runs: `caffeinate -i python -m wizard_rl.train ...`.
 
 ## Play against it, or get its advice
 
-`models/starter.wznet` is a first network (45 minutes of training on 2 CPU cores): it already
-beats the counting bots by about 5 points a round (it predates the make-bid head, so the advisor
-shows scores only). Try it before training your own:
-`cargo run --release -p wizard -- play --advisor rl/models/starter.wznet`.
+Two trained networks come with the repo:
+
+- `models/night1.wznet`: 7 hours on 2 CPU cores (617M decisions, built on the starter). About
+  +12 points a round over the counting bots on duplicate deals; in full four-player games it
+  averages 387 points to their ~190 and wins 80% of games. Shows the chance of making each bid.
+- `models/starter.wznet`: the first 45-minute network (+5 a round; scores only).
+
+`cargo run --release -p wizard -- play --advisor rl/models/night1.wznet`
+
+## Ask it about bids
+
+```sh
+python -m wizard_rl.charts runs/first/best.pt      # edit SITUATIONS in charts.py for your own hands
+```
 
 ```sh
 python -m wizard_rl.export runs/first/best.pt runs/first/best.wznet
@@ -71,4 +81,5 @@ decision is labelled with the score its seat got, and the prediction is pulled t
 - `python/wizard_rl/evaluate.py`: edge against the baseline bots
 - `python/wizard_rl/kuhn.py`: the learner check (known answers)
 - `python/wizard_rl/export.py`: checkpoint -> `.wznet` file for the Rust engine
+- `python/wizard_rl/charts.py`: the network's expected score and make-chance for every bid in set situations
 - `tests/test_bridge.py`: Rust <-> Python checks

@@ -14,5 +14,6 @@ from ._engine import (  # noqa: F401
     PHASE,
     WizardEnv,
     action_name,
+    bid_scenario,
     rust_forward,
 )

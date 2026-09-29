@@ -9,6 +9,7 @@
 //! - [`encode`]: what the network sees, and its action numbering
 //! - [`env`]: a batch of tables for training, driven from Python
 //! - [`net`]: a trained network running in Rust (`NetBot`)
+//! - [`scenario`]: build a bidding situation to ask a network about
 
 pub mod bots;
 pub mod card;
@@ -19,6 +20,7 @@ pub mod net;
 pub mod rng;
 pub mod round;
 pub mod rules;
+pub mod scenario;
 pub mod view;
 
 pub use card::{Card, CardSet, Suit};

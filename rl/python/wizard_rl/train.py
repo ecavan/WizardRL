@@ -111,7 +111,8 @@ def main(argv=None) -> None:
         nonlocal best_edge
         now = time.time()
         dps = (lr.state.decisions - last["d"]) / max(1e-9, now - last["t"])
-        if lr.state.decisions - last["snap"] >= a.snapshot_every:
+        # (a small tolerance: ticks land a few decisions either side of their mark)
+        if lr.state.decisions - last["snap"] >= 0.95 * a.snapshot_every:
             lr.freeze(a.pool)
             last["snap"] = lr.state.decisions
         env.stats()

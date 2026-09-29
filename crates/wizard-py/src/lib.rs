@@ -7,6 +7,8 @@ use pyo3::types::PyDict;
 use wizard::encode::{self, ACTIONS, FEATURES};
 use wizard::env::{EnvConfig, SeatMix, VecEnv};
 use wizard::net::Mlp;
+use wizard::rng::Rng;
+use wizard::view::View;
 
 type Obs<'py> = Bound<'py, PyArray2<f32>>;
 type Legal<'py> = Bound<'py, PyArray2<bool>>;
@@ -192,11 +194,59 @@ fn rust_forward<'py>(
     PyArray1::from_vec(py, out).reshape([x.nrows(), width])
 }
 
+/// The observation and legal bids for a bidding situation: `players`, the bidder's `hand`
+/// (e.g. `["7h", "10h", "wiz"]`), `trump` (`"h"`, ..., or `None` for no trump), `position` in the
+/// bidding order (1 = first, `players` = the dealer) and the `bids_before` it. Other hands are
+/// dealt at random from `seed`.
+#[pyfunction]
+#[pyo3(signature = (players, hand, trump, position, bids_before, seed = 0))]
+fn bid_scenario<'py>(
+    py: Python<'py>,
+    players: u8,
+    hand: Vec<String>,
+    trump: Option<String>,
+    position: u8,
+    bids_before: Vec<u8>,
+    seed: u64,
+) -> PyResult<(Vec1<'py, f32>, Vec1<'py, bool>)> {
+    let cards = hand
+        .iter()
+        .map(|s| {
+            wizard::card::parse(s).ok_or_else(|| PyValueError::new_err(format!("bad card '{s}'")))
+        })
+        .collect::<PyResult<Vec<_>>>()?;
+    let trump = match trump.as_deref() {
+        None | Some("none") | Some("") => None,
+        Some(t) => Some(
+            t.chars()
+                .next()
+                .and_then(wizard::card::Suit::from_char)
+                .ok_or_else(|| PyValueError::new_err("trump must be c, d, h, s or None"))?,
+        ),
+    };
+    let (round, me) = wizard::scenario::bid_scenario(
+        players,
+        &cards,
+        trump,
+        position,
+        &bids_before,
+        &mut Rng::new(seed),
+    )
+    .map_err(PyValueError::new_err)?;
+    let v = View::new(&round, me, &[]);
+    let mut obs = vec![0.0; FEATURES];
+    let mut mask = vec![false; ACTIONS];
+    encode::observe(&v, &mut obs);
+    encode::legal_mask(&v, &mut mask);
+    Ok((PyArray1::from_vec(py, obs), PyArray1::from_vec(py, mask)))
+}
+
 #[pymodule]
 fn _engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<WizardEnv>()?;
     m.add_function(wrap_pyfunction!(action_name, m)?)?;
     m.add_function(wrap_pyfunction!(rust_forward, m)?)?;
+    m.add_function(wrap_pyfunction!(bid_scenario, m)?)?;
     m.add("FEATURES", FEATURES)?;
     m.add("ACTIONS", ACTIONS)?;
     m.add("ACT_TRUMP", encode::ACT_TRUMP)?;
