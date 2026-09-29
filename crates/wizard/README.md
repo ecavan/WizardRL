@@ -7,6 +7,7 @@ learning, playing the official rules.
 cargo run --release -p wizard -- play                 # you vs 3 counting bots
 cargo run --release -p wizard -- play --players 5
 cargo run --release -p wizard -- sim --games 20000 --bots counting,random,random,random
+cargo run --release -p wizard -- play --advisor rl/runs/first/best.wznet   # a trained network's advice
 cargo test --release -p wizard
 ```
 
@@ -33,6 +34,7 @@ cargo test --release -p wizard
 - `bots.rs`: `RandomBot` (the floor) and `CountingBot` (a casual player: counts likely tricks, plays greedily)
 - `encode.rs`: what the network sees (503 numbers from the acting seat's point of view) and its 85 actions
 - `env.rs`: a batch of tables for training; the learner's seats wait for Python, bots play the rest
+- `net.rs`: runs an exported network (`.wznet`) in Rust: `NetBot`, `--bots net:FILE`, `--advisor FILE`
 - `tests/rules.rs`: hand-worked tricks and rounds, and fuzzing of thousands of random rounds
   at every table size
 

@@ -6,6 +6,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use wizard::encode::{self, ACTIONS, FEATURES};
 use wizard::env::{EnvConfig, Opponents, VecEnv};
+use wizard::net::Mlp;
 
 type Obs<'py> = Bound<'py, PyArray2<f32>>;
 type Legal<'py> = Bound<'py, PyArray2<bool>>;
@@ -102,10 +103,34 @@ fn action_name(i: usize) -> PyResult<String> {
         .ok_or_else(|| PyValueError::new_err("no such action"))
 }
 
+/// Run an exported network file (`wizard_rl.export`) in Rust on a batch of observations.
+/// Returns the raw outputs `[B, ACTIONS]`; used to check the export matches PyTorch.
+#[pyfunction]
+fn rust_forward<'py>(
+    py: Python<'py>,
+    path: &str,
+    obs: numpy::PyReadonlyArray2<'py, f32>,
+) -> PyResult<Bound<'py, PyArray2<f32>>> {
+    let net = Mlp::load(path).map_err(PyValueError::new_err)?;
+    let x = obs.as_array();
+    if x.ncols() != FEATURES {
+        return Err(PyValueError::new_err(format!(
+            "expected {FEATURES} features"
+        )));
+    }
+    let mut out = Vec::with_capacity(x.nrows() * ACTIONS);
+    for row in x.rows() {
+        let v: Vec<f32> = row.iter().copied().collect();
+        out.extend(net.forward(&v));
+    }
+    PyArray1::from_vec(py, out).reshape([x.nrows(), ACTIONS])
+}
+
 #[pymodule]
 fn _engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<WizardEnv>()?;
     m.add_function(wrap_pyfunction!(action_name, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_forward, m)?)?;
     m.add("FEATURES", FEATURES)?;
     m.add("ACTIONS", ACTIONS)?;
     m.add("ACT_TRUMP", encode::ACT_TRUMP)?;

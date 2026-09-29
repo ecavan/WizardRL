@@ -6,6 +6,7 @@ use std::time::Instant;
 use wizard::bots::{self, Bot};
 use wizard::card::{self, cards, Card, Suit};
 use wizard::game::play_game;
+use wizard::net::NetBot;
 use wizard::rng::Rng;
 use wizard::round::{Action, Phase, Round, TrumpSource};
 use wizard::rules::Rules;
@@ -13,10 +14,12 @@ use wizard::view::View;
 
 const USAGE: &str = "usage:
   wizard sim  [--players N] [--games G] [--seed S] [--bots counting,random,...]
-  wizard play [--players N] [--seed S] [--bots counting,...]
+  wizard play [--players N] [--seed S] [--bots counting,...] [--advisor FILE]
 
   --players  3 to 6                                        default 4
-  --bots     one name per seat (sim) or per opponent (play); random | counting";
+  --bots     one name per seat (sim) or per opponent (play):
+             random | counting | net:FILE (a trained network, from python -m wizard_rl.export)
+  --advisor  FILE: a trained network that shows you its predicted score for each option";
 
 struct Args {
     cmd: String,
@@ -24,6 +27,7 @@ struct Args {
     games: u64,
     seed: Option<u64>,
     bots: Vec<String>,
+    advisor: Option<String>,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -35,6 +39,7 @@ fn parse_args() -> Result<Args, String> {
         games: 1000,
         seed: None,
         bots: Vec::new(),
+        advisor: None,
     };
     while let Some(k) = it.next() {
         let mut val = || it.next().ok_or(format!("{k} needs a value"));
@@ -43,6 +48,7 @@ fn parse_args() -> Result<Args, String> {
             "--games" => a.games = val()?.parse().map_err(|_| "bad --games")?,
             "--seed" => a.seed = Some(val()?.parse().map_err(|_| "bad --seed")?),
             "--bots" => a.bots = val()?.split(',').map(|s| s.trim().to_string()).collect(),
+            "--advisor" => a.advisor = Some(val()?),
             "-h" | "--help" => return Err(String::new()),
             _ => return Err(format!("unknown option {k}")),
         }
@@ -59,7 +65,10 @@ fn rules_for(a: &Args) -> Result<Rules, String> {
 fn make_bots(names: &[String]) -> Result<Vec<Box<dyn Bot>>, String> {
     names
         .iter()
-        .map(|n| bots::by_name(n).ok_or(format!("unknown bot '{n}'")))
+        .map(|n| match n.strip_prefix("net:") {
+            Some(path) => NetBot::load(path).map(|b| Box::new(b) as Box<dyn Bot>),
+            None => bots::by_name(n).ok_or(format!("unknown bot '{n}'")),
+        })
         .collect()
 }
 
@@ -165,6 +174,7 @@ fn sim(a: &Args) -> Result<(), String> {
 /// The human player at the terminal.
 struct Human {
     input: io::StdinLock<'static>,
+    advisor: Option<NetBot>,
 }
 
 fn sorted_hand(v: &View) -> Vec<Card> {
@@ -187,6 +197,19 @@ fn sorted_hand(v: &View) -> Vec<Card> {
 }
 
 impl Human {
+    /// Print the advisor's predicted round score for the options (all of them, or the best few).
+    fn advise(&mut self, v: &View, show: usize) {
+        if let Some(adv) = self.advisor.as_mut() {
+            let vals = adv.values(v);
+            let line: Vec<String> = vals
+                .iter()
+                .take(show)
+                .map(|(a, x)| format!("{a} {x:+.0}"))
+                .collect();
+            println!("  advisor (expected round score): {}", line.join(" | "));
+        }
+    }
+
     fn ask(&mut self, prompt: &str) -> String {
         print!("{prompt}");
         io::stdout().flush().ok();
@@ -213,6 +236,7 @@ impl Bot for Human {
         match v.phase() {
             Phase::PickTrump { .. } => {
                 println!("  your hand: {}", names.join("  "));
+                self.advise(v, 4);
                 loop {
                     let s = self.ask("  name trump (c/d/h/s): ");
                     if let Some(suit) = s.chars().next().and_then(Suit::from_char) {
@@ -237,6 +261,7 @@ impl Bot for Human {
                     }
                 );
                 println!("  your hand: {}", names.join("  "));
+                self.advise(v, 5);
                 loop {
                     let s = self.ask(&format!("  your bid (0-{}): ", v.size()));
                     if let Ok(b) = s.parse::<u8>() {
@@ -265,6 +290,7 @@ impl Bot for Human {
                     v.tricks_won(v.seat()),
                     marked.join("  ")
                 );
+                self.advise(v, 3);
                 loop {
                     let s = self.ask("  play (number or card, e.g. 2 or As): ");
                     let c = s
@@ -319,8 +345,10 @@ fn play(a: &Args) -> Result<(), String> {
         ));
     }
     let mut seats: Vec<Box<dyn Bot>> = Vec::new();
+    let advisor = a.advisor.as_deref().map(NetBot::load).transpose()?;
     seats.push(Box::new(Human {
         input: Box::leak(Box::new(io::stdin())).lock(),
+        advisor,
     }));
     for (i, b) in make_bots(&names)?.into_iter().enumerate() {
         seats.push(Box::new(Loud {

@@ -3,7 +3,11 @@
 import numpy as np
 import torch
 
-from wizard_rl import ACT_BID, ACT_CARD, ACTIONS, FEATURES, HAND, PHASE, WizardEnv, action_name
+import os
+import tempfile
+
+from wizard_rl import ACT_BID, ACT_CARD, ACTIONS, FEATURES, HAND, PHASE, WizardEnv, action_name, rust_forward
+from wizard_rl.export import export
 from wizard_rl.net import QNet, pick_actions
 
 
@@ -51,7 +55,24 @@ def test_action_names():
     assert action_name(ACT_CARD + 51) == "A♠"
 
 
+def test_export_matches_pytorch():
+    torch.manual_seed(0)
+    net = QNet(FEATURES, ACTIONS, 96, 3)
+    with tempfile.TemporaryDirectory() as d:
+        ck = os.path.join(d, "m.pt")
+        torch.save(dict(model=net.state_dict(), net=net.config()), ck)
+        out = os.path.join(d, "m.wznet")
+        export(ck, out)
+        env = WizardEnv(64, [3, 4, 5, 6], "selfplay", 3)
+        obs, _ = env.observe()
+        with torch.no_grad():
+            want = net(torch.from_numpy(obs)).numpy()
+        got = rust_forward(out, obs)
+        assert np.abs(got - want).max() < 1e-4, np.abs(got - want).max()
+
+
 if __name__ == "__main__":
+    test_export_matches_pytorch()
     test_shapes_and_legality()
     test_illegal_action_is_refused()
     test_action_names()

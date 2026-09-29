@@ -30,6 +30,21 @@ minus the counting bots' in the same rounds. 0 means as good as the counting bot
 can be as fast; try both for a minute (`--decisions 5e6 --eval-every 5e6`) and keep the faster.
 Keep the Mac awake for long runs: `caffeinate -i python -m wizard_rl.train ...`.
 
+## Play against it, or get its advice
+
+`models/starter.wznet` is a first network (45 minutes of training on 2 CPU cores): it already
+beats the counting bots by about 5 points a round. Try it before training your own:
+`cargo run --release -p wizard -- play --advisor rl/models/starter.wznet`.
+
+```sh
+python -m wizard_rl.export runs/first/best.pt runs/first/best.wznet
+cd .. && cargo run --release -p wizard -- play --advisor rl/runs/first/best.wznet     # its predicted score for each of your options
+cargo run --release -p wizard -- play --bots net:rl/runs/first/best.wznet,counting,counting
+cargo run --release -p wizard -- sim --games 2000 --bots net:rl/runs/first/best.wznet,counting,counting,counting
+```
+
+The exported file runs in Rust with no Python needed (the same file can later go into an app).
+
 ## How it learns (Deep Monte Carlo)
 
 One network plays every seat. For each decision it predicts the round score of every legal
@@ -44,4 +59,5 @@ decision is labelled with the score its seat got, and the prediction is pulled t
 - `python/wizard_rl/train.py`: training runs, logging, checkpoints
 - `python/wizard_rl/evaluate.py`: edge against the baseline bots
 - `python/wizard_rl/kuhn.py`: the learner check (known answers)
+- `python/wizard_rl/export.py`: checkpoint -> `.wznet` file for the Rust engine
 - `tests/test_bridge.py`: Rust <-> Python checks

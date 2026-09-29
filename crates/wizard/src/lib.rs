@@ -8,12 +8,14 @@
 //! - [`bots`]: baseline players
 //! - [`encode`]: what the network sees, and its action numbering
 //! - [`env`]: a batch of tables for training, driven from Python
+//! - [`net`]: a trained network running in Rust (`NetBot`)
 
 pub mod bots;
 pub mod card;
 pub mod encode;
 pub mod env;
 pub mod game;
+pub mod net;
 pub mod rng;
 pub mod round;
 pub mod rules;
