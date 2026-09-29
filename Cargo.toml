@@ -1,6 +1,8 @@
 [workspace]
 resolver = "2"
 members = ["crates/ps-core", "crates/ps-solve", "crates/ps-cli", "crates/wizard"]
+# The Python extension builds with maturin from rl/ (it links against Python).
+exclude = ["crates/wizard-py"]
 
 [workspace.package]
 edition = "2021"

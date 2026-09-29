@@ -15,7 +15,11 @@ pub struct View<'a> {
 impl<'a> View<'a> {
     pub fn new(round: &'a Round, seat: u8, scores: &'a [i32]) -> View<'a> {
         assert!(seat < round.players());
-        View { round, seat, scores }
+        View {
+            round,
+            seat,
+            scores,
+        }
     }
 
     pub fn seat(&self) -> u8 {

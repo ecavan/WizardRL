@@ -1,16 +1,18 @@
 //! Wizard, the trick-taking card game: a rules engine for self-play reinforcement learning.
 //!
 //! - [`card`]: the 60-card deck and card sets
-//! - [`rules`]: official rules plus house options
+//! - [`rules`]: the official rules (3 to 6 players)
 //! - [`round`]: one round as a state machine (trump, bids, tricks, score)
 //! - [`game`]: full games of rounds 1, 2, 3 … cards
 //! - [`view`]: what one seat may see
 //! - [`bots`]: baseline players
-//!
-//! Official rules are the default everywhere. See the project plan for why.
+//! - [`encode`]: what the network sees, and its action numbering
+//! - [`env`]: a batch of tables for training, driven from Python
 
 pub mod bots;
 pub mod card;
+pub mod encode;
+pub mod env;
 pub mod game;
 pub mod rng;
 pub mod round;

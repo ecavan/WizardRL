@@ -69,7 +69,9 @@ impl CountingBot {
     }
 
     pub fn expected_tricks(hand: CardSet, trump: Option<Suit>, players: u8) -> f64 {
-        cards(hand).map(|c| Self::card_value(c, trump, players)).sum()
+        cards(hand)
+            .map(|c| Self::card_value(c, trump, players))
+            .sum()
     }
 
     /// How strong a card is to hold on to: Jesters lowest, then plain cards, trumps, Wizards.
@@ -77,7 +79,9 @@ impl CountingBot {
         match card::kind(c) {
             card::Kind::Jester => 0,
             card::Kind::Wizard => 100,
-            card::Kind::Normal { suit, rank } => 1 + rank as u32 + if Some(suit) == trump { 40 } else { 0 },
+            card::Kind::Normal { suit, rank } => {
+                1 + rank as u32 + if Some(suit) == trump { 40 } else { 0 }
+            }
         }
     }
 
@@ -93,7 +97,11 @@ impl CountingBot {
             .iter()
             .max_by_key(|s| {
                 let mine: Vec<Card> = cards(hand & s.mask()).collect();
-                10 * mine.len() as u32 + mine.iter().map(|&c| rank_of(c).unwrap() as u32).sum::<u32>()
+                10 * mine.len() as u32
+                    + mine
+                        .iter()
+                        .map(|&c| rank_of(c).unwrap() as u32)
+                        .sum::<u32>()
             })
             .unwrap()
     }
@@ -103,16 +111,32 @@ impl CountingBot {
         let trump = v.trump();
         let bid = v.my_bid().unwrap_or(0) as i32;
         let need = bid - v.tricks_won(v.seat()) as i32;
-        let by_strength = |a: &Card, b: &Card| Self::strength(*a, trump).cmp(&Self::strength(*b, trump)).then(a.cmp(b));
+        let by_strength = |a: &Card, b: &Card| {
+            Self::strength(*a, trump)
+                .cmp(&Self::strength(*b, trump))
+                .then(a.cmp(b))
+        };
         let lowest = |set: &[Card]| *set.iter().min_by(|a, b| by_strength(a, b)).unwrap();
         let highest = |set: &[Card]| *set.iter().max_by(|a, b| by_strength(a, b)).unwrap();
 
         if v.current_trick().is_empty() {
             // Leading.
-            return if need > 0 { highest(&legal) } else { lowest(&legal) };
+            return if need > 0 {
+                highest(&legal)
+            } else {
+                lowest(&legal)
+            };
         }
-        let winners: Vec<Card> = legal.iter().copied().filter(|&c| Self::would_win(v, c)).collect();
-        let losers: Vec<Card> = legal.iter().copied().filter(|&c| !Self::would_win(v, c)).collect();
+        let winners: Vec<Card> = legal
+            .iter()
+            .copied()
+            .filter(|&c| Self::would_win(v, c))
+            .collect();
+        let losers: Vec<Card> = legal
+            .iter()
+            .copied()
+            .filter(|&c| !Self::would_win(v, c))
+            .collect();
         if need > 0 {
             if !winners.is_empty() {
                 lowest(&winners)

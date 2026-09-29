@@ -2,21 +2,29 @@
 //!
 //! Seats are numbered `0..n` going to the left (clockwise). The player left of the dealer
 //! (`dealer + 1`) bids first and leads the first trick; each trick's winner leads the next.
-//! The player on the dealer's right is `dealer - 1`.
 
-use crate::card::{self, bit, cards, suit_of, Card, CardSet, Kind, Suit, ALL_CARDS, DECK_SIZE, JESTER_MASK, WIZARD_MASK};
+use crate::card::{
+    self, bit, cards, suit_of, Card, CardSet, Kind, Suit, ALL_CARDS, DECK_SIZE, JESTER_MASK,
+    WIZARD_MASK,
+};
 use crate::rng::Rng;
-use crate::rules::{JesterTurned, LastRound, Rules, WizardTurned};
+use crate::rules::Rules;
 use std::fmt;
 
 pub const MAX_SEATS: usize = crate::rules::MAX_PLAYERS as usize;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Phase {
-    /// A player names the trump suit (a Wizard, or under a house rule a Jester, was turned up).
-    PickTrump { seat: u8 },
-    Bid { seat: u8 },
-    Play { seat: u8 },
+    /// The dealer names the trump suit (a Wizard was turned up).
+    PickTrump {
+        seat: u8,
+    },
+    Bid {
+        seat: u8,
+    },
+    Play {
+        seat: u8,
+    },
     Done,
 }
 
@@ -42,11 +50,11 @@ impl fmt::Display for Action {
 pub enum TrumpSource {
     /// A standard card was turned up.
     TurnedCard(Card),
-    /// A Wizard was turned up (trump is then picked by a player, or random under a house rule).
+    /// A Wizard was turned up; the dealer names trump.
     WizardTurned(Card),
-    /// A Jester was turned up.
+    /// A Jester was turned up: no trump.
     JesterTurned(Card),
-    /// No card left to turn up, or the house last-round rule.
+    /// No card left to turn up (the last round): no trump.
     NoCardTurned,
 }
 
@@ -59,7 +67,11 @@ pub struct IllegalAction {
 
 impl fmt::Display for IllegalAction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "illegal {} in {:?}: {}", self.action, self.phase, self.reason)
+        write!(
+            f,
+            "illegal {} in {:?}: {}",
+            self.action, self.phase, self.reason
+        )
     }
 }
 
@@ -169,7 +181,10 @@ impl Round {
     pub fn deal(rules: Rules, size: u8, dealer: u8, rng: &mut Rng) -> Round {
         rules.validate().expect("valid rules");
         let n = rules.players;
-        assert!(size >= 1 && size <= rules.rounds(), "round size {size} with {n} players");
+        assert!(
+            size >= 1 && size <= rules.rounds(),
+            "round size {size} with {n} players"
+        );
         assert!(dealer < n);
         let mut deck: Vec<Card> = (0..DECK_SIZE as Card).collect();
         rng.shuffle(&mut deck);
@@ -184,12 +199,18 @@ impl Round {
             }
         }
         let turned = deck.get(k).copied();
-        Round::from_hands(rules, size, dealer, &hands, turned, rng)
+        Round::from_hands(rules, size, dealer, &hands, turned)
     }
 
     /// Start a round from given hands (for tests and replays). `turned` is the card turned up
-    /// for trump, or `None` if none is left. `rng` is used only for the random-suit house rules.
-    pub fn from_hands(rules: Rules, size: u8, dealer: u8, hands: &[Vec<Card>], turned: Option<Card>, rng: &mut Rng) -> Round {
+    /// for trump, or `None` if none is left.
+    pub fn from_hands(
+        rules: Rules,
+        size: u8,
+        dealer: u8,
+        hands: &[Vec<Card>],
+        turned: Option<Card>,
+    ) -> Round {
         rules.validate().expect("valid rules");
         let n = rules.players;
         assert_eq!(hands.len(), n as usize, "one hand per seat");
@@ -197,7 +218,12 @@ impl Round {
         let mut sets = [0u64; MAX_SEATS];
         let mut seen: CardSet = 0;
         for (i, h) in hands.iter().enumerate() {
-            assert_eq!(h.len(), size as usize, "seat {i} has {} cards, not {size}", h.len());
+            assert_eq!(
+                h.len(),
+                size as usize,
+                "seat {i} has {} cards, not {size}",
+                h.len()
+            );
             for &c in h {
                 assert!((c as usize) < DECK_SIZE);
                 assert_eq!(seen & bit(c), 0, "card {} dealt twice", card::name(c));
@@ -208,35 +234,18 @@ impl Round {
         if let Some(t) = turned {
             assert_eq!(seen & bit(t), 0, "the turned card is in a hand");
         }
-        let first = (dealer + 1) % n;
-        let right_of_dealer = (dealer + n - 1) % n;
-        let last_round = size == rules.rounds();
-        let turned = if last_round && rules.last_round == LastRound::AlwaysNoTrump { None } else { turned };
-
-        let mut phase = Phase::Bid { seat: first };
+        let mut phase = Phase::Bid {
+            seat: (dealer + 1) % n,
+        };
         let (trump_source, trump) = match turned {
             None => (TrumpSource::NoCardTurned, None),
             Some(c) => match card::kind(c) {
                 Kind::Normal { suit, .. } => (TrumpSource::TurnedCard(c), Some(suit)),
-                Kind::Wizard => match rules.wizard_turned {
-                    WizardTurned::DealerPicks => {
-                        phase = Phase::PickTrump { seat: dealer };
-                        (TrumpSource::WizardTurned(c), None)
-                    }
-                    WizardTurned::RightOfDealerPicks => {
-                        phase = Phase::PickTrump { seat: right_of_dealer };
-                        (TrumpSource::WizardTurned(c), None)
-                    }
-                    WizardTurned::RandomSuit => (TrumpSource::WizardTurned(c), Some(Suit::from_index(rng.below(4) as u8))),
-                },
-                Kind::Jester => match rules.jester_turned {
-                    JesterTurned::NoTrump => (TrumpSource::JesterTurned(c), None),
-                    JesterTurned::RightOfDealerPicks => {
-                        phase = Phase::PickTrump { seat: right_of_dealer };
-                        (TrumpSource::JesterTurned(c), None)
-                    }
-                    JesterTurned::RandomSuit => (TrumpSource::JesterTurned(c), Some(Suit::from_index(rng.below(4) as u8))),
-                },
+                Kind::Wizard => {
+                    phase = Phase::PickTrump { seat: dealer };
+                    (TrumpSource::WizardTurned(c), None)
+                }
+                Kind::Jester => (TrumpSource::JesterTurned(c), None),
             },
         };
 
@@ -352,18 +361,26 @@ impl Round {
         match (self.phase, a) {
             (Phase::PickTrump { .. }, Action::PickTrump(_)) => true,
             (Phase::Bid { .. }, Action::Bid(b)) => b <= self.size,
-            (Phase::Play { .. }, Action::Play(c)) => (c as usize) < DECK_SIZE && self.legal_plays() & bit(c) != 0,
+            (Phase::Play { .. }, Action::Play(c)) => {
+                (c as usize) < DECK_SIZE && self.legal_plays() & bit(c) != 0
+            }
             _ => false,
         }
     }
 
     pub fn apply(&mut self, a: Action) -> Result<Event, IllegalAction> {
-        let err = |reason| IllegalAction { action: a, phase: self.phase, reason };
+        let err = |reason| IllegalAction {
+            action: a,
+            phase: self.phase,
+            reason,
+        };
         match (self.phase, a) {
             (Phase::PickTrump { seat }, Action::PickTrump(s)) => {
                 self.trump = Some(s);
                 self.history.push((seat, a));
-                self.phase = Phase::Bid { seat: (self.dealer + 1) % self.n };
+                self.phase = Phase::Bid {
+                    seat: (self.dealer + 1) % self.n,
+                };
                 Ok(Event::None)
             }
             (Phase::Bid { seat }, Action::Bid(b)) => {
@@ -397,7 +414,9 @@ impl Round {
                 self.trick.push((seat, c));
                 self.history.push((seat, a));
                 if self.trick.len() < self.n as usize {
-                    self.phase = Phase::Play { seat: (seat + 1) % self.n };
+                    self.phase = Phase::Play {
+                        seat: (seat + 1) % self.n,
+                    };
                     return Ok(Event::None);
                 }
                 let w = self.trick[trick_winner(&self.trick, self.trump)].0;
@@ -422,7 +441,11 @@ impl Round {
         if !self.is_done() {
             return None;
         }
-        Some((0..self.n as usize).map(|i| round_score(self.bids[i].expect("everyone bid"), self.won[i])).collect())
+        Some(
+            (0..self.n as usize)
+                .map(|i| round_score(self.bids[i].expect("everyone bid"), self.won[i]))
+                .collect(),
+        )
     }
 
     /// Internal consistency; used heavily by the tests.
@@ -439,7 +462,11 @@ impl Round {
             return Err("a played card is still in a hand".into());
         }
         let in_trick: CardSet = self.trick.iter().fold(0, |m, &(_, c)| m | bit(c));
-        let in_tricks: CardSet = self.tricks.iter().flat_map(|t| t.plays.iter()).fold(0, |m, &(_, c)| m | bit(c));
+        let in_tricks: CardSet = self
+            .tricks
+            .iter()
+            .flat_map(|t| t.plays.iter())
+            .fold(0, |m, &(_, c)| m | bit(c));
         if in_trick | in_tricks != self.played || in_trick & in_tricks != 0 {
             return Err("played set disagrees with the tricks".into());
         }
@@ -448,7 +475,10 @@ impl Round {
         }
         let total_cards = seen.count_ones() + self.played.count_ones();
         if total_cards != (self.size as u32) * self.n as u32 {
-            return Err(format!("{total_cards} cards in play, expected {}", self.size as usize * n));
+            return Err(format!(
+                "{total_cards} cards in play, expected {}",
+                self.size as usize * n
+            ));
         }
         // Everyone has played the same number of cards, give or take the trick in progress.
         let done = self.tricks.len() as u32;
@@ -456,7 +486,9 @@ impl Round {
             let in_hand = self.hands[i].count_ones();
             let played_now = self.trick.iter().any(|&(s, _)| s as usize == i) as u32;
             if in_hand + done + played_now != self.size as u32 {
-                return Err(format!("seat {i} holds {in_hand} cards after {done} tricks"));
+                return Err(format!(
+                    "seat {i} holds {in_hand} cards after {done} tricks"
+                ));
             }
         }
         let won: u32 = self.won[..n].iter().map(|&w| w as u32).sum();

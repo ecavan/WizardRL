@@ -69,7 +69,10 @@ impl fmt::Display for Suit {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
     /// A standard card; rank 0 = deuce … 12 = ace.
-    Normal { suit: Suit, rank: u8 },
+    Normal {
+        suit: Suit,
+        rank: u8,
+    },
     Wizard,
     Jester,
 }
@@ -78,7 +81,10 @@ pub enum Kind {
 pub fn kind(c: Card) -> Kind {
     debug_assert!((c as usize) < DECK_SIZE);
     if c < WIZARD_BASE {
-        Kind::Normal { suit: Suit::from_index(c / 13), rank: c % 13 }
+        Kind::Normal {
+            suit: Suit::from_index(c / 13),
+            rank: c % 13,
+        }
     } else if c < JESTER_BASE {
         Kind::Wizard
     } else {
@@ -142,7 +148,9 @@ pub fn cards(mut set: CardSet) -> impl Iterator<Item = Card> {
     })
 }
 
-const RANK_NAMES: [&str; 13] = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+const RANK_NAMES: [&str; 13] = [
+    "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A",
+];
 
 /// Short name: `A♠`, `10♥`, `Wiz`, `Jes`.
 pub fn name(c: Card) -> String {
@@ -159,11 +167,19 @@ pub fn parse(s: &str) -> Option<Card> {
     let t = s.trim();
     let lower = t.to_ascii_lowercase();
     if let Some(rest) = lower.strip_prefix("wiz") {
-        let i: u8 = if rest.is_empty() { 1 } else { rest.parse().ok()? };
+        let i: u8 = if rest.is_empty() {
+            1
+        } else {
+            rest.parse().ok()?
+        };
         return (1..=4).contains(&i).then(|| WIZARD_BASE + i - 1);
     }
     if let Some(rest) = lower.strip_prefix("jes") {
-        let i: u8 = if rest.is_empty() { 1 } else { rest.parse().ok()? };
+        let i: u8 = if rest.is_empty() {
+            1
+        } else {
+            rest.parse().ok()?
+        };
         return (1..=4).contains(&i).then(|| JESTER_BASE + i - 1);
     }
     let chars: Vec<char> = t.chars().collect();
@@ -171,7 +187,10 @@ pub fn parse(s: &str) -> Option<Card> {
         return None;
     }
     let suit = Suit::from_char(*chars.last()?)?;
-    let rank_str: String = chars[..chars.len() - 1].iter().collect::<String>().to_ascii_uppercase();
+    let rank_str: String = chars[..chars.len() - 1]
+        .iter()
+        .collect::<String>()
+        .to_ascii_uppercase();
     let rank = match rank_str.as_str() {
         "T" | "10" => 8,
         "J" => 9,
@@ -220,7 +239,11 @@ mod tests {
         for c in 0..DECK_SIZE as Card {
             let n = name(c);
             if c < WIZARD_BASE {
-                let ascii = n.replace('♣', "c").replace('♦', "d").replace('♥', "h").replace('♠', "s");
+                let ascii = n
+                    .replace('♣', "c")
+                    .replace('♦', "d")
+                    .replace('♥', "h")
+                    .replace('♠', "s");
                 assert_eq!(parse(&ascii), Some(c), "{n}");
             }
         }

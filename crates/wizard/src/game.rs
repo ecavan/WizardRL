@@ -26,7 +26,12 @@ pub struct GameResult {
 }
 
 /// Play one round to the end with the given bots (bot `i` sits in seat `i`).
-pub fn play_round(round: &mut Round, bots: &mut [&mut dyn Bot], scores: &[i32], rng: &mut Rng) -> u64 {
+pub fn play_round(
+    round: &mut Round,
+    bots: &mut [&mut dyn Bot],
+    scores: &[i32],
+    rng: &mut Rng,
+) -> u64 {
     assert_eq!(bots.len(), round.players() as usize);
     let mut decisions = 0;
     while let Some(seat) = round.to_act() {
@@ -35,7 +40,10 @@ pub fn play_round(round: &mut Round, bots: &mut [&mut dyn Bot], scores: &[i32], 
             bots[seat as usize].act(&v, rng)
         };
         if let Err(e) = round.apply(a) {
-            panic!("seat {seat} ({}) made an illegal move: {e}", bots[seat as usize].name());
+            panic!(
+                "seat {seat} ({}) made an illegal move: {e}",
+                bots[seat as usize].name()
+            );
         }
         decisions += 1;
     }
@@ -62,11 +70,19 @@ pub fn play_game(rules: Rules, bots: &mut [&mut dyn Bot], rng: &mut Rng) -> Game
             size,
             dealer,
             trump: round.trump(),
-            bids: round.bids().iter().map(|b| b.expect("everyone bid")).collect(),
+            bids: round
+                .bids()
+                .iter()
+                .map(|b| b.expect("everyone bid"))
+                .collect(),
             won: (0..n).map(|i| round.tricks_won(i)).collect(),
             scores,
         });
         dealer = (dealer + 1) % n;
     }
-    GameResult { totals, rounds, decisions }
+    GameResult {
+        totals,
+        rounds,
+        decisions,
+    }
 }
