@@ -12,6 +12,7 @@
 //! - [`net`]: a trained network running in Rust (`NetBot`)
 //! - [`scenario`]: build a bidding situation to ask a network about
 //! - [`search`]: look-ahead search for bids, with a network playing out imagined rounds
+//! - [`style`]: players with habits (overbidding, early Wizards, ...)
 
 pub mod bots;
 pub mod card;
@@ -25,6 +26,7 @@ pub mod round;
 pub mod rules;
 pub mod scenario;
 pub mod search;
+pub mod style;
 pub mod view;
 
 pub use card::{Card, CardSet, Suit};

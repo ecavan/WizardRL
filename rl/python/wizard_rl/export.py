@@ -9,6 +9,7 @@ the network, which every Python command (evaluate, charts, bidchart, --init) acc
 
 from __future__ import annotations
 
+import os
 import struct
 import sys
 
@@ -45,4 +46,5 @@ if __name__ == "__main__":
     if len(sys.argv) != 3:
         print(__doc__)
         sys.exit(2)
+    os.makedirs(os.path.dirname(os.path.abspath(sys.argv[2])), exist_ok=True)
     (slim if sys.argv[2].endswith(".pt") else export)(sys.argv[1], sys.argv[2])

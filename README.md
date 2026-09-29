@@ -17,7 +17,7 @@ in Rust with no Python needed.
 [How it learns](#how-it-learns) · [Commands](#commands) · [Results](#results) ·
 [Bid charts](#bid-charts) · [Probabilities vs best move (PPO)](#a-learner-that-outputs-probabilities-ppo) ·
 [Playing to win](#playing-to-win-the-game) · [How beatable is it?](#how-beatable-is-it) ·
-[Look-ahead search](#look-ahead-search) · [Size and speed](#size-and-speed) · [Files](#files) ·
+[Look-ahead search](#look-ahead-search) · [Player styles](#player-styles) · [Size and speed](#size-and-speed) · [Files](#files) ·
 [What's next](#whats-next)
 
 ---
@@ -99,9 +99,10 @@ A few details that matter:
   of 8 (20%), or a simple counting bot (10%).
 - **Chance of making the bid.** A second output learns the probability of making the bid from
   here. It doesn't change the moves; the advisor shows it ("bid 1: +15, 71% to make it").
-- **What it sees.** 514 numbers from its own seat's point of view: its hand, trump, cards
+- **What it sees.** 532 numbers from its own seat's point of view: its hand, trump, cards
   played so far, the current trick, bids and tricks won by everyone (bids are hidden until
-  everyone has bid), which suits each player has shown they're out of, and in a full game the scores so far. See
+  everyone has bid), which suits each player has shown they're out of, and in a full game the scores so far and
+  each player's habits this game (see [Player styles](#player-styles)). See
   [`crates/wizard/src/encode.rs`](crates/wizard/src/encode.rs). It never sees other hands.
 - **What it can do.** 85 actions: 4 trump suits, bids 0 to 20, or one of the 60 cards. Illegal
   moves are masked out.
@@ -157,6 +158,9 @@ python -m wizard_rl.train --hours 5 --out runs/next --init runs/first/best.pt \
 - `--game`: play **full games** and reward **winning the game** instead of each round's score
   (see [Playing to win the game](#playing-to-win-the-game)). `--win-weight 0.8` mixes in 20%
   "share of opponents finished ahead of". Evaluation then reports points per game and win rates.
+- `--styles overbid,underbid,early-wizard,wild,plain` (with `--game`): most other seats are
+  `--style-net` (default: the `--init` network) playing with one of those habits, so the bot
+  learns to spot and exploit them. See [Player styles](#player-styles).
 - `--opponent FILE`: **exploiter** mode. Every other seat is that fixed network and nothing else,
   so the learner learns to beat it specifically (see [How beatable is it?](#how-beatable-is-it)).
 
@@ -184,11 +188,33 @@ python -m wizard_rl.evaluate runs/first/best.pt --vs random
 python -m wizard_rl.evaluate runs/next/best.pt --vs runs/first/best.pt   # head-to-head: new vs old
 python -m wizard_rl.evaluate runs/ppo1/best.pt --sample --vs runs/first/best.pt   # a PPO bot, sampling its moves
 python -m wizard_rl.evaluate runs/game1/best.pt --game --rounds 4000 --vs runs/first/best.pt   # full games: points per game, win %
+python -m wizard_rl.evaluate runs/game1/best.pt --game --vs runs/first/best.pt --vs-style overbid   # vs a table of overbidders
 ```
 
 It prints the edge per table size and overall, with an error bar (± two standard errors: if the
 bar doesn't reach 0, the difference is real), plus average scores and how often bids were made.
 `--rounds` sets rounds per table size (default 40,000).
+
+### League table (strength against strong players)
+
+```sh
+python -m wizard_rl.league --rows models/simul1.pt runs/ppo1/best.pt@sample \
+    --tables counting runs/night1/best.pt models/simul1.pt@soft10 models/simul1.pt --players 4
+```
+
+Each cell has one row player against a table where every other seat is the column player, in
+duplicate full games. It shows the row player's win rate (a fair share is 1/players) and its
+margin per game, with 95% intervals. Players are written `PATH[@style]`:
+
+- `@sample`: a PPO policy that samples its probabilities.
+- `@soft10`: a strong but imperfect, human-like player. It picks moves at random in proportion
+  to exp(points / 10), so it usually takes the best move or a near-tie, and rarely a clearly bad
+  one. `@soft5` plays closer to perfect, `@soft25` sloppier.
+- `@overbid`, `@underbid`, `@early-wizard`, `@wild`: players with a habit.
+- `counting`, `random`: the built-in bots.
+
+The diagonal (a player against itself) should read exactly a fair share, which is a built-in
+check.
 
 ### Export a network for Rust
 
@@ -223,6 +249,8 @@ cargo run --release -p wizard -- sim --games 2000 --bots chart:rl/charts/bid_cha
   - `chart:FILE`: bids from a bid chart CSV, plays like the counting bot;
   - `search:FILE[:samples[:width]]`: a network that **looks ahead before bidding**. See
     [Look-ahead search](#look-ahead-search).
+  - `style:NAME:BOT`: any bot with a habit (`overbid`, `underbid`, `early-wizard`, `wild`),
+    e.g. `style:early-wizard:net:rl/models/simul1.wznet` for "plays like my sister".
 - `--players 3..6`, `--seed N`, `--in-turn`.
 
 ### Ask it about a hand
@@ -267,7 +295,61 @@ known exactly, and checks it learns them. If you change the learner, run it firs
 
 ## Results
 
-<!-- RESULTS -->
+**How to read these numbers.** A win rate only means something next to the opponent it was
+measured against. The counting bot is a weak rule-based player (at 3 players it makes a third of
+its bids and averages a negative score), so results against it are a **floor**, not a claim about
+real games. The meaningful numbers are against strong networks, against human-like imperfect
+versions of them (`@soft10`), and the exploiter test. How strong a real family table is can only
+be measured with real games.
+
+Sanity checks that pass: the bot only ever sees its own cards (a test enforces it); against three
+copies of itself it wins exactly 25.0% with a margin of exactly 0; the Python evaluation and the
+Rust full-game simulator agree.
+
+### The current network: `models/simul1` (bids all at once)
+
+Built on `night1` with 290M more decisions of self-play with simultaneous bids.
+
+Full games, 4 players, duplicate deals (± is a 95% interval):
+
+| Opponents (3 seats) | Bot's win rate (fair share 25%) | Its margin per game | Games |
+| --- | --- | --- | --- |
+| itself (check) | 25.0% | 0 | 800 |
+| `night1` (older network, trained bidding in turn) | 46 ± 5% | +88 ± 11 | 400 |
+| 1 `night1` + 2 copies of itself with habits (overbid, wild) | 57 ± 4% | +139 ± 9 | 400 |
+| counting bots (floor) | 87 ± 1% | +223 ± 4 | 2000 |
+
+Against counting bots (the floor), by table size:
+
+| Players | 3 | 4 | 5 | 6 |
+| --- | --- | --- | --- | --- |
+| Bot's win rate (fair share) | 99.9% (33%) | 87% (25%) | 63% (20%) | 51% (17%) |
+| Margin per game | +731 | +223 | +106 | +74 |
+
+Per round, duplicate deals (± two standard errors):
+
+| | 3 players | 4 | 5 | 6 | all |
+| --- | --- | --- | --- | --- | --- |
+| vs `night1` | +11.1 | +6.1 | +3.3 | +2.0 | **+5.6 ± 0.2** |
+| vs counting bots (floor) | +37.2 | +14.8 | +9.0 | +7.5 | +17.1 ± 0.3 |
+
+The edge shrinks as the table grows. With more players there are more hands to beat, and each
+decision matters less.
+
+<!-- LEAGUE -->
+
+### The bid chart on its own
+
+A bot that bids by the chart and plays like the counting bot (`chart:rl/charts/bid_chart.csv`), against counting bots:
+
+| Players | Chart bot's margin per game | Its win rate (fair share) |
+| --- | --- | --- |
+| 3 | +198 ± 6 | 69% (33%) |
+| 4 | +21 ± 3 | 30% (25%) |
+| 5 | +9 ± 2 | 23% (20%) |
+
+So the chart's bids alone beat the counting bot's rough card values. Most of the network's edge
+still comes from how it plays the cards.
 
 ---
 
@@ -295,10 +377,12 @@ It writes these files to `--out`:
 - `bid_chart.md`: full chart, two decimals, with accuracy rows: *average miss*, *chart bid made*
   (how often the rounded total was exactly the tricks taken), *bot's own bid made*, and a small
   per-seat adjustment.
-- `bid_cheat_sheet.md`: the same, rounded to the nearest 0.25, for use at the table.
+- `bid_cheat_sheet.md`: the same, rounded to tenths, for use at the table. (Quarters were too
+  coarse: in a 15-card round, a low card worth 0.1 rounds to 0, and a dozen of them add up to
+  more than a trick.)
 - `bid_chart.html`: an interactive page. Pick the table size and trump, read the chart, and tap in
   your hand to get the bid. Open it in any browser.
-- `bid_chart.csv` / `bid_chart_quarters.csv` / `bid_chart.json`: the values as data.
+- `bid_chart.csv` / `bid_chart_simple.csv` / `bid_chart.json`: the values as data.
   `--bots chart:FILE` plays with a CSV.
 
 The charts for the current model are in [`rl/charts/`](rl/charts/).
@@ -366,6 +450,27 @@ network.
 
 <!-- SEARCH -->
 
+## Player styles
+
+The original goal: notice how a particular person plays, and exploit it. Four habits are built
+in, each on top of a strong network:
+
+| Style | Habit |
+| --- | --- |
+| `overbid` | bids one more than it should (70% of the time) |
+| `underbid` | bids one fewer (70%) |
+| `early-wizard` | throws a Wizard on the round's first trick whenever it can (90%) |
+| `wild` | 20% of its decisions are random |
+
+To spot a habit, the bot sees, for every player, how they've played so far in the game: their
+average (bid − tricks won), how often they made their bid, and what share of their Wizards went
+on a first trick. Training with `--game --styles ...` fills most seats with styled players, so
+the bot learns to read the table during a game and adjust. For example, against an overbidder it
+can take tricks off them to push them further over. `--vs-style` measures it against a whole
+table of one style.
+
+<!-- STYLES -->
+
 ---
 
 ## Size and speed
@@ -402,6 +507,7 @@ rl/
     bidchart.py            bid charts from self-play
     chartpage.py/.html     the interactive bid chart page
     ppo.py                 the policy (probabilities) learner, for comparison
+    styles.py              habits for opponent seats (overbid, underbid, early Wizards, wild)
     kuhn.py                learner check on Kuhn poker
   tests/test_bridge.py     Rust <-> Python checks
 ```
@@ -410,8 +516,9 @@ The engine side (`crates/wizard/src`):
 
 - `rules.rs`, `round.rs`, `game.rs`: the rules, one round as a state machine, full games.
 - `view.rs`: what a seat may see (bots get only this; other bids are hidden until everyone has bid).
-- `encode.rs`: the 514 numbers the network sees (503 about the round, 11 about the game so far)
-  and its 85 actions.
+- `encode.rs`: the 532 numbers the network sees (503 about the round, 11 about the game score,
+  18 about each player's habits) and its 85 actions.
+- `style.rs`: players with habits.
 - `env.rs`: many tables at once for training; frozen-network seats; duplicate deals; stats.
 - `bots.rs`, `chart.rs`, `net.rs`: the random and counting bots, the chart bot, a trained network.
 - `search.rs`: the look-ahead bidder.
@@ -421,10 +528,8 @@ The engine side (`crates/wizard/src`):
 
 ## What's next
 
-The original goal: learn how specific people play, and exploit it. For example, a player who
-leads Wizards early, or a passive player who always bids low. The plan is to give each opponent
-seat a style (bid shading, how early Wizards come out, and so on), train the bot against a mix
-of styles, and let it infer the style from what it has seen that game.
+- An app to play against it and get advice at the table.
+- Longer runs and a bigger network, if the results keep improving with more training.
 
 ---
 

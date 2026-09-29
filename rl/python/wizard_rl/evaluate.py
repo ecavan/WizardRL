@@ -113,6 +113,8 @@ def main(argv=None) -> None:
     p.add_argument("--chunks", type=int, default=8, help="independent batches, for the error bar")
     p.add_argument("--sample", action="store_true", help="PPO models: sample moves (default: most likely move)")
     p.add_argument("--vs-sample", action="store_true", help="the same, for a PPO opponent")
+    p.add_argument("--vs-style", default=None,
+                   help="give the --vs network a habit: overbid, underbid, early-wizard, wild (see styles.py)")
     p.add_argument("--in-turn", action="store_true", help="bid in turn instead of all at once")
     p.add_argument("--game", action="store_true", help="full games: edge in points per game, and win rates (--rounds = games)")
     p.add_argument("--device", default="cpu")
@@ -123,9 +125,13 @@ def main(argv=None) -> None:
         opp, ref = a.vs, None
     else:
         opp, ref = "nets", load_player(a.vs, device, a.vs_sample)
+        if a.vs_style:
+            from .styles import apply_style
+            base, gen = ref, torch.Generator().manual_seed(5)
+            ref = lambda o, lg: apply_style(a.vs_style, base(o, lg).cpu(), o, lg, gen)  # noqa: E731
     sizes = [int(x) for x in a.players.split(",")]
     unit = "game" if a.game else "round"
-    print(f"{a.model} vs {a.vs}, duplicate {'games' if a.game else 'deals'}, {'bids in turn' if a.in_turn else 'bids all at once'}")
+    print(f"{a.model} vs {a.vs}{' (' + a.vs_style + ')' if a.vs_style else ''}, duplicate {'games' if a.game else 'deals'}, {'bids in turn' if a.in_turn else 'bids all at once'}")
     extra = f" {'wins':>9} {'theirs':>7}" if a.game else ""
     print(f"{'players':>8} {'edge/' + unit:>16} {'its avg':>8} {'theirs':>8} {'its bids made':>14} {'theirs':>7}{extra}")
     all_edges = []

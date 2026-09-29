@@ -138,7 +138,28 @@ def test_full_games_and_older_networks():
     assert np.allclose(rust, ours, atol=1e-4)
 
 
+def test_styles_are_legal_and_have_their_habit():
+    from wizard_rl.styles import STYLES, apply_style
+
+    env = WizardEnv(64, [3, 4, 5, 6], "selfplay", 9, False, True, False, True)
+    gen = torch.Generator().manual_seed(1)
+    rng = np.random.default_rng(1)
+    shifted = {"overbid": 0, "underbid": 0}
+    for _ in range(400):
+        obs, legal, _ = env.observe()
+        o, lg = torch.from_numpy(obs), torch.from_numpy(legal)
+        base = torch.tensor([rng.choice(np.flatnonzero(m)) for m in legal])
+        for style in STYLES:
+            a = apply_style(style, base, o, lg, gen)
+            assert bool(lg[torch.arange(len(a)), a].all()), style
+            if style in shifted:
+                shifted[style] += int((a - base).sum())
+        env.step(base.numpy())
+    assert shifted["overbid"] > 0 > shifted["underbid"], shifted
+
+
 if __name__ == "__main__":
+    test_styles_are_legal_and_have_their_habit()
     test_full_games_and_older_networks()
     test_evaluation_with_a_quota()
     test_frozen_nets_and_duplicate()

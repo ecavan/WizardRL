@@ -70,7 +70,7 @@ impl Mlp {
         let features = read_u32(&mut r).map_err(io)? as usize;
         let actions = read_u32(&mut r).map_err(io)? as usize;
         // Networks from before the game features read only the round features (a prefix).
-        if (features != FEATURES && features != ROUND_FEATURES) || actions != ACTIONS {
+        if !(ROUND_FEATURES..=FEATURES).contains(&features) || actions != ACTIONS {
             return Err(format!(
                 "network is for {features} features / {actions} actions, this engine uses {FEATURES} / {ACTIONS}"
             ));

@@ -4,22 +4,71 @@
 use crate::card::{Card, CardSet, Suit};
 use crate::round::{Action, Phase, Round, Trick, TrumpSource};
 
+/// How a player has played so far this game (everyone can see this at the table): how far their
+/// bids were off, how often they made them, and whether they throw Wizards out early.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct SeatHistory {
+    /// Rounds finished this game.
+    pub rounds: u16,
+    /// Sum of (bid - tricks won): positive for an overbidder.
+    pub over: i32,
+    pub made: u16,
+    /// Wizards played, and how many of those went on the round's first trick.
+    pub wizards: u16,
+    pub early_wizards: u16,
+}
+
+impl SeatHistory {
+    /// Add seat `seat`'s finished round.
+    pub fn record(&mut self, round: &Round, seat: u8) {
+        let bid = round.bid(seat).expect("everyone bid") as i32;
+        let won = round.tricks_won(seat) as i32;
+        self.rounds += 1;
+        self.over += bid - won;
+        self.made += (bid == won) as u16;
+        for (k, t) in round.completed_tricks().iter().enumerate() {
+            for &(s, c) in &t.plays {
+                if s == seat && crate::card::is_wizard(c) {
+                    self.wizards += 1;
+                    self.early_wizards += (k == 0) as u16;
+                }
+            }
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct View<'a> {
     round: &'a Round,
     seat: u8,
     /// Game scores before this round, by seat (empty outside a full game).
     scores: &'a [i32],
+    /// Each seat's play so far this game (empty outside a full game).
+    history: &'a [SeatHistory],
 }
 
 impl<'a> View<'a> {
     pub fn new(round: &'a Round, seat: u8, scores: &'a [i32]) -> View<'a> {
+        View::with_history(round, seat, scores, &[])
+    }
+
+    pub fn with_history(
+        round: &'a Round,
+        seat: u8,
+        scores: &'a [i32],
+        history: &'a [SeatHistory],
+    ) -> View<'a> {
         assert!(seat < round.players());
         View {
             round,
             seat,
             scores,
+            history,
         }
+    }
+
+    pub fn history(&self) -> &'a [SeatHistory] {
+        self.history
     }
 
     pub fn rules(&self) -> &'a crate::rules::Rules {

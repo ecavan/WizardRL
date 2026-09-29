@@ -32,9 +32,11 @@ pub const NEED: usize = WON + SEATS; // 6: (bid - won) / 20, for seats that have
 pub const VOIDS: usize = NEED + SEATS; // 24: known out-of-suit, relative seat x suit
 pub const TRICK_POS: usize = VOIDS + SEATS * 4; // 1: cards already in this trick / 5
 pub const GAME: usize = TRICK_POS + 1; // 11: the game so far (zeros for a lone round), see `observe`
-pub const FEATURES: usize = GAME + 11;
+pub const HISTORY: usize = GAME + 11; // 6 x 3: how each seat has played this game, by relative seat
+pub const FEATURES: usize = HISTORY + SEATS * 3;
 /// Features of networks trained before the game features existed; the game features were
 /// appended, so such a network reads the first `ROUND_FEATURES` numbers and nothing changes.
+/// (Likewise networks from before the history features read the first `HISTORY`.)
 pub const ROUND_FEATURES: usize = GAME;
 
 // Action numbering.
@@ -150,6 +152,24 @@ pub fn observe(v: &View, out: &mut [f32]) {
         let ahead = (0..n).filter(|&s| s != me && scores[s] > mine).count();
         out[GAME + 10] = ahead as f32 / (n - 1) as f32;
     }
+
+    // How each player has played this game: average (bid - won), share of bids made, and the
+    // share of their Wizards thrown on a round's first trick.
+    let hist = v.history();
+    if hist.len() == n {
+        for s in 0..n as u8 {
+            let h = hist[s as usize];
+            if h.rounds == 0 {
+                continue;
+            }
+            let base = HISTORY + rel(s) * 3;
+            out[base] = (h.over as f32 / h.rounds as f32 / 3.0).clamp(-1.0, 1.0);
+            out[base + 1] = h.made as f32 / h.rounds as f32;
+            if h.wizards > 0 {
+                out[base + 2] = h.early_wizards as f32 / h.wizards as f32;
+            }
+        }
+    }
 }
 
 /// Game scores are divided by this in the observation.
@@ -178,7 +198,11 @@ mod tests {
             ROUND_FEATURES, 503,
             "networks from before the game features read 503"
         );
-        assert_eq!(FEATURES, 514);
+        assert_eq!(
+            HISTORY, 514,
+            "networks from before the history features read 514"
+        );
+        assert_eq!(FEATURES, 532);
         assert_eq!(ACTIONS, 85);
         for i in 0..ACTIONS {
             assert_eq!(action_index(action_from_index(i).unwrap()), i);
@@ -203,6 +227,31 @@ mod tests {
         assert_eq!(o[GAME + 8], 12.0 / 20.0);
         assert_eq!(o[GAME + 9], 0.0);
         assert_eq!(o[GAME + 10], 1.0 / 3.0);
+    }
+
+    #[test]
+    fn history_features_show_each_players_habits() {
+        use crate::view::SeatHistory;
+        let mut rng = Rng::new(6);
+        let r = Round::deal(Rules::simultaneous(4), 3, 0, &mut rng);
+        let mut hist = [SeatHistory::default(); 4];
+        hist[3] = SeatHistory {
+            rounds: 2,
+            over: 3,
+            made: 1,
+            wizards: 2,
+            early_wizards: 1,
+        };
+        let mut o = vec![0.0; FEATURES];
+        observe(&View::with_history(&r, 1, &[0, 0, 0, 0], &hist), &mut o);
+        let b = HISTORY + 2 * 3; // seat 3 is two to seat 1's left
+        assert_eq!(o[b], 0.5); // 1.5 tricks over per round / 3
+        assert_eq!(o[b + 1], 0.5);
+        assert_eq!(o[b + 2], 0.5);
+        assert!(
+            o[HISTORY..HISTORY + 6].iter().all(|&x| x == 0.0),
+            "no rounds yet for others"
+        );
     }
 
     #[test]

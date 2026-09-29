@@ -348,6 +348,10 @@ fn _engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("ACT_CARD", encode::ACT_CARD)?;
     m.add("PHASE", encode::PHASE)?;
     m.add("HAND", encode::HAND)?;
+    m.add("SIZE", encode::SIZE)?;
+    m.add("TRICKS_LEFT", encode::TRICKS_LEFT)?;
+    m.add("HISTORY", encode::HISTORY)?;
+    m.add("WIZARD_CARDS", (wizard::card::WIZARD_BASE as usize, wizard::card::JESTER_BASE as usize))?;
     m.add("GAME", encode::GAME)?;
     m.add("ROUND_FEATURES", encode::ROUND_FEATURES)?;
     Ok(())

@@ -95,8 +95,10 @@ def fit(x: np.ndarray, y: np.ndarray, cols: list[int]) -> tuple[np.ndarray, floa
     return coef, mae, len(y)
 
 
-def quarter(v: np.ndarray) -> np.ndarray:
-    return np.round(np.asarray(v) * 4) / 4
+def simple(v: np.ndarray) -> np.ndarray:
+    """Values rounded to tenths, for adding up at the table. (Quarters were tried: in big hands
+    they turn a low card worth 0.1 into 0, and twelve of those cost more than a trick.)"""
+    return np.round(np.asarray(v) * 10) / 10
 
 
 def score(x: np.ndarray, coef: np.ndarray, y: np.ndarray) -> tuple[float, float]:
@@ -127,7 +129,7 @@ def build(net, players: int, rounds: int) -> dict:
             xs = x[sel][:, cols]
             coef, mae, n = fit(x[sel], y[sel], cols)
             _, hit = score(xs, coef, y[sel])
-            q_mae, q_hit = score(xs, quarter(coef), y[sel])
+            q_mae, q_hit = score(xs, simple(coef), y[sel])
             bot_hit = float((bid[sel] == y[sel]).mean())
             resid[sel] = y[sel] - xs @ coef
             out[key].append(dict(band=(lo, hi), values=dict(zip(kinds, coef)), mae=mae, n=n, hit=hit,
@@ -179,9 +181,9 @@ def to_markdown(players: int, res: dict) -> str:
 
 
 def cheat_sheet(results: dict[int, dict]) -> str:
-    """One compact table per table size, values rounded to quarters."""
+    """One compact table per table size, values rounded to tenths."""
     lines = ["# Wizard bid cheat sheet", "",
-             "Card values in tricks, rounded to the nearest quarter (from the full chart in `bid_chart.md`). "
+             "Card values in tricks, rounded to tenths (from the full chart in `bid_chart.md`). "
              "Add up your cards and round to the nearest whole number.", ""]
     for n, res in results.items():
         lines += [f"## {n} players", ""]
@@ -201,8 +203,8 @@ def cheat_sheet(results: dict[int, dict]) -> str:
 
 
 def fmt_q(v: float) -> str:
-    q = float(quarter(v))
-    t = f"{abs(q):.2f}".rstrip("0").rstrip(".") or "0"
+    q = float(simple(v))
+    t = f"{abs(q):.1f}".rstrip("0").rstrip(".") or "0"
     return ("−" if q < 0 else "") + t
 
 
@@ -238,7 +240,7 @@ def main(argv=None) -> None:
                 for k, v in r["values"].items():
                     row = dict(players=n, trump=key, cards=band_name(r["band"]), lo=r["band"][0], hi=r["band"][1], kind=k)
                     rows_csv.append(dict(row, value=round(float(v), 4)))
-                    rows_q.append(dict(row, value=float(quarter(v))))
+                    rows_q.append(dict(row, value=float(simple(v))))
         print(f"{n} players done: {res['rounds']:,} rounds, bot made {res['bid_made']:.0%} of its bids", flush=True)
     with open(os.path.join(a.out, "bid_chart.md"), "w") as f:
         f.write("\n".join(md))
@@ -252,12 +254,12 @@ def main(argv=None) -> None:
         from .chartpage import render
         with open(os.path.join(a.out, "bid_chart.html"), "w") as f:
             f.write(render(os.path.join(a.out, "bid_chart.json"), full=True))
-    for name, rows in (("bid_chart.csv", rows_csv), ("bid_chart_quarters.csv", rows_q)):
+    for name, rows in (("bid_chart.csv", rows_csv), ("bid_chart_simple.csv", rows_q)):
         with open(os.path.join(a.out, name), "w", newline="") as f:
             w = csv.DictWriter(f, fieldnames=["players", "trump", "cards", "lo", "hi", "kind", "value"])
             w.writeheader()
             w.writerows(rows)
-    print(f"wrote bid_chart.md / .html / .json / .csv, bid_cheat_sheet.md and bid_chart_quarters.csv to {a.out}")
+    print(f"wrote bid_chart.md / .html / .json / .csv, bid_cheat_sheet.md and bid_chart_simple.csv to {a.out}")
 
 
 if __name__ == "__main__":

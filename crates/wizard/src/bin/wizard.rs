@@ -12,6 +12,7 @@ use wizard::rng::Rng;
 use wizard::round::{Action, Phase, Round, TrumpSource};
 use wizard::rules::Rules;
 use wizard::search::SearchBot;
+use wizard::style::{Style, StyleBot};
 use wizard::view::View;
 
 const USAGE: &str = "usage:
@@ -24,6 +25,8 @@ const USAGE: &str = "usage:
              | chart:FILE (bids from a bid chart CSV, plays like counting)
              | search:FILE[:samples[:width]] (a network that looks ahead before bidding:
                plays out `samples` imagined deals for each of its top `width` bids; 32, 3)
+             | style:NAME:BOT (BOT with a habit: overbid, underbid, early-wizard, wild),
+               e.g. style:early-wizard:net:FILE
   --advisor  FILE: a trained network that shows you its predicted score for each option
   --in-turn  bid in turn (the printed rules) instead of everyone at once";
 
@@ -76,37 +79,46 @@ fn rules_for(a: &Args) -> Result<Rules, String> {
 }
 
 fn make_bots(names: &[String]) -> Result<Vec<Box<dyn Bot>>, String> {
-    names
-        .iter()
-        .map(|n| {
-            if let Some(path) = n.strip_prefix("net:") {
-                NetBot::load(path).map(|b| Box::new(b) as Box<dyn Bot>)
-            } else if let Some(spec) = n.strip_prefix("search:") {
-                // search:FILE[:samples[:width]]
-                let mut parts = spec.split(':');
-                let path = parts.next().unwrap_or_default();
-                let samples = parts
-                    .next()
-                    .map_or(Ok(32), str::parse)
-                    .map_err(|_| "bad search samples")?;
-                let width = parts
-                    .next()
-                    .map_or(Ok(3), str::parse)
-                    .map_err(|_| "bad search width")?;
-                let net = Mlp::load(path)?;
-                Ok(Box::new(SearchBot::new(
-                    net,
-                    format!("search:{path}"),
-                    samples,
-                    width,
-                )) as Box<dyn Bot>)
-            } else if let Some(path) = n.strip_prefix("chart:") {
-                ChartBot::load(path).map(|b| Box::new(b) as Box<dyn Bot>)
-            } else {
-                bots::by_name(n).ok_or(format!("unknown bot '{n}'"))
-            }
-        })
-        .collect()
+    names.iter().map(|n| make_bot(n)).collect()
+}
+
+fn make_bot(n: &str) -> Result<Box<dyn Bot>, String> {
+    if let Some(path) = n.strip_prefix("net:") {
+        NetBot::load(path).map(|b| Box::new(b) as Box<dyn Bot>)
+    } else if let Some(spec) = n.strip_prefix("search:") {
+        // search:FILE[:samples[:width]]
+        let mut parts = spec.split(':');
+        let path = parts.next().unwrap_or_default();
+        let samples = parts
+            .next()
+            .map_or(Ok(32), str::parse)
+            .map_err(|_| "bad search samples")?;
+        let width = parts
+            .next()
+            .map_or(Ok(3), str::parse)
+            .map_err(|_| "bad search width")?;
+        let net = Mlp::load(path)?;
+        Ok(Box::new(SearchBot::new(
+            net,
+            format!("search:{path}"),
+            samples,
+            width,
+        )) as Box<dyn Bot>)
+    } else if let Some(path) = n.strip_prefix("chart:") {
+        ChartBot::load(path).map(|b| Box::new(b) as Box<dyn Bot>)
+    } else if let Some(spec) = n.strip_prefix("style:") {
+        // style:NAME:BASE, e.g. style:early-wizard:net:FILE
+        let (name, base) = spec.split_once(':').ok_or("style:NAME:BASE")?;
+        let style = Style::parse(name).ok_or(format!(
+            "unknown style '{name}' (overbid, underbid, early-wizard, wild)"
+        ))?;
+        Ok(Box::new(StyleBot {
+            style,
+            base: make_bot(base)?,
+        }) as Box<dyn Bot>)
+    } else {
+        bots::by_name(n).ok_or(format!("unknown bot '{n}'"))
+    }
 }
 
 fn main() {

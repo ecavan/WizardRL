@@ -91,6 +91,7 @@ impl SearchBot {
         let unseen: Vec<Card> = cards(ALL_CARDS & !known).collect();
         let visible_bids = v.bids();
         let scores = v.scores().to_vec();
+        let history = v.history().to_vec();
         // One world per (sample, candidate), candidates sharing each sample's deal.
         let mut worlds: Vec<(Round, u8)> = Vec::with_capacity(self.samples * cands.len());
         for _ in 0..self.samples {
@@ -141,7 +142,7 @@ impl SearchBot {
                         round.apply(Action::Bid(*my_bid)).expect("a legal bid");
                         continue;
                     }
-                    let view = View::new(round, s, &scores);
+                    let view = View::with_history(round, s, &scores, &history);
                     let start = obs.len();
                     obs.resize(start + FEATURES, 0.0);
                     encode::observe(&view, &mut obs[start..]);

@@ -54,6 +54,8 @@ class Learner:
         self.opt = torch.optim.Adam(self.net.parameters(), lr=cfg.lr)
         self.state = LoopState()
         self.frozen: list[QNet] = []
+        # Optional habit per frozen network (see styles.py); None = plays normally.
+        self.styles: list[str | None] = []
         self.freezes = 0
         self.gen = torch.Generator(device="cpu")
         self.gen.manual_seed(seed)
@@ -99,7 +101,17 @@ class Learner:
         for k in np.unique(owner[~mine]):
             idx = torch.from_numpy(np.flatnonzero(owner == k))
             q = self.frozen[int(k) - 1](o[idx.to(self.device)]).cpu()
+            style = self.styles[int(k) - 1] if int(k) <= len(self.styles) else None
+            if style and style.startswith("soft"):
+                # a strong but imperfect player: moves drawn in proportion to exp(points / T)
+                temp = float(style[4:] or 10)
+                logits = (q * self.cfg.scale / temp).masked_fill(~lg[idx], float("-inf"))
+                actions[idx] = torch.multinomial(torch.softmax(logits, 1), 1, generator=self.gen).squeeze(1)
+                continue
             actions[idx] = pick_actions(q, lg[idx], 0.0)
+            if style:
+                from .styles import apply_style
+                actions[idx] = apply_style(style, actions[idx], o[idx.to(self.device)], lg[idx], self.gen)
         self.env.step(actions.numpy())
         d = self.env.drain()
         if len(d[1]):

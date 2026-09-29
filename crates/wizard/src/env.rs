@@ -20,7 +20,7 @@ use crate::encode::{self, ACTIONS, FEATURES};
 use crate::rng::Rng;
 use crate::round::Round;
 use crate::rules::{Rules, MAX_PLAYERS, MIN_PLAYERS};
-use crate::view::View;
+use crate::view::{SeatHistory, View};
 
 const SEATS: usize = MAX_PLAYERS as usize;
 
@@ -246,6 +246,7 @@ struct Table {
     /// Full games: scores so far by seat, the cards' random stream for the rest of the game,
     /// and the learner's decisions this game (seat, action, aux, made its bid that round).
     totals: [i32; SEATS],
+    history: [SeatHistory; SEATS],
     deal_rng: Rng,
     game_traj: Vec<(u8, u32, f32, f32)>,
     game_obs: Vec<f32>,
@@ -318,6 +319,7 @@ impl VecEnv {
                 pending: Stats::default(),
                 counted: 0,
                 totals: [0; SEATS],
+                history: [SeatHistory::default(); SEATS],
                 deal_rng: Rng::new(0),
                 game_traj: Vec::new(),
                 game_obs: Vec::new(),
@@ -497,6 +499,7 @@ impl VecEnv {
             t.dealt[s as usize] = t.round.hand(s);
         }
         t.totals = [0; SEATS];
+        t.history = [SeatHistory::default(); SEATS];
         t.deal_rng = rng; // the rest of the game's cards (duplicate replays get the same ones)
         t.game_traj.clear();
         t.game_obs.clear();
@@ -600,6 +603,7 @@ impl VecEnv {
                     if self.cfg.game {
                         for s in 0..n as usize {
                             t.totals[s] += scores[s];
+                            t.history[s].record(&t.round, s as u8);
                         }
                         if t.round.size() < t.round.rules().rounds() {
                             self.next_round(i);
@@ -673,24 +677,26 @@ impl VecEnv {
                 }
                 Some(seat) => match t.seats[seat as usize] {
                     Seat::Learner | Seat::Net(_) => {
-                        let scores: &[i32] = if self.cfg.game {
-                            &t.totals[..t.round.players() as usize]
+                        let np = t.round.players() as usize;
+                        let (scores, hist): (&[i32], &[SeatHistory]) = if self.cfg.game {
+                            (&t.totals[..np], &t.history[..np])
                         } else {
-                            &[]
+                            (&[], &[])
                         };
-                        let v = View::new(&t.round, seat, scores);
+                        let v = View::with_history(&t.round, seat, scores, hist);
                         encode::observe(&v, &mut t.obs);
                         encode::legal_mask(&v, &mut t.mask);
                         return;
                     }
                     kind => {
                         let a = {
-                            let scores: &[i32] = if self.cfg.game {
-                                &t.totals[..t.round.players() as usize]
+                            let np = t.round.players() as usize;
+                            let (scores, hist): (&[i32], &[SeatHistory]) = if self.cfg.game {
+                                (&t.totals[..np], &t.history[..np])
                             } else {
-                                &[]
+                                (&[], &[])
                             };
-                            let v = View::new(&t.round, seat, scores);
+                            let v = View::with_history(&t.round, seat, scores, hist);
                             match kind {
                                 Seat::Counting => CountingBot.act(&v, &mut t.rng),
                                 _ => RandomBot.act(&v, &mut t.rng),

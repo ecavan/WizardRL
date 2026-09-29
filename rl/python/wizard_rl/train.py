@@ -59,6 +59,10 @@ def main(argv=None) -> None:
     p.add_argument("--reference", default=None, help="checkpoint to measure against (e.g. an earlier run's best.pt)")
     p.add_argument("--opponent", default=None,
                    help="exploiter mode: every other seat is this fixed network (no frozen copies of the learner)")
+    p.add_argument("--styles", default=None,
+                   help="opponents with habits, e.g. overbid,underbid,early-wizard,wild,plain (use with --game); "
+                        "each is --style-net with that habit")
+    p.add_argument("--style-net", default=None, help="the network the styled opponents play with (default: --init)")
     p.add_argument("--init", default=None, help="start from this checkpoint's weights (new optimizer, new run)")
     p.add_argument("--resume", default=None, help="continue this run from its checkpoint")
     p.add_argument("--in-turn", action="store_true", help="bid in turn (printed rules) instead of all at once")
@@ -79,9 +83,14 @@ def main(argv=None) -> None:
     wl, wn, wc = (float(x) for x in a.mix.split(","))
     if a.opponent:
         wl, wn, wc = 0.0, 1.0, 0.0  # an exploiter faces only the target network
+    styles = a.styles.split(",") if a.styles else []
+    if styles and a.mix == p.get_default("mix"):
+        wl, wn, wc = 0.25, 0.75, 0.0  # mostly styled opponents, some copies of itself
     os.makedirs(a.out, exist_ok=True)
 
-    net = QNet(FEATURES, ACTIONS, a.hidden, a.layers, make_head=True)
+    # A resumed run keeps the inputs it started with (older runs read fewer features).
+    feats = torch.load(a.resume, map_location="cpu")["net"]["features"] if a.resume else FEATURES
+    net = QNet(feats, ACTIONS, a.hidden, a.layers, make_head=True)
     if a.init:
         warm_start(net, a.init)
         print(f"initialised from {a.init}")
@@ -91,6 +100,17 @@ def main(argv=None) -> None:
     env = WizardEnv(a.tables, players, dict(learner=wl, nets=wn, counting=wc), a.seed, False, sim, False, a.game, a.win_weight)
     learner = Learner(env, net, cfg, device, a.seed)
     reference = load_qnet(a.reference) if a.reference else None
+    if styles:
+        from .styles import STYLES
+        bad = [x for x in styles if x not in STYLES and not x.startswith("soft")]
+        if bad:
+            p.error(f"unknown styles {bad}; choose from {', '.join(STYLES)}")
+        base = load_qnet(a.style_net or a.init).to(device).eval()
+        for p_ in base.parameters():
+            p_.requires_grad_(False)
+        learner.frozen = [base] * len(styles)
+        learner.styles = styles
+        env.set_nets(len(styles))
     if a.opponent:
         target = load_qnet(a.opponent).to(device).eval()
         for p_ in target.parameters():
@@ -100,12 +120,12 @@ def main(argv=None) -> None:
     best_edge = float("-inf")
     if a.resume:
         ck = torch.load(a.resume, map_location="cpu")
-        net.load_state_dict(ck["model"])
+        net.load_state_dict(ck["model"])  # (a run keeps the feature count it started with)
         learner.opt.load_state_dict(ck["opt"])
         learner.state.decisions = ck["decisions"]
         learner.state.updates = ck.get("updates", 0)
         best_edge = ck.get("best_edge", best_edge)
-        for sd in ck.get("pool", []) if not a.opponent else []:  # an exploiter's pool is its target
+        for sd in ck.get("pool", []) if not (a.opponent or styles) else []:  # a fixed pool isn't restored
             learner.freeze(a.pool)
             learner.frozen[-1].load_state_dict(sd)
         print(f"resumed from {a.resume} at {learner.state.decisions:,} decisions, pool {len(learner.frozen)}")
@@ -133,7 +153,7 @@ def main(argv=None) -> None:
         now = time.time()
         dps = (lr.state.decisions - last["d"]) / max(1e-9, now - last["t"])
         # (a small tolerance: ticks land a few decisions either side of their mark)
-        if not a.opponent and lr.state.decisions - last["snap"] >= 0.95 * a.snapshot_every:
+        if not (a.opponent or styles) and lr.state.decisions - last["snap"] >= 0.95 * a.snapshot_every:
             lr.freeze(a.pool)
             last["snap"] = lr.state.decisions
         if lr.state.decisions - last["eval"] < 0.95 * a.eval_every:
@@ -179,7 +199,7 @@ def main(argv=None) -> None:
 
     print(f"training on {device}; {'full games, reward: win' + (f' {a.win_weight:g} + placement' if a.win_weight < 1 else '') if a.game else 'lone rounds, reward: round score'}; "
           f"bids {'all at once' if sim else 'in turn'}; tables {a.tables}; players {players}; "
-          f"{'exploiting ' + a.opponent + ' (every other seat)' if a.opponent else 'seats learner/frozen/counting ' + a.mix}; "
+          f"{'exploiting ' + a.opponent + ' (every other seat)' if a.opponent else ('styled opponents ' + ','.join(styles) + f' ({wn:.0%} of seats)') if styles else 'seats learner/frozen/counting ' + a.mix}; "
           f"network {net.config()}; out {a.out}", flush=True)
     more = a.decisions
     if a.until is not None:

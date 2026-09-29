@@ -5,7 +5,7 @@ use crate::card::Suit;
 use crate::rng::Rng;
 use crate::round::{Action, Phase, Round};
 use crate::rules::Rules;
-use crate::view::View;
+use crate::view::{SeatHistory, View};
 
 #[derive(Clone, Debug)]
 pub struct RoundRecord {
@@ -32,11 +32,22 @@ pub fn play_round(
     scores: &[i32],
     rng: &mut Rng,
 ) -> u64 {
+    play_round_with(round, bots, scores, &[], rng)
+}
+
+/// `play_round` inside a game: the bots also see how everyone has played so far.
+pub fn play_round_with(
+    round: &mut Round,
+    bots: &mut [&mut dyn Bot],
+    scores: &[i32],
+    history: &[SeatHistory],
+    rng: &mut Rng,
+) -> u64 {
     assert_eq!(bots.len(), round.players() as usize);
     let mut decisions = 0;
     while let Some(seat) = round.to_act() {
         let a: Action = {
-            let v = View::new(round, seat, scores);
+            let v = View::with_history(round, seat, scores, history);
             bots[seat as usize].act(&v, rng)
         };
         if let Err(e) = round.apply(a) {
@@ -77,6 +88,7 @@ fn run_game(
     rules.validate().expect("valid rules");
     let n = rules.players;
     let mut totals = vec![0i32; n as usize];
+    let mut history = vec![SeatHistory::default(); n as usize];
     let mut rounds = Vec::with_capacity(rules.rounds() as usize);
     let mut decisions = 0;
     let mut dealer = match deals.as_deref_mut() {
@@ -88,7 +100,10 @@ fn run_game(
             Some(d) => Round::deal(rules, size, dealer, d),
             None => Round::deal(rules, size, dealer, rng),
         };
-        decisions += play_round(&mut round, bots, &totals, rng);
+        decisions += play_round_with(&mut round, bots, &totals, &history, rng);
+        for (s, h) in history.iter_mut().enumerate() {
+            h.record(&round, s as u8);
+        }
         let scores = round.scores().expect("round finished");
         for (t, s) in totals.iter_mut().zip(&scores) {
             *t += s;

@@ -1,0 +1,481 @@
+players,trump,cards,lo,hi,kind,value
+3,trump,1 card,1,1,Wizard,0.8999999761581421
+3,trump,1 card,1,1,Jester,0.0
+3,trump,1 card,1,1,trump A,0.8999999761581421
+3,trump,1 card,1,1,trump K,0.800000011920929
+3,trump,1 card,1,1,trump Q,0.800000011920929
+3,trump,1 card,1,1,trump J,0.699999988079071
+3,trump,1 card,1,1,trump 10-7,0.699999988079071
+3,trump,1 card,1,1,trump 6-2,0.6000000238418579
+3,trump,1 card,1,1,off-suit A,0.30000001192092896
+3,trump,1 card,1,1,off-suit K,0.30000001192092896
+3,trump,1 card,1,1,off-suit Q,0.30000001192092896
+3,trump,1 card,1,1,off-suit J,0.20000000298023224
+3,trump,1 card,1,1,off-suit 10-2,0.20000000298023224
+3,trump,2 cards,2,2,Wizard,0.8999999761581421
+3,trump,2 cards,2,2,Jester,-0.10000000149011612
+3,trump,2 cards,2,2,trump A,0.8999999761581421
+3,trump,2 cards,2,2,trump K,0.8999999761581421
+3,trump,2 cards,2,2,trump Q,0.800000011920929
+3,trump,2 cards,2,2,trump J,0.800000011920929
+3,trump,2 cards,2,2,trump 10-7,0.699999988079071
+3,trump,2 cards,2,2,trump 6-2,0.6000000238418579
+3,trump,2 cards,2,2,off-suit A,0.30000001192092896
+3,trump,2 cards,2,2,off-suit K,0.30000001192092896
+3,trump,2 cards,2,2,off-suit Q,0.30000001192092896
+3,trump,2 cards,2,2,off-suit J,0.20000000298023224
+3,trump,2 cards,2,2,off-suit 10-2,0.10000000149011612
+3,trump,3-4 cards,3,4,Wizard,0.8999999761581421
+3,trump,3-4 cards,3,4,Jester,-0.10000000149011612
+3,trump,3-4 cards,3,4,trump A,0.8999999761581421
+3,trump,3-4 cards,3,4,trump K,0.8999999761581421
+3,trump,3-4 cards,3,4,trump Q,0.8999999761581421
+3,trump,3-4 cards,3,4,trump J,0.800000011920929
+3,trump,3-4 cards,3,4,trump 10-7,0.800000011920929
+3,trump,3-4 cards,3,4,trump 6-2,0.6000000238418579
+3,trump,3-4 cards,3,4,off-suit A,0.4000000059604645
+3,trump,3-4 cards,3,4,off-suit K,0.30000001192092896
+3,trump,3-4 cards,3,4,off-suit Q,0.30000001192092896
+3,trump,3-4 cards,3,4,off-suit J,0.30000001192092896
+3,trump,3-4 cards,3,4,off-suit 10-2,0.10000000149011612
+3,trump,5-7 cards,5,7,Wizard,0.8999999761581421
+3,trump,5-7 cards,5,7,Jester,-0.0
+3,trump,5-7 cards,5,7,trump A,0.8999999761581421
+3,trump,5-7 cards,5,7,trump K,0.8999999761581421
+3,trump,5-7 cards,5,7,trump Q,0.8999999761581421
+3,trump,5-7 cards,5,7,trump J,0.800000011920929
+3,trump,5-7 cards,5,7,trump 10-7,0.699999988079071
+3,trump,5-7 cards,5,7,trump 6-2,0.6000000238418579
+3,trump,5-7 cards,5,7,off-suit A,0.5
+3,trump,5-7 cards,5,7,off-suit K,0.4000000059604645
+3,trump,5-7 cards,5,7,off-suit Q,0.30000001192092896
+3,trump,5-7 cards,5,7,off-suit J,0.30000001192092896
+3,trump,5-7 cards,5,7,off-suit 10-2,0.10000000149011612
+3,trump,8-10 cards,8,10,Wizard,0.8999999761581421
+3,trump,8-10 cards,8,10,Jester,-0.0
+3,trump,8-10 cards,8,10,trump A,0.8999999761581421
+3,trump,8-10 cards,8,10,trump K,0.800000011920929
+3,trump,8-10 cards,8,10,trump Q,0.800000011920929
+3,trump,8-10 cards,8,10,trump J,0.800000011920929
+3,trump,8-10 cards,8,10,trump 10-7,0.699999988079071
+3,trump,8-10 cards,8,10,trump 6-2,0.5
+3,trump,8-10 cards,8,10,off-suit A,0.6000000238418579
+3,trump,8-10 cards,8,10,off-suit K,0.5
+3,trump,8-10 cards,8,10,off-suit Q,0.30000001192092896
+3,trump,8-10 cards,8,10,off-suit J,0.30000001192092896
+3,trump,8-10 cards,8,10,off-suit 10-2,0.10000000149011612
+3,trump,11-15 cards,11,15,Wizard,1.0
+3,trump,11-15 cards,11,15,Jester,-0.0
+3,trump,11-15 cards,11,15,trump A,0.8999999761581421
+3,trump,11-15 cards,11,15,trump K,0.800000011920929
+3,trump,11-15 cards,11,15,trump Q,0.800000011920929
+3,trump,11-15 cards,11,15,trump J,0.699999988079071
+3,trump,11-15 cards,11,15,trump 10-7,0.6000000238418579
+3,trump,11-15 cards,11,15,trump 6-2,0.5
+3,trump,11-15 cards,11,15,off-suit A,0.699999988079071
+3,trump,11-15 cards,11,15,off-suit K,0.5
+3,trump,11-15 cards,11,15,off-suit Q,0.4000000059604645
+3,trump,11-15 cards,11,15,off-suit J,0.30000001192092896
+3,trump,11-15 cards,11,15,off-suit 10-2,0.10000000149011612
+3,trump,16-20 cards,16,20,Wizard,1.2000000476837158
+3,trump,16-20 cards,16,20,Jester,-0.10000000149011612
+3,trump,16-20 cards,16,20,trump A,1.0
+3,trump,16-20 cards,16,20,trump K,0.8999999761581421
+3,trump,16-20 cards,16,20,trump Q,0.800000011920929
+3,trump,16-20 cards,16,20,trump J,0.800000011920929
+3,trump,16-20 cards,16,20,trump 10-7,0.6000000238418579
+3,trump,16-20 cards,16,20,trump 6-2,0.5
+3,trump,16-20 cards,16,20,off-suit A,0.800000011920929
+3,trump,16-20 cards,16,20,off-suit K,0.6000000238418579
+3,trump,16-20 cards,16,20,off-suit Q,0.4000000059604645
+3,trump,16-20 cards,16,20,off-suit J,0.30000001192092896
+3,trump,16-20 cards,16,20,off-suit 10-2,0.10000000149011612
+3,no_trump,1 card,1,1,Wizard,0.8999999761581421
+3,no_trump,1 card,1,1,Jester,0.0
+3,no_trump,1 card,1,1,off-suit A,0.4000000059604645
+3,no_trump,1 card,1,1,off-suit K,0.4000000059604645
+3,no_trump,1 card,1,1,off-suit Q,0.4000000059604645
+3,no_trump,1 card,1,1,off-suit J,0.4000000059604645
+3,no_trump,1 card,1,1,off-suit 10-2,0.30000001192092896
+3,no_trump,2 cards,2,2,Wizard,1.100000023841858
+3,no_trump,2 cards,2,2,Jester,-0.20000000298023224
+3,no_trump,2 cards,2,2,off-suit A,0.6000000238418579
+3,no_trump,2 cards,2,2,off-suit K,0.5
+3,no_trump,2 cards,2,2,off-suit Q,0.5
+3,no_trump,2 cards,2,2,off-suit J,0.5
+3,no_trump,2 cards,2,2,off-suit 10-2,0.20000000298023224
+3,no_trump,3-4 cards,3,4,Wizard,1.2000000476837158
+3,no_trump,3-4 cards,3,4,Jester,-0.30000001192092896
+3,no_trump,3-4 cards,3,4,off-suit A,0.800000011920929
+3,no_trump,3-4 cards,3,4,off-suit K,0.6000000238418579
+3,no_trump,3-4 cards,3,4,off-suit Q,0.5
+3,no_trump,3-4 cards,3,4,off-suit J,0.4000000059604645
+3,no_trump,3-4 cards,3,4,off-suit 10-2,0.20000000298023224
+3,no_trump,5-7 cards,5,7,Wizard,1.100000023841858
+3,no_trump,5-7 cards,5,7,Jester,-0.20000000298023224
+3,no_trump,5-7 cards,5,7,off-suit A,0.800000011920929
+3,no_trump,5-7 cards,5,7,off-suit K,0.699999988079071
+3,no_trump,5-7 cards,5,7,off-suit Q,0.6000000238418579
+3,no_trump,5-7 cards,5,7,off-suit J,0.5
+3,no_trump,5-7 cards,5,7,off-suit 10-2,0.20000000298023224
+3,no_trump,8-10 cards,8,10,Wizard,1.0
+3,no_trump,8-10 cards,8,10,Jester,-0.20000000298023224
+3,no_trump,8-10 cards,8,10,off-suit A,0.800000011920929
+3,no_trump,8-10 cards,8,10,off-suit K,0.699999988079071
+3,no_trump,8-10 cards,8,10,off-suit Q,0.6000000238418579
+3,no_trump,8-10 cards,8,10,off-suit J,0.5
+3,no_trump,8-10 cards,8,10,off-suit 10-2,0.20000000298023224
+3,no_trump,11-15 cards,11,15,Wizard,1.0
+3,no_trump,11-15 cards,11,15,Jester,-0.20000000298023224
+3,no_trump,11-15 cards,11,15,off-suit A,0.800000011920929
+3,no_trump,11-15 cards,11,15,off-suit K,0.699999988079071
+3,no_trump,11-15 cards,11,15,off-suit Q,0.6000000238418579
+3,no_trump,11-15 cards,11,15,off-suit J,0.5
+3,no_trump,11-15 cards,11,15,off-suit 10-2,0.20000000298023224
+3,no_trump,16-20 cards,16,20,Wizard,1.399999976158142
+3,no_trump,16-20 cards,16,20,Jester,-0.4000000059604645
+3,no_trump,16-20 cards,16,20,off-suit A,1.0
+3,no_trump,16-20 cards,16,20,off-suit K,0.800000011920929
+3,no_trump,16-20 cards,16,20,off-suit Q,0.699999988079071
+3,no_trump,16-20 cards,16,20,off-suit J,0.5
+3,no_trump,16-20 cards,16,20,off-suit 10-2,0.10000000149011612
+4,trump,1 card,1,1,Wizard,0.8999999761581421
+4,trump,1 card,1,1,Jester,0.0
+4,trump,1 card,1,1,trump A,0.800000011920929
+4,trump,1 card,1,1,trump K,0.800000011920929
+4,trump,1 card,1,1,trump Q,0.699999988079071
+4,trump,1 card,1,1,trump J,0.699999988079071
+4,trump,1 card,1,1,trump 10-7,0.6000000238418579
+4,trump,1 card,1,1,trump 6-2,0.5
+4,trump,1 card,1,1,off-suit A,0.20000000298023224
+4,trump,1 card,1,1,off-suit K,0.20000000298023224
+4,trump,1 card,1,1,off-suit Q,0.20000000298023224
+4,trump,1 card,1,1,off-suit J,0.10000000149011612
+4,trump,1 card,1,1,off-suit 10-2,0.10000000149011612
+4,trump,2 cards,2,2,Wizard,0.8999999761581421
+4,trump,2 cards,2,2,Jester,-0.0
+4,trump,2 cards,2,2,trump A,0.8999999761581421
+4,trump,2 cards,2,2,trump K,0.800000011920929
+4,trump,2 cards,2,2,trump Q,0.800000011920929
+4,trump,2 cards,2,2,trump J,0.800000011920929
+4,trump,2 cards,2,2,trump 10-7,0.699999988079071
+4,trump,2 cards,2,2,trump 6-2,0.4000000059604645
+4,trump,2 cards,2,2,off-suit A,0.20000000298023224
+4,trump,2 cards,2,2,off-suit K,0.20000000298023224
+4,trump,2 cards,2,2,off-suit Q,0.20000000298023224
+4,trump,2 cards,2,2,off-suit J,0.20000000298023224
+4,trump,2 cards,2,2,off-suit 10-2,0.10000000149011612
+4,trump,3-4 cards,3,4,Wizard,0.8999999761581421
+4,trump,3-4 cards,3,4,Jester,-0.10000000149011612
+4,trump,3-4 cards,3,4,trump A,0.8999999761581421
+4,trump,3-4 cards,3,4,trump K,0.8999999761581421
+4,trump,3-4 cards,3,4,trump Q,0.800000011920929
+4,trump,3-4 cards,3,4,trump J,0.800000011920929
+4,trump,3-4 cards,3,4,trump 10-7,0.699999988079071
+4,trump,3-4 cards,3,4,trump 6-2,0.4000000059604645
+4,trump,3-4 cards,3,4,off-suit A,0.30000001192092896
+4,trump,3-4 cards,3,4,off-suit K,0.20000000298023224
+4,trump,3-4 cards,3,4,off-suit Q,0.20000000298023224
+4,trump,3-4 cards,3,4,off-suit J,0.20000000298023224
+4,trump,3-4 cards,3,4,off-suit 10-2,0.10000000149011612
+4,trump,5-7 cards,5,7,Wizard,0.8999999761581421
+4,trump,5-7 cards,5,7,Jester,-0.0
+4,trump,5-7 cards,5,7,trump A,0.8999999761581421
+4,trump,5-7 cards,5,7,trump K,0.800000011920929
+4,trump,5-7 cards,5,7,trump Q,0.800000011920929
+4,trump,5-7 cards,5,7,trump J,0.699999988079071
+4,trump,5-7 cards,5,7,trump 10-7,0.6000000238418579
+4,trump,5-7 cards,5,7,trump 6-2,0.4000000059604645
+4,trump,5-7 cards,5,7,off-suit A,0.4000000059604645
+4,trump,5-7 cards,5,7,off-suit K,0.30000001192092896
+4,trump,5-7 cards,5,7,off-suit Q,0.20000000298023224
+4,trump,5-7 cards,5,7,off-suit J,0.20000000298023224
+4,trump,5-7 cards,5,7,off-suit 10-2,0.0
+4,trump,8-10 cards,8,10,Wizard,1.0
+4,trump,8-10 cards,8,10,Jester,-0.0
+4,trump,8-10 cards,8,10,trump A,0.8999999761581421
+4,trump,8-10 cards,8,10,trump K,0.800000011920929
+4,trump,8-10 cards,8,10,trump Q,0.800000011920929
+4,trump,8-10 cards,8,10,trump J,0.699999988079071
+4,trump,8-10 cards,8,10,trump 10-7,0.6000000238418579
+4,trump,8-10 cards,8,10,trump 6-2,0.4000000059604645
+4,trump,8-10 cards,8,10,off-suit A,0.5
+4,trump,8-10 cards,8,10,off-suit K,0.30000001192092896
+4,trump,8-10 cards,8,10,off-suit Q,0.20000000298023224
+4,trump,8-10 cards,8,10,off-suit J,0.10000000149011612
+4,trump,8-10 cards,8,10,off-suit 10-2,0.0
+4,trump,11-15 cards,11,15,Wizard,1.100000023841858
+4,trump,11-15 cards,11,15,Jester,0.0
+4,trump,11-15 cards,11,15,trump A,0.8999999761581421
+4,trump,11-15 cards,11,15,trump K,0.800000011920929
+4,trump,11-15 cards,11,15,trump Q,0.699999988079071
+4,trump,11-15 cards,11,15,trump J,0.699999988079071
+4,trump,11-15 cards,11,15,trump 10-7,0.5
+4,trump,11-15 cards,11,15,trump 6-2,0.4000000059604645
+4,trump,11-15 cards,11,15,off-suit A,0.6000000238418579
+4,trump,11-15 cards,11,15,off-suit K,0.4000000059604645
+4,trump,11-15 cards,11,15,off-suit Q,0.20000000298023224
+4,trump,11-15 cards,11,15,off-suit J,0.10000000149011612
+4,trump,11-15 cards,11,15,off-suit 10-2,-0.0
+4,no_trump,1 card,1,1,Wizard,0.8999999761581421
+4,no_trump,1 card,1,1,Jester,0.0
+4,no_trump,1 card,1,1,off-suit A,0.4000000059604645
+4,no_trump,1 card,1,1,off-suit K,0.30000001192092896
+4,no_trump,1 card,1,1,off-suit Q,0.30000001192092896
+4,no_trump,1 card,1,1,off-suit J,0.30000001192092896
+4,no_trump,1 card,1,1,off-suit 10-2,0.20000000298023224
+4,no_trump,2 cards,2,2,Wizard,1.0
+4,no_trump,2 cards,2,2,Jester,-0.10000000149011612
+4,no_trump,2 cards,2,2,off-suit A,0.5
+4,no_trump,2 cards,2,2,off-suit K,0.4000000059604645
+4,no_trump,2 cards,2,2,off-suit Q,0.4000000059604645
+4,no_trump,2 cards,2,2,off-suit J,0.30000001192092896
+4,no_trump,2 cards,2,2,off-suit 10-2,0.10000000149011612
+4,no_trump,3-4 cards,3,4,Wizard,1.100000023841858
+4,no_trump,3-4 cards,3,4,Jester,-0.20000000298023224
+4,no_trump,3-4 cards,3,4,off-suit A,0.699999988079071
+4,no_trump,3-4 cards,3,4,off-suit K,0.5
+4,no_trump,3-4 cards,3,4,off-suit Q,0.4000000059604645
+4,no_trump,3-4 cards,3,4,off-suit J,0.30000001192092896
+4,no_trump,3-4 cards,3,4,off-suit 10-2,0.10000000149011612
+4,no_trump,5-7 cards,5,7,Wizard,1.100000023841858
+4,no_trump,5-7 cards,5,7,Jester,-0.20000000298023224
+4,no_trump,5-7 cards,5,7,off-suit A,0.800000011920929
+4,no_trump,5-7 cards,5,7,off-suit K,0.5
+4,no_trump,5-7 cards,5,7,off-suit Q,0.4000000059604645
+4,no_trump,5-7 cards,5,7,off-suit J,0.30000001192092896
+4,no_trump,5-7 cards,5,7,off-suit 10-2,0.10000000149011612
+4,no_trump,8-10 cards,8,10,Wizard,1.100000023841858
+4,no_trump,8-10 cards,8,10,Jester,-0.20000000298023224
+4,no_trump,8-10 cards,8,10,off-suit A,0.800000011920929
+4,no_trump,8-10 cards,8,10,off-suit K,0.6000000238418579
+4,no_trump,8-10 cards,8,10,off-suit Q,0.4000000059604645
+4,no_trump,8-10 cards,8,10,off-suit J,0.30000001192092896
+4,no_trump,8-10 cards,8,10,off-suit 10-2,0.10000000149011612
+4,no_trump,11-15 cards,11,15,Wizard,1.2999999523162842
+4,no_trump,11-15 cards,11,15,Jester,-0.20000000298023224
+4,no_trump,11-15 cards,11,15,off-suit A,0.8999999761581421
+4,no_trump,11-15 cards,11,15,off-suit K,0.699999988079071
+4,no_trump,11-15 cards,11,15,off-suit Q,0.5
+4,no_trump,11-15 cards,11,15,off-suit J,0.30000001192092896
+4,no_trump,11-15 cards,11,15,off-suit 10-2,0.0
+5,trump,1 card,1,1,Wizard,0.8999999761581421
+5,trump,1 card,1,1,Jester,0.0
+5,trump,1 card,1,1,trump A,0.699999988079071
+5,trump,1 card,1,1,trump K,0.699999988079071
+5,trump,1 card,1,1,trump Q,0.699999988079071
+5,trump,1 card,1,1,trump J,0.6000000238418579
+5,trump,1 card,1,1,trump 10-7,0.5
+5,trump,1 card,1,1,trump 6-2,0.4000000059604645
+5,trump,1 card,1,1,off-suit A,0.10000000149011612
+5,trump,1 card,1,1,off-suit K,0.10000000149011612
+5,trump,1 card,1,1,off-suit Q,0.10000000149011612
+5,trump,1 card,1,1,off-suit J,0.10000000149011612
+5,trump,1 card,1,1,off-suit 10-2,0.0
+5,trump,2 cards,2,2,Wizard,0.8999999761581421
+5,trump,2 cards,2,2,Jester,-0.0
+5,trump,2 cards,2,2,trump A,0.8999999761581421
+5,trump,2 cards,2,2,trump K,0.800000011920929
+5,trump,2 cards,2,2,trump Q,0.699999988079071
+5,trump,2 cards,2,2,trump J,0.699999988079071
+5,trump,2 cards,2,2,trump 10-7,0.5
+5,trump,2 cards,2,2,trump 6-2,0.20000000298023224
+5,trump,2 cards,2,2,off-suit A,0.10000000149011612
+5,trump,2 cards,2,2,off-suit K,0.10000000149011612
+5,trump,2 cards,2,2,off-suit Q,0.10000000149011612
+5,trump,2 cards,2,2,off-suit J,0.10000000149011612
+5,trump,2 cards,2,2,off-suit 10-2,0.0
+5,trump,3-4 cards,3,4,Wizard,0.8999999761581421
+5,trump,3-4 cards,3,4,Jester,-0.10000000149011612
+5,trump,3-4 cards,3,4,trump A,0.8999999761581421
+5,trump,3-4 cards,3,4,trump K,0.800000011920929
+5,trump,3-4 cards,3,4,trump Q,0.800000011920929
+5,trump,3-4 cards,3,4,trump J,0.699999988079071
+5,trump,3-4 cards,3,4,trump 10-7,0.5
+5,trump,3-4 cards,3,4,trump 6-2,0.20000000298023224
+5,trump,3-4 cards,3,4,off-suit A,0.20000000298023224
+5,trump,3-4 cards,3,4,off-suit K,0.10000000149011612
+5,trump,3-4 cards,3,4,off-suit Q,0.10000000149011612
+5,trump,3-4 cards,3,4,off-suit J,0.10000000149011612
+5,trump,3-4 cards,3,4,off-suit 10-2,0.0
+5,trump,5-7 cards,5,7,Wizard,1.0
+5,trump,5-7 cards,5,7,Jester,-0.0
+5,trump,5-7 cards,5,7,trump A,0.8999999761581421
+5,trump,5-7 cards,5,7,trump K,0.800000011920929
+5,trump,5-7 cards,5,7,trump Q,0.699999988079071
+5,trump,5-7 cards,5,7,trump J,0.699999988079071
+5,trump,5-7 cards,5,7,trump 10-7,0.5
+5,trump,5-7 cards,5,7,trump 6-2,0.30000001192092896
+5,trump,5-7 cards,5,7,off-suit A,0.30000001192092896
+5,trump,5-7 cards,5,7,off-suit K,0.20000000298023224
+5,trump,5-7 cards,5,7,off-suit Q,0.10000000149011612
+5,trump,5-7 cards,5,7,off-suit J,0.10000000149011612
+5,trump,5-7 cards,5,7,off-suit 10-2,-0.0
+5,trump,8-10 cards,8,10,Wizard,1.0
+5,trump,8-10 cards,8,10,Jester,0.0
+5,trump,8-10 cards,8,10,trump A,0.8999999761581421
+5,trump,8-10 cards,8,10,trump K,0.800000011920929
+5,trump,8-10 cards,8,10,trump Q,0.699999988079071
+5,trump,8-10 cards,8,10,trump J,0.6000000238418579
+5,trump,8-10 cards,8,10,trump 10-7,0.5
+5,trump,8-10 cards,8,10,trump 6-2,0.30000001192092896
+5,trump,8-10 cards,8,10,off-suit A,0.4000000059604645
+5,trump,8-10 cards,8,10,off-suit K,0.20000000298023224
+5,trump,8-10 cards,8,10,off-suit Q,0.10000000149011612
+5,trump,8-10 cards,8,10,off-suit J,0.10000000149011612
+5,trump,8-10 cards,8,10,off-suit 10-2,-0.0
+5,trump,11-12 cards,11,12,Wizard,1.100000023841858
+5,trump,11-12 cards,11,12,Jester,0.0
+5,trump,11-12 cards,11,12,trump A,0.8999999761581421
+5,trump,11-12 cards,11,12,trump K,0.800000011920929
+5,trump,11-12 cards,11,12,trump Q,0.699999988079071
+5,trump,11-12 cards,11,12,trump J,0.6000000238418579
+5,trump,11-12 cards,11,12,trump 10-7,0.5
+5,trump,11-12 cards,11,12,trump 6-2,0.30000001192092896
+5,trump,11-12 cards,11,12,off-suit A,0.5
+5,trump,11-12 cards,11,12,off-suit K,0.20000000298023224
+5,trump,11-12 cards,11,12,off-suit Q,0.10000000149011612
+5,trump,11-12 cards,11,12,off-suit J,0.0
+5,trump,11-12 cards,11,12,off-suit 10-2,-0.10000000149011612
+5,no_trump,1 card,1,1,Wizard,0.8999999761581421
+5,no_trump,1 card,1,1,Jester,0.0
+5,no_trump,1 card,1,1,off-suit A,0.30000001192092896
+5,no_trump,1 card,1,1,off-suit K,0.30000001192092896
+5,no_trump,1 card,1,1,off-suit Q,0.20000000298023224
+5,no_trump,1 card,1,1,off-suit J,0.20000000298023224
+5,no_trump,1 card,1,1,off-suit 10-2,0.10000000149011612
+5,no_trump,2 cards,2,2,Wizard,1.0
+5,no_trump,2 cards,2,2,Jester,-0.10000000149011612
+5,no_trump,2 cards,2,2,off-suit A,0.4000000059604645
+5,no_trump,2 cards,2,2,off-suit K,0.4000000059604645
+5,no_trump,2 cards,2,2,off-suit Q,0.20000000298023224
+5,no_trump,2 cards,2,2,off-suit J,0.20000000298023224
+5,no_trump,2 cards,2,2,off-suit 10-2,0.10000000149011612
+5,no_trump,3-4 cards,3,4,Wizard,1.0
+5,no_trump,3-4 cards,3,4,Jester,-0.20000000298023224
+5,no_trump,3-4 cards,3,4,off-suit A,0.6000000238418579
+5,no_trump,3-4 cards,3,4,off-suit K,0.4000000059604645
+5,no_trump,3-4 cards,3,4,off-suit Q,0.30000001192092896
+5,no_trump,3-4 cards,3,4,off-suit J,0.30000001192092896
+5,no_trump,3-4 cards,3,4,off-suit 10-2,0.10000000149011612
+5,no_trump,5-7 cards,5,7,Wizard,1.100000023841858
+5,no_trump,5-7 cards,5,7,Jester,-0.20000000298023224
+5,no_trump,5-7 cards,5,7,off-suit A,0.699999988079071
+5,no_trump,5-7 cards,5,7,off-suit K,0.5
+5,no_trump,5-7 cards,5,7,off-suit Q,0.30000001192092896
+5,no_trump,5-7 cards,5,7,off-suit J,0.20000000298023224
+5,no_trump,5-7 cards,5,7,off-suit 10-2,0.0
+5,no_trump,8-10 cards,8,10,Wizard,1.2000000476837158
+5,no_trump,8-10 cards,8,10,Jester,-0.10000000149011612
+5,no_trump,8-10 cards,8,10,off-suit A,0.800000011920929
+5,no_trump,8-10 cards,8,10,off-suit K,0.5
+5,no_trump,8-10 cards,8,10,off-suit Q,0.30000001192092896
+5,no_trump,8-10 cards,8,10,off-suit J,0.20000000298023224
+5,no_trump,8-10 cards,8,10,off-suit 10-2,0.0
+5,no_trump,11-12 cards,11,12,Wizard,1.2999999523162842
+5,no_trump,11-12 cards,11,12,Jester,-0.10000000149011612
+5,no_trump,11-12 cards,11,12,off-suit A,0.800000011920929
+5,no_trump,11-12 cards,11,12,off-suit K,0.6000000238418579
+5,no_trump,11-12 cards,11,12,off-suit Q,0.30000001192092896
+5,no_trump,11-12 cards,11,12,off-suit J,0.20000000298023224
+5,no_trump,11-12 cards,11,12,off-suit 10-2,-0.0
+6,trump,1 card,1,1,Wizard,0.8999999761581421
+6,trump,1 card,1,1,Jester,0.0
+6,trump,1 card,1,1,trump A,0.699999988079071
+6,trump,1 card,1,1,trump K,0.6000000238418579
+6,trump,1 card,1,1,trump Q,0.6000000238418579
+6,trump,1 card,1,1,trump J,0.5
+6,trump,1 card,1,1,trump 10-7,0.4000000059604645
+6,trump,1 card,1,1,trump 6-2,0.30000001192092896
+6,trump,1 card,1,1,off-suit A,0.10000000149011612
+6,trump,1 card,1,1,off-suit K,0.10000000149011612
+6,trump,1 card,1,1,off-suit Q,0.10000000149011612
+6,trump,1 card,1,1,off-suit J,0.10000000149011612
+6,trump,1 card,1,1,off-suit 10-2,0.0
+6,trump,2 cards,2,2,Wizard,0.8999999761581421
+6,trump,2 cards,2,2,Jester,-0.0
+6,trump,2 cards,2,2,trump A,0.800000011920929
+6,trump,2 cards,2,2,trump K,0.699999988079071
+6,trump,2 cards,2,2,trump Q,0.699999988079071
+6,trump,2 cards,2,2,trump J,0.6000000238418579
+6,trump,2 cards,2,2,trump 10-7,0.4000000059604645
+6,trump,2 cards,2,2,trump 6-2,0.20000000298023224
+6,trump,2 cards,2,2,off-suit A,0.10000000149011612
+6,trump,2 cards,2,2,off-suit K,0.10000000149011612
+6,trump,2 cards,2,2,off-suit Q,0.10000000149011612
+6,trump,2 cards,2,2,off-suit J,0.10000000149011612
+6,trump,2 cards,2,2,off-suit 10-2,0.0
+6,trump,3-4 cards,3,4,Wizard,0.8999999761581421
+6,trump,3-4 cards,3,4,Jester,-0.0
+6,trump,3-4 cards,3,4,trump A,0.8999999761581421
+6,trump,3-4 cards,3,4,trump K,0.800000011920929
+6,trump,3-4 cards,3,4,trump Q,0.699999988079071
+6,trump,3-4 cards,3,4,trump J,0.6000000238418579
+6,trump,3-4 cards,3,4,trump 10-7,0.30000001192092896
+6,trump,3-4 cards,3,4,trump 6-2,0.20000000298023224
+6,trump,3-4 cards,3,4,off-suit A,0.10000000149011612
+6,trump,3-4 cards,3,4,off-suit K,0.10000000149011612
+6,trump,3-4 cards,3,4,off-suit Q,0.10000000149011612
+6,trump,3-4 cards,3,4,off-suit J,0.10000000149011612
+6,trump,3-4 cards,3,4,off-suit 10-2,0.0
+6,trump,5-7 cards,5,7,Wizard,1.0
+6,trump,5-7 cards,5,7,Jester,-0.0
+6,trump,5-7 cards,5,7,trump A,0.8999999761581421
+6,trump,5-7 cards,5,7,trump K,0.800000011920929
+6,trump,5-7 cards,5,7,trump Q,0.699999988079071
+6,trump,5-7 cards,5,7,trump J,0.6000000238418579
+6,trump,5-7 cards,5,7,trump 10-7,0.4000000059604645
+6,trump,5-7 cards,5,7,trump 6-2,0.20000000298023224
+6,trump,5-7 cards,5,7,off-suit A,0.20000000298023224
+6,trump,5-7 cards,5,7,off-suit K,0.10000000149011612
+6,trump,5-7 cards,5,7,off-suit Q,0.10000000149011612
+6,trump,5-7 cards,5,7,off-suit J,0.10000000149011612
+6,trump,5-7 cards,5,7,off-suit 10-2,-0.0
+6,trump,8-10 cards,8,10,Wizard,1.100000023841858
+6,trump,8-10 cards,8,10,Jester,0.0
+6,trump,8-10 cards,8,10,trump A,0.8999999761581421
+6,trump,8-10 cards,8,10,trump K,0.800000011920929
+6,trump,8-10 cards,8,10,trump Q,0.699999988079071
+6,trump,8-10 cards,8,10,trump J,0.6000000238418579
+6,trump,8-10 cards,8,10,trump 10-7,0.4000000059604645
+6,trump,8-10 cards,8,10,trump 6-2,0.20000000298023224
+6,trump,8-10 cards,8,10,off-suit A,0.30000001192092896
+6,trump,8-10 cards,8,10,off-suit K,0.10000000149011612
+6,trump,8-10 cards,8,10,off-suit Q,0.10000000149011612
+6,trump,8-10 cards,8,10,off-suit J,0.0
+6,trump,8-10 cards,8,10,off-suit 10-2,-0.0
+6,no_trump,1 card,1,1,Wizard,0.8999999761581421
+6,no_trump,1 card,1,1,Jester,0.0
+6,no_trump,1 card,1,1,off-suit A,0.20000000298023224
+6,no_trump,1 card,1,1,off-suit K,0.20000000298023224
+6,no_trump,1 card,1,1,off-suit Q,0.20000000298023224
+6,no_trump,1 card,1,1,off-suit J,0.20000000298023224
+6,no_trump,1 card,1,1,off-suit 10-2,0.10000000149011612
+6,no_trump,2 cards,2,2,Wizard,1.0
+6,no_trump,2 cards,2,2,Jester,-0.10000000149011612
+6,no_trump,2 cards,2,2,off-suit A,0.4000000059604645
+6,no_trump,2 cards,2,2,off-suit K,0.30000001192092896
+6,no_trump,2 cards,2,2,off-suit Q,0.20000000298023224
+6,no_trump,2 cards,2,2,off-suit J,0.20000000298023224
+6,no_trump,2 cards,2,2,off-suit 10-2,0.10000000149011612
+6,no_trump,3-4 cards,3,4,Wizard,1.0
+6,no_trump,3-4 cards,3,4,Jester,-0.20000000298023224
+6,no_trump,3-4 cards,3,4,off-suit A,0.4000000059604645
+6,no_trump,3-4 cards,3,4,off-suit K,0.30000001192092896
+6,no_trump,3-4 cards,3,4,off-suit Q,0.20000000298023224
+6,no_trump,3-4 cards,3,4,off-suit J,0.20000000298023224
+6,no_trump,3-4 cards,3,4,off-suit 10-2,0.0
+6,no_trump,5-7 cards,5,7,Wizard,1.100000023841858
+6,no_trump,5-7 cards,5,7,Jester,-0.10000000149011612
+6,no_trump,5-7 cards,5,7,off-suit A,0.699999988079071
+6,no_trump,5-7 cards,5,7,off-suit K,0.30000001192092896
+6,no_trump,5-7 cards,5,7,off-suit Q,0.20000000298023224
+6,no_trump,5-7 cards,5,7,off-suit J,0.20000000298023224
+6,no_trump,5-7 cards,5,7,off-suit 10-2,0.0
+6,no_trump,8-10 cards,8,10,Wizard,1.2000000476837158
+6,no_trump,8-10 cards,8,10,Jester,-0.10000000149011612
+6,no_trump,8-10 cards,8,10,off-suit A,0.800000011920929
+6,no_trump,8-10 cards,8,10,off-suit K,0.4000000059604645
+6,no_trump,8-10 cards,8,10,off-suit Q,0.20000000298023224
+6,no_trump,8-10 cards,8,10,off-suit J,0.10000000149011612
+6,no_trump,8-10 cards,8,10,off-suit 10-2,-0.0
