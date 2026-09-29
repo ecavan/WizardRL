@@ -1,0 +1,329 @@
+<title>Wizard Bid Chart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a card-table reference: controls on top, the heat-mapped chart beside a hand counter; stacks on phones. */
+:root {
+  --bg: #eef1f6; --surface: #ffffff; --ink: #1b2233; --muted: #5a6479; --line: #d6dce7;
+  --heat: #2f56c9; --on-heat: #ffffff; --cool: #b4462f; --gold: #9a6a12; --gold-soft: #f6ead0;
+  --focus: #2f56c9;
+  --display: "Young Serif", Georgia, "Times New Roman", serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1320; --surface: #171d2c; --ink: #e6e9f1; --muted: #9aa3b8; --line: #2a3246;
+    --heat: #5f86f5; --on-heat: #ffffff; --cool: #e07a60; --gold: #e2b653; --gold-soft: #3a3120;
+    --focus: #8fa9ff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1320; --surface: #171d2c; --ink: #e6e9f1; --muted: #9aa3b8; --line: #2a3246;
+  --heat: #5f86f5; --on-heat: #ffffff; --cool: #e07a60; --gold: #e2b653; --gold-soft: #3a3120;
+  --focus: #8fa9ff; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 48px; display: grid; gap: 22px; }
+header { display: grid; gap: 6px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(28px, 4.4vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; }
+.lede { color: var(--muted); max-width: 68ch; margin: 0; }
+.lede b { color: var(--ink); }
+.controls { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: end; }
+.control { display: grid; gap: 5px; }
+.label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { font: inherit; font-size: 14px; border: 0; background: transparent; color: var(--ink); padding: 7px 13px; cursor: pointer; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 22px; align-items: start; }
+@media (max-width: 880px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+.panel h2 { font-family: var(--display); font-weight: 400; font-size: 20px; margin: 0 0 4px; }
+.panel .sub { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: separate; border-spacing: 3px; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { text-align: center; font-size: 14px; padding: 6px 4px; }
+thead th { font-size: 12px; color: var(--muted); font-weight: 700; white-space: nowrap; padding-bottom: 4px; }
+thead th.on { color: var(--ink); box-shadow: inset 0 -2px 0 var(--heat); }
+tbody th { text-align: left; font-weight: 700; white-space: nowrap; padding-right: 10px; }
+tbody th .suit { color: var(--muted); font-weight: 400; }
+td.v { font-family: var(--mono); font-size: 13px; border-radius: 5px; min-width: 50px; }
+td.v.hot { color: var(--on-heat); font-weight: 600; }
+td.v.on { outline: 2px solid var(--ink); outline-offset: -2px; }
+td.v.none { color: var(--muted); }
+tr.acc th, tr.acc td { font-size: 12px; color: var(--muted); font-weight: 400; }
+tr.acc td { font-family: var(--mono); }
+tr.first-acc th, tr.first-acc td { border-top: 1px solid var(--line); padding-top: 9px; }
+.wizrow th { color: var(--gold); }
+.note { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+/* hand counter */
+.counter { display: grid; gap: 12px; }
+.size { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.step { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.step button { font: inherit; border: 0; background: var(--bg); color: var(--ink); width: 32px; height: 32px; cursor: pointer; font-size: 17px; line-height: 1; }
+.step button:disabled { opacity: .35; cursor: default; }
+.step output, .step input { width: 40px; display: inline-grid; place-items: center; text-align: center; font-family: var(--mono); font-size: 14px; border: 0; background: var(--surface); color: var(--ink); height: 32px; }
+.kinds { display: grid; gap: 4px; }
+.kind { display: grid; grid-template-columns: minmax(0, 1fr) auto 52px; align-items: center; gap: 8px; font-size: 14px; }
+.kind .val { font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: right; }
+.kind.has .name { font-weight: 700; }
+.result { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; }
+.bid { display: flex; align-items: baseline; gap: 10px; }
+.bid .n { font-family: var(--display); font-size: 48px; line-height: 1; }
+.bid .t { color: var(--muted); }
+.warn { font-size: 13px; color: var(--cool); min-height: 1.2em; }
+.small { font-size: 13px; color: var(--muted); }
+.example { display: inline-block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); background: var(--gold-soft); border-radius: 4px; padding: 1px 6px; font-weight: 700; }
+.linkish { font: inherit; font-size: 13px; background: none; border: 0; padding: 0; color: var(--heat); cursor: pointer; text-decoration: underline; }
+footer { color: var(--muted); font-size: 13px; max-width: 80ch; display: grid; gap: 8px; }
+footer p { margin: 0; }
+.legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.ramp { width: 140px; height: 10px; border-radius: 3px; background: linear-gradient(90deg, var(--surface), var(--heat)); border: 1px solid var(--line); }
+@media (prefers-reduced-motion: no-preference) { td.v { transition: background-color .15s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Wizard Bid Chart</h1>
+    <p class="lede" id="lede">How many tricks each card is worth, learned by a bot that played itself hundreds of thousands of rounds. <b>Add up your cards, round to the nearest whole number, and bid that.</b></p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Chart settings">
+    <div class="control"><span class="label" id="lbl-players">Players</span><div class="seg" id="players" aria-labelledby="lbl-players"></div></div>
+    <div class="control"><span class="label" id="lbl-trump">Trump</span><div class="seg" id="trump" aria-labelledby="lbl-trump">
+      <button type="button" id="trump-yes" data-v="trump">Trump suit</button><button type="button" id="trump-no" data-v="no_trump">No trump</button></div></div>
+    <div class="control"><span class="label" id="lbl-prec">Values</span><div class="seg" id="prec" aria-labelledby="lbl-prec">
+      <button type="button" id="prec-q" data-v="q">Quarters</button><button type="button" id="prec-x" data-v="x">Exact</button></div></div>
+  </div>
+
+  <div class="main">
+    <section class="panel" aria-labelledby="chart-h">
+      <h2 id="chart-h">Tricks per card</h2>
+      <p class="sub" id="chart-sub"></p>
+      <div class="tablewrap"><table id="chart"></table></div>
+      <div class="legend"><span>0</span><span class="ramp" aria-hidden="true"></span><span>1.5 tricks</span><span>· outlined: the column for your hand</span></div>
+      <p class="note" id="chart-note"></p>
+    </section>
+
+    <section class="panel counter" aria-labelledby="calc-h">
+      <div>
+        <h2 id="calc-h">Count a hand</h2>
+        <p class="sub">Set how many cards you hold, then tap in your cards by kind. <span class="example" id="example-tag">Example hand</span></p>
+      </div>
+      <div class="size">
+        <span class="label" id="lbl-size">Cards in hand</span>
+        <span class="step"><button type="button" id="size-dn" aria-label="Fewer cards">−</button><output id="size" aria-labelledby="lbl-size">5</output><button type="button" id="size-up" aria-label="More cards">+</button></span>
+        <button type="button" class="linkish" id="clear">Clear hand</button>
+      </div>
+      <div class="kinds" id="kinds"></div>
+      <div class="result" aria-live="polite">
+        <div class="bid"><span class="n" id="bid">–</span><span class="t" id="total"></span></div>
+        <div class="warn" id="warn"></div>
+        <div class="small" id="seatline"></div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <p id="how"></p>
+    <p><b>Reading the accuracy rows.</b> <i>Chart bid made</i>: how often the rounded chart total was exactly the tricks the bot went on to take. <i>Bot's own bid made</i>: the same for the bot's real bids, which also weigh everything else it can see. <i>Average miss</i>: how far the chart total lands from the tricks taken, in tricks.</p>
+    <p>Everyone bids at once, so nobody's bid depends on anyone else's. Jesters can come out slightly below zero: holding one means fewer cards in your hand that can win.</p>
+  </footer>
+</div>
+
+<script>
+const DATA = /*DATA*/null;
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const tables = DATA.tables;
+  const playerCounts = Object.keys(tables).map(Number).sort((a, b) => a - b);
+  const LABEL = {
+    "Wizard": ["Wizard", ""], "Jester": ["Jester", ""],
+    "trump A": ["A", "trump"], "trump K": ["K", "trump"], "trump Q": ["Q", "trump"], "trump J": ["J", "trump"],
+    "trump 10-7": ["10 – 7", "trump"], "trump 6-2": ["6 – 2", "trump"],
+    "off-suit A": ["A", "off-suit"], "off-suit K": ["K", "off-suit"], "off-suit Q": ["Q", "off-suit"], "off-suit J": ["J", "off-suit"],
+    "off-suit 10-2": ["10 – 2", "off-suit"],
+  };
+  const NT_SUIT = "any suit";
+  const load = (k, d) => { try { const v = localStorage.getItem("wbc-" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
+  const save = (k, v) => { try { localStorage.setItem("wbc-" + k, JSON.stringify(v)); } catch (e) {} };
+
+  const state = {
+    players: load("players", playerCounts.includes(4) ? 4 : playerCounts[0]),
+    trump: load("trump", "trump"),
+    prec: load("prec", "q"),
+    size: 5,
+    hand: { "Wizard": 1, "trump A": 1, "off-suit K": 1, "trump 6-2": 1, "off-suit 10-2": 1 },
+    example: true,
+  };
+  if (!playerCounts.includes(state.players)) state.players = playerCounts[0];
+
+  const maxCards = () => Math.floor(60 / state.players);
+  const lastRound = () => state.size === maxCards();
+  // The last round never has trump; any other round can go either way.
+  const effTrump = () => (lastRound() ? "no_trump" : state.trump);
+  const kinds = () => (effTrump() === "trump" ? DATA.kinds : DATA.no_trump_kinds);
+  const rows = (key) => tables[String(state.players)][key];
+  const q = (v) => Math.round(v * 4) / 4;
+  const shown = (v) => (state.prec === "q" ? q(v) : v);
+
+  function fmt(v) {
+    const x = state.prec === "q" ? q(v) : v;
+    let t = Math.abs(x).toFixed(2);
+    if (state.prec === "q") t = t.replace(/\.?0+$/, "") || "0";
+    return (x < -0.001 ? "−" : "") + t;
+  }
+  function kindLabel(k) {
+    const [r, s] = LABEL[k];
+    if (effTrump() === "no_trump" && s === "off-suit") return [r, NT_SUIT];
+    return [r, s];
+  }
+  // The band row for a table size / trump state / round size; no-trump rounds with too little
+  // data borrow the trump chart's off-suit values for the same round size.
+  function bandFor(size, key) {
+    const own = rows(key).find((r) => size >= r.lo && size <= r.hi);
+    if (own || key === "trump") return { row: own, borrowed: false };
+    const t = rows("trump").find((r) => size >= r.lo && size <= r.hi);
+    return { row: t, borrowed: !!t };
+  }
+
+  function seg(el, options, current, onPick) {
+    el.innerHTML = "";
+    for (const [v, text] of options) {
+      const b = document.createElement("button");
+      b.type = "button"; b.id = el.id + "-" + v; b.textContent = text;
+      b.setAttribute("aria-pressed", String(v === current));
+      b.addEventListener("click", () => onPick(v));
+      el.appendChild(b);
+    }
+  }
+
+  function renderControls() {
+    seg($("players"), playerCounts.map((n) => [n, String(n)]), state.players, (v) => {
+      state.players = v; save("players", v);
+      state.size = Math.min(state.size, maxCards());
+      render();
+    });
+    seg($("trump"), [["trump", "Trump suit"], ["no_trump", "No trump"]], effTrump(), (v) => {
+      if (lastRound() && v === "trump") { state.size = maxCards() - 1; }
+      state.trump = v; save("trump", v); render();
+    });
+    seg($("prec"), [["q", "Quarters"], ["x", "Exact"]], state.prec, (v) => { state.prec = v; save("prec", v); render(); });
+  }
+
+  function renderChart() {
+    const key = effTrump();
+    const bands = rows(key);
+    const t = $("chart");
+    const sizeBand = bands.findIndex((r) => state.size >= r.lo && state.size <= r.hi);
+    let h = "<thead><tr><th scope=\"col\"><span class=\"label\">Card</span></th>";
+    bands.forEach((r, i) => { h += `<th scope="col" class="${i === sizeBand ? "on" : ""}">${r.name.replace("-", "–")}</th>`; });
+    h += "</tr></thead><tbody>";
+    for (const k of kinds()) {
+      const [r, s] = kindLabel(k);
+      h += `<tr class="${k === "Wizard" ? "wizrow" : ""}"><th scope="row">${r}${s ? ` <span class="suit">${s}</span>` : ""}</th>`;
+      bands.forEach((b, i) => {
+        const v = b.values[k];
+        const pct = Math.max(0, Math.min(1, shown(v) / 1.5)) * 100;
+        const bg = shown(v) < -0.01 ? `color-mix(in oklab, var(--cool) 22%, var(--surface))` : `color-mix(in oklab, var(--heat) ${pct.toFixed(0)}%, var(--surface))`;
+        h += `<td class="v ${pct > 52 ? "hot" : ""} ${i === sizeBand ? "on" : ""}" style="background:${bg}" title="${k}, ${b.name}: ${v.toFixed(3)} tricks">${fmt(v)}</td>`;
+      });
+      h += "</tr>";
+    }
+    const acc = [["Chart bid made", (b) => pctf(state.prec === "q" ? b.q_hit : b.hit)], ["Bot's own bid made", (b) => pctf(b.bot_hit)], ["Average miss", (b) => b.mae.toFixed(2)]];
+    acc.forEach(([name, f], j) => {
+      h += `<tr class="acc ${j === 0 ? "first-acc" : ""}"><th scope="row">${name}</th>` + bands.map((b) => `<td>${f(b)}</td>`).join("") + "</tr>";
+    });
+    t.innerHTML = h + "</tbody>";
+    const P = state.players, rounds = tables[String(P)].rounds;
+    $("chart-sub").textContent = `${P} players · ${key === "trump" ? "a trump suit" : "no trump (a Jester turned up, or the last round)"} · columns are cards in hand`;
+    const missing = [];
+    if (key === "no_trump") {
+      const have = new Set(bands.flatMap((b) => range(b.lo, b.hi)));
+      const small = range(1, maxCards()).filter((n) => !have.has(n));
+      if (small.length) missing.push(`No-trump rounds with ${small.length === 1 ? small[0] : small[0] + "–" + small[small.length - 1]} cards were too rare to chart; the counter uses the trump chart's off-suit values for them.`);
+    }
+    $("chart-note").textContent = missing.join(" ");
+  }
+  const pctf = (x) => Math.round(x * 100) + "%";
+  const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+
+  function renderCounter() {
+    $("size").textContent = state.size;
+    $("size-dn").disabled = state.size <= 1;
+    $("size-up").disabled = state.size >= maxCards();
+    $("example-tag").hidden = !state.example;
+    const key = effTrump();
+    const { row, borrowed } = bandFor(state.size, key);
+    const box = $("kinds");
+    box.innerHTML = "";
+    // In no-trump rounds, trump kinds don't exist: fold any entered ones into the off-suit kinds.
+    if (key === "no_trump") {
+      for (const k of Object.keys(state.hand)) {
+        if (k.startsWith("trump ")) {
+          const to = k === "trump 10-7" || k === "trump 6-2" ? "off-suit 10-2" : "off-suit " + k.slice(6);
+          state.hand[to] = (state.hand[to] || 0) + state.hand[k];
+          delete state.hand[k];
+        }
+      }
+    }
+    for (const k of kinds()) {
+      const n = state.hand[k] || 0;
+      const [r, s] = kindLabel(k);
+      const v = row ? row.values[k] : null;
+      const d = document.createElement("div");
+      d.className = "kind" + (n ? " has" : "");
+      d.innerHTML = `<span class="name">${r}${s ? ` <span class="small">${s}</span>` : ""}</span>
+        <span class="step"><button type="button" aria-label="One fewer ${k}">−</button><output aria-label="${k} held">${n}</output><button type="button" aria-label="One more ${k}">+</button></span>
+        <span class="val">${v == null ? "" : (n ? "+" + fmt(shown(v) * n) : fmt(v) + " ea")}</span>`;
+      const [dn, up] = d.querySelectorAll("button");
+      dn.disabled = n === 0;
+      up.disabled = count() >= state.size;
+      dn.addEventListener("click", () => { state.hand[k] = Math.max(0, n - 1); state.example = false; render(); });
+      up.addEventListener("click", () => { state.hand[k] = n + 1; state.example = false; render(); });
+      box.appendChild(d);
+    }
+    const c = count();
+    let total = 0;
+    if (row) for (const k of kinds()) total += (state.hand[k] || 0) * shown(row.values[k]);
+    const bid = Math.max(0, Math.min(state.size, Math.round(total)));
+    $("bid").textContent = c ? String(bid) : "–";
+    $("total").textContent = c ? `bid · chart total ${total.toFixed(2)} tricks` : "tap in your cards";
+    $("warn").textContent = c < state.size ? `${c} of ${state.size} cards entered` : (borrowed ? "Using the trump chart's off-suit values for this round size." : "");
+    const seat = tables[String(state.players)].seat, P = state.players;
+    const first = seat["1"], dealer = seat[String(P)];
+    $("seatline").textContent = first != null && dealer != null
+      ? `Seat: leading first takes ${fmtSigned(first)} tricks vs the chart on average; the dealer ${fmtSigned(dealer)}.` : "";
+  }
+  const fmtSigned = (x) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(2);
+  const count = () => kinds().reduce((s, k) => s + (state.hand[k] || 0), 0);
+
+  function trimHand() {
+    // Keep the hand no bigger than the cards held.
+    let over = count() - state.size;
+    for (const k of [...kinds()].reverse()) {
+      while (over > 0 && (state.hand[k] || 0) > 0) { state.hand[k]--; over--; }
+    }
+  }
+
+  function render() {
+    renderControls();
+    trimHand();
+    renderChart();
+    renderCounter();
+  }
+
+  $("size-dn").addEventListener("click", () => { state.size = Math.max(1, state.size - 1); render(); });
+  $("size-up").addEventListener("click", () => { state.size = Math.min(maxCards(), state.size + 1); render(); });
+  $("clear").addEventListener("click", () => { state.hand = {}; state.example = false; render(); });
+
+  const total = playerCounts.map((n) => tables[String(n)].rounds).reduce((a, b) => a + b, 0);
+  $("lede").innerHTML = `How many tricks each card is worth, learned by a bot that played itself ${Number(DATA.rounds).toLocaleString()} rounds at each table size. <b>Add up your cards, round to the nearest whole number, and bid that.</b>`;
+  $("how").innerHTML = `<b>How this was made.</b> The trained bot (<code>${DATA.model}</code>) played ${total.toLocaleString()} rounds against itself at ${playerCounts.join(", ")} players, everyone bidding at once. For each table size, trump or no trump, and range of hand sizes, a least-squares fit found the value of each kind of card that best predicts the tricks it went on to take.`;
+  render();
+})();
+</script>

@@ -27,7 +27,8 @@ def test_shapes_and_legality():
             a = pick_actions(net(torch.from_numpy(obs)), torch.from_numpy(legal), 0.1)
         assert legal[np.arange(32), a.numpy()].all()
         env.step(a.numpy().astype(np.int64))
-        o, act, ret, made = env.drain()
+        o, act, ret, made, aux, lgl = env.drain()
+        assert lgl.shape == (len(act), ACTIONS) and lgl[np.arange(len(act)), act].all()
         assert o.shape == (len(act), FEATURES) and ret.shape == (len(act),) and made.shape == (len(act),)
         assert ((ret >= 20) == (made == 1.0)).all()
         # A card action always matches a card in the hand block; bids come in the bid phase.
@@ -92,7 +93,23 @@ def test_frozen_nets_and_duplicate():
     WizardEnv(4, [4], "counting", 1, True)
 
 
+def test_evaluation_with_a_quota():
+    """The evaluator plays about the rounds asked for (a fixed number of deals per table) and
+    finishes; random against random has a small edge."""
+    from wizard_rl.evaluate import evaluate_fn
+
+    rng = torch.Generator().manual_seed(0)
+
+    def rand(o, lg):
+        return torch.multinomial(lg.float(), 1, generator=rng).squeeze(1)
+
+    r = evaluate_fn(rand, torch.device("cpu"), 2000, [3, 5], "nets", rand, tables=32)
+    assert 1500 <= r["rounds"] <= 3000, r
+    assert abs(r["edge"]) < 5, r  # random vs random: small, noisy
+
+
 if __name__ == "__main__":
+    test_evaluation_with_a_quota()
     test_frozen_nets_and_duplicate()
     test_export_matches_pytorch()
     test_shapes_and_legality()

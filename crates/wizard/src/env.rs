@@ -141,6 +141,26 @@ pub struct EnvConfig {
     pub mix: SeatMix,
     /// Replay each deal with the learner in every seat (evaluation).
     pub duplicate: bool,
+    /// Everyone bids at once (no one sees another bid while bidding).
+    pub simultaneous: bool,
+    /// Keep a record of every finished round (hands, bids, tricks), for bid charts.
+    pub log_rounds: bool,
+}
+
+/// One seat's round, for bid charts: what it was dealt and how it went.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SeatRound {
+    pub players: u8,
+    pub size: u8,
+    /// Trump suit index, or 4 for no trump.
+    pub trump: u8,
+    /// Seats left of the dealer: 1 = bids and leads first, `players` = the dealer.
+    pub position: u8,
+    /// The hand as dealt.
+    pub hand: u64,
+    pub bid: u8,
+    pub won: u8,
+    pub learner: bool,
 }
 
 /// Running totals since the last `take_stats`.
@@ -158,6 +178,11 @@ pub struct Stats {
     pub other_bids_made: u64,
     /// Learner decisions taken.
     pub decisions: u64,
+    /// Sum over rounds of (learner seats' average score - other seats' average score), for rounds
+    /// with both; `edge_sum / edge_rounds` is the edge. (Averaging per round keeps big and small
+    /// tables on an equal footing; pooling seat-rounds would weight big tables more for "others".)
+    pub edge_sum: f64,
+    pub edge_rounds: u64,
 }
 
 /// Training samples: `obs` is `len * FEATURES` long.
@@ -169,6 +194,10 @@ pub struct Samples {
     pub returns: Vec<f32>,
     /// 1.0 if the seat made its bid.
     pub made: Vec<f32>,
+    /// Whatever Python passed with the action (`step_with`), e.g. its log-probability.
+    pub aux: Vec<f32>,
+    /// The legal-action mask at each decision, `len * ACTIONS` long.
+    pub legal: Vec<bool>,
 }
 
 impl Samples {
@@ -191,8 +220,18 @@ struct Table {
     obs: Vec<f32>,
     mask: Vec<bool>,
     /// This round's learner decisions: (seat, action), with observations in `traj_obs`.
-    traj: Vec<(u8, u32)>,
+    traj: Vec<(u8, u32, f32)>,
+    /// Hands as dealt this round (for the round log).
+    dealt: [u64; SEATS],
     traj_obs: Vec<f32>,
+    traj_mask: Vec<bool>,
+    /// Results of a duplicate cycle still being replayed.
+    pending: Stats,
+    /// Deals (duplicate cycles, or rounds) this table has counted in the stats.
+    counted: u64,
+    /// The deal in progress when the quota was set: not counted (it's more likely to be a long
+    /// one, having been caught in progress).
+    skip: bool,
 }
 
 pub struct VecEnv {
@@ -201,6 +240,9 @@ pub struct VecEnv {
     tables: Vec<Table>,
     out: Samples,
     stats: Stats,
+    rounds_log: Vec<SeatRound>,
+    /// Count at most this many deals per table (0 = no limit); see `set_quota`.
+    quota: u64,
 }
 
 impl VecEnv {
@@ -231,6 +273,8 @@ impl VecEnv {
             tables: Vec::with_capacity(num_tables),
             out: Samples::default(),
             stats: Stats::default(),
+            rounds_log: Vec::new(),
+            quota: 0,
         };
         for _ in 0..num_tables {
             let rng = seeder.fork();
@@ -244,7 +288,12 @@ impl VecEnv {
                 obs: vec![0.0; FEATURES],
                 mask: vec![false; ACTIONS],
                 traj: Vec::new(),
+                dealt: [0; SEATS],
                 traj_obs: Vec::new(),
+                traj_mask: Vec::new(),
+                pending: Stats::default(),
+                counted: 0,
+                skip: false,
             });
         }
         for i in 0..num_tables {
@@ -272,6 +321,30 @@ impl VecEnv {
         self.nets
     }
 
+    /// From now on, count only the next `deals` deals of every table in the stats (a deal is a
+    /// full duplicate cycle, or one round without duplicates); 0 removes the limit.
+    ///
+    /// Why: stopping after "enough rounds" favours deals that finish quickly (small rounds), which
+    /// skews averages. A fixed number of deals per table does not.
+    pub fn set_quota(&mut self, deals: u64) {
+        self.quota = deals;
+        for t in &mut self.tables {
+            t.counted = 0;
+            t.skip = deals > 0;
+        }
+    }
+
+    /// Tables that have not yet counted their quota of deals (0 with no quota).
+    pub fn quota_left(&self) -> usize {
+        if self.quota == 0 {
+            return 0;
+        }
+        self.tables
+            .iter()
+            .filter(|t| t.counted < self.quota)
+            .count()
+    }
+
     /// Observations `[tables, FEATURES]`, legal masks `[tables, ACTIONS]`, and who decides
     /// (`0` = the learner, `k` = frozen network `k`) for every table's pending decision.
     pub fn observe_into(&self, obs: &mut [f32], mask: &mut [bool], owner: &mut [u16]) {
@@ -292,6 +365,20 @@ impl VecEnv {
     /// Apply one action index per table (see `encode`). Illegal actions are an error and
     /// leave every table unchanged.
     pub fn step(&mut self, actions: &[usize]) -> Result<(), String> {
+        self.step_with(actions, None)
+    }
+
+    /// Like `step`, with a number per table to carry into that decision's training sample.
+    pub fn step_with(&mut self, actions: &[usize], aux: Option<&[f32]>) -> Result<(), String> {
+        if let Some(x) = aux {
+            if x.len() != self.tables.len() {
+                return Err(format!(
+                    "{} aux values for {} tables",
+                    x.len(),
+                    self.tables.len()
+                ));
+            }
+        }
         if actions.len() != self.tables.len() {
             return Err(format!(
                 "{} actions for {} tables",
@@ -308,8 +395,9 @@ impl VecEnv {
             let t = &mut self.tables[i];
             let seat = t.round.to_act().expect("a pending decision");
             if t.seats[seat as usize] == Seat::Learner {
-                t.traj.push((seat, a as u32));
+                t.traj.push((seat, a as u32, aux.map_or(0.0, |x| x[i])));
                 t.traj_obs.extend_from_slice(&t.obs);
+                t.traj_mask.extend_from_slice(&t.mask);
                 self.stats.decisions += 1;
             }
             t.round
@@ -323,6 +411,11 @@ impl VecEnv {
     /// Take the samples from rounds finished since the last call.
     pub fn drain(&mut self) -> Samples {
         std::mem::take(&mut self.out)
+    }
+
+    /// Take the round records kept since the last call (only with `log_rounds`).
+    pub fn drain_rounds(&mut self) -> Vec<SeatRound> {
+        std::mem::take(&mut self.rounds_log)
     }
 
     pub fn take_stats(&mut self) -> Stats {
@@ -343,7 +436,11 @@ impl VecEnv {
             t.rng.fork()
         };
         let n = cfg.players[rng.below(cfg.players.len() as u64) as usize];
-        let rules = Rules::official(n);
+        let rules = if cfg.simultaneous {
+            Rules::simultaneous(n)
+        } else {
+            Rules::official(n)
+        };
         let size = 1 + rng.below(rules.rounds() as u64) as u8;
         let dealer = rng.below(n as u64) as u8;
         t.round = Round::deal(rules, size, dealer, &mut rng);
@@ -362,6 +459,9 @@ impl VecEnv {
         };
         seats[anchor] = Seat::Learner;
         t.seats = seats;
+        for s in 0..n {
+            t.dealt[s as usize] = t.round.hand(s);
+        }
     }
 
     /// Play bot seats and finished rounds until table `i` waits on a decision from Python.
@@ -375,27 +475,85 @@ impl VecEnv {
                     let made: Vec<bool> = (0..n)
                         .map(|s| t.round.bid(s) == Some(t.round.tricks_won(s)))
                         .collect();
-                    for (k, &(seat, action)) in t.traj.iter().enumerate() {
+                    for (k, &(seat, action, aux)) in t.traj.iter().enumerate() {
                         self.out
                             .obs
                             .extend_from_slice(&t.traj_obs[k * FEATURES..(k + 1) * FEATURES]);
                         self.out.actions.push(action);
                         self.out.returns.push(scores[seat as usize] as f32);
                         self.out.made.push(made[seat as usize] as u8 as f32);
+                        self.out.aux.push(aux);
+                        self.out
+                            .legal
+                            .extend_from_slice(&t.traj_mask[k * ACTIONS..(k + 1) * ACTIONS]);
+                    }
+                    if self.cfg.log_rounds {
+                        let trump = t.round.trump().map_or(4, |s| s.index());
+                        for s in 0..n {
+                            self.rounds_log.push(SeatRound {
+                                players: n,
+                                size: t.round.size(),
+                                trump,
+                                position: (s + n - t.round.dealer()) % n
+                                    + if s == t.round.dealer() { n } else { 0 },
+                                hand: t.dealt[s as usize],
+                                bid: t.round.bid(s).expect("everyone bid"),
+                                won: t.round.tricks_won(s),
+                                learner: t.seats[s as usize] == Seat::Learner,
+                            });
+                        }
                     }
                     t.traj.clear();
                     t.traj_obs.clear();
-                    self.stats.rounds += 1;
+                    t.traj_mask.clear();
+                    // In duplicate mode, results count only once a deal has been replayed in
+                    // every seat, so the learner and the others always hold the same cards.
+                    let st = &mut t.pending;
+                    st.rounds += 1;
+                    let (mut ls, mut ln, mut os, mut on) = (0i64, 0i64, 0i64, 0i64);
                     for s in 0..n as usize {
                         if t.seats[s] == Seat::Learner {
-                            self.stats.learner_rounds += 1;
-                            self.stats.learner_score += scores[s] as i64;
-                            self.stats.learner_bids_made += made[s] as u64;
+                            ls += scores[s] as i64;
+                            ln += 1;
                         } else {
-                            self.stats.other_rounds += 1;
-                            self.stats.other_score += scores[s] as i64;
-                            self.stats.other_bids_made += made[s] as u64;
+                            os += scores[s] as i64;
+                            on += 1;
                         }
+                    }
+                    if ln > 0 && on > 0 {
+                        st.edge_sum += ls as f64 / ln as f64 - os as f64 / on as f64;
+                        st.edge_rounds += 1;
+                    }
+                    for s in 0..n as usize {
+                        if t.seats[s] == Seat::Learner {
+                            st.learner_rounds += 1;
+                            st.learner_score += scores[s] as i64;
+                            st.learner_bids_made += made[s] as u64;
+                        } else {
+                            st.other_rounds += 1;
+                            st.other_score += scores[s] as i64;
+                            st.other_bids_made += made[s] as u64;
+                        }
+                    }
+                    if !self.cfg.duplicate || t.dup_left == 0 {
+                        let p = std::mem::take(&mut t.pending);
+                        // With a quota, a deal counts only if it started after `set_quota` and
+                        // is within this table's quota.
+                        if self.quota > 0 && (t.skip || t.counted >= self.quota) {
+                            t.skip = false;
+                            self.redeal(i);
+                            continue;
+                        }
+                        t.counted += 1;
+                        self.stats.rounds += p.rounds;
+                        self.stats.learner_rounds += p.learner_rounds;
+                        self.stats.learner_score += p.learner_score;
+                        self.stats.learner_bids_made += p.learner_bids_made;
+                        self.stats.other_rounds += p.other_rounds;
+                        self.stats.other_score += p.other_score;
+                        self.stats.other_bids_made += p.other_bids_made;
+                        self.stats.edge_sum += p.edge_sum;
+                        self.stats.edge_rounds += p.edge_rounds;
                     }
                     self.redeal(i);
                 }
@@ -431,6 +589,8 @@ mod tests {
             players,
             mix,
             duplicate: false,
+            simultaneous: true,
+            log_rounds: false,
         }
     }
 
@@ -476,6 +636,11 @@ mod tests {
             let r = s.returns[k] as i32;
             assert!(r % 10 == 0 && !(0..20).contains(&r), "{r}");
             assert_eq!(s.made[k] == 1.0, r >= 20);
+        }
+        // The stored legal mask includes the chosen action.
+        assert_eq!(s.legal.len(), s.len() * ACTIONS);
+        for k in 0..s.len() {
+            assert!(s.legal[k * ACTIONS + s.actions[k] as usize]);
         }
         // The chosen action was legal for the observation it's paired with.
         for k in 0..s.len() {
@@ -540,6 +705,8 @@ mod tests {
                 players: vec![4],
                 mix: SeatMix::COUNTING,
                 duplicate: true,
+                simultaneous: true,
+                log_rounds: false,
             },
             11,
         )
@@ -565,28 +732,165 @@ mod tests {
                     .position(|&s| s == Seat::Learner)
                     .unwrap(),
             );
-            let before = env.take_stats().rounds;
-            assert_eq!(before, 0);
-            while env.stats.rounds == 0 {
+            let done = |e: &VecEnv| e.stats.rounds + e.tables[0].pending.rounds;
+            let before = done(&env);
+            while done(&env) == before {
                 env.observe_into(&mut obs, &mut mask, &mut owner);
                 let legal: Vec<usize> = (0..ACTIONS).filter(|&a| mask[a]).collect();
                 env.step(&[legal[rng.below(legal.len() as u64) as usize]])
                     .unwrap();
             }
-            env.take_stats();
         }
         assert_eq!(seen, vec![0, 1, 2, 3]);
+        // The cycle is complete, so its results have been counted.
+        assert_eq!(env.take_stats().rounds, 4);
         // A mixed field can't be duplicated.
         assert!(VecEnv::new(
             1,
             EnvConfig {
                 players: vec![4],
                 mix: SeatMix::preset("train").unwrap(),
-                duplicate: true
+                duplicate: true,
+                simultaneous: true,
+                log_rounds: false,
             },
             1
         )
         .is_err());
+    }
+
+    #[test]
+    fn round_log_records_what_was_dealt_and_won() {
+        let mut env = VecEnv::new(
+            4,
+            EnvConfig {
+                players: vec![3, 5],
+                mix: SeatMix::SELF_PLAY,
+                duplicate: false,
+                simultaneous: true,
+                log_rounds: true,
+            },
+            21,
+        )
+        .unwrap();
+        let mut rng = Rng::new(2);
+        run(&mut env, 1500, &mut rng);
+        let log = env.drain_rounds();
+        assert!(log.len() > 100);
+        for r in &log {
+            assert!(r.players == 3 || r.players == 5);
+            assert_eq!(r.hand.count_ones(), r.size as u32);
+            assert!(r.won <= r.size && r.bid <= r.size);
+            assert!((1..=r.players).contains(&r.position));
+            assert!(r.trump <= 4);
+            assert!(r.learner);
+        }
+        // Each round's seats hold different cards, and tricks add up to the round size.
+        let mut i = 0;
+        while i < log.len() {
+            let n = log[i].players as usize;
+            let seats = &log[i..i + n];
+            assert_eq!(
+                seats.iter().map(|r| r.won as u32).sum::<u32>(),
+                seats[0].size as u32
+            );
+            let all = seats.iter().fold(0u64, |m, r| {
+                assert_eq!(m & r.hand, 0);
+                m | r.hand
+            });
+            assert_eq!(all.count_ones(), n as u32 * seats[0].size as u32);
+            let mut pos: Vec<u8> = seats.iter().map(|r| r.position).collect();
+            pos.sort();
+            assert_eq!(pos, (1..=n as u8).collect::<Vec<_>>());
+            i += n;
+        }
+    }
+
+    #[test]
+    fn duplicate_edge_of_a_player_against_itself_is_exactly_zero() {
+        // The learner seat plays like a counting bot here (we pick its moves with the same
+        // bot), so on duplicate deals its edge must be exactly zero.
+        let mut env = VecEnv::new(
+            8,
+            EnvConfig {
+                players: vec![3, 4, 5, 6],
+                mix: SeatMix::COUNTING,
+                duplicate: true,
+                simultaneous: true,
+                log_rounds: false,
+            },
+            13,
+        )
+        .unwrap();
+        for _ in 0..4000 {
+            let acts: Vec<usize> = (0..env.len())
+                .map(|i| {
+                    let t = &mut env.tables[i];
+                    let seat = t.round.to_act().unwrap();
+                    let v = View::new(&t.round, seat, &[]);
+                    encode::action_index(CountingBot.act(&v, &mut t.rng))
+                })
+                .collect();
+            env.step(&acts).unwrap();
+        }
+        let st = env.take_stats();
+        assert!(st.learner_rounds > 100);
+        let edge = st.edge_sum / st.edge_rounds as f64;
+        assert!(edge.abs() < 1e-9, "edge {edge}");
+    }
+
+    #[test]
+    fn a_quota_counts_the_same_number_of_deals_at_every_table() {
+        // Random play everywhere; 20 tables, 5 duplicate cycles each.
+        let mut env = VecEnv::new(
+            20,
+            EnvConfig {
+                players: vec![4],
+                mix: SeatMix::RANDOM,
+                duplicate: true,
+                simultaneous: true,
+                log_rounds: false,
+            },
+            3,
+        )
+        .unwrap();
+        let mut rng = Rng::new(9);
+        // Run a while first, so the quota starts with rounds in progress.
+        let random_step = |env: &mut VecEnv, rng: &mut Rng| {
+            let acts: Vec<usize> = (0..env.len())
+                .map(|i| {
+                    let t = &env.tables[i];
+                    let v = View::new(&t.round, t.round.to_act().unwrap(), &[]);
+                    encode::action_index(RandomBot.act(&v, rng))
+                })
+                .collect();
+            env.step(&acts).unwrap();
+        };
+        for _ in 0..777 {
+            random_step(&mut env, &mut rng);
+        }
+        env.set_quota(5);
+        env.take_stats();
+        assert_eq!(env.quota_left(), 20);
+        let mut steps = 0;
+        while env.quota_left() > 0 {
+            random_step(&mut env, &mut rng);
+            steps += 1;
+            assert!(steps < 1_000_000);
+        }
+        // Keep playing: nothing more is counted.
+        for _ in 0..500 {
+            random_step(&mut env, &mut rng);
+        }
+        let st = env.take_stats();
+        assert_eq!(
+            st.rounds,
+            20 * 5 * 4,
+            "100 deals, each replayed in all 4 seats"
+        );
+        assert_eq!(st.edge_rounds, 100 * 4);
+        env.set_quota(0);
+        assert_eq!(env.quota_left(), 0);
     }
 
     #[test]

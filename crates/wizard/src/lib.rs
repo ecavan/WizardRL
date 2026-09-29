@@ -6,6 +6,7 @@
 //! - [`game`]: full games of rounds 1, 2, 3 … cards
 //! - [`view`]: what one seat may see
 //! - [`bots`]: baseline players
+//! - [`chart`]: a bot that bids from a bid chart made from a trained network
 //! - [`encode`]: what the network sees, and its action numbering
 //! - [`env`]: a batch of tables for training, driven from Python
 //! - [`net`]: a trained network running in Rust (`NetBot`)
@@ -13,6 +14,7 @@
 
 pub mod bots;
 pub mod card;
+pub mod chart;
 pub mod encode;
 pub mod env;
 pub mod game;

@@ -420,3 +420,39 @@ fn counting_bot_beats_random() {
         "counting bot should beat random players, diff {diff}"
     );
 }
+
+// ------------------------------------------------------------------------------ simultaneous bids
+
+/// Everyone bids at once: while bidding, no seat sees another seat's bid (the engine collects
+/// them one by one, but that order is invisible). Once all are in, everyone sees them all.
+#[test]
+fn simultaneous_bids_are_hidden_until_everyone_has_bid() {
+    use wizard::encode::{self, FEATURES};
+    let rules = Rules::simultaneous(4);
+    let hands = vec![hand("As Kd"), hand("Ks Qd"), hand("Qs Jd"), hand("Js 10d")];
+    let mut r = Round::from_hands(rules, 2, 3, &hands, Some(c("2h")));
+    r.apply(Action::Bid(2)).unwrap(); // seat 0
+    r.apply(Action::Bid(1)).unwrap(); // seat 1
+                                      // Seat 2 is bidding: it sees no bids at all (not even how many are in).
+    let v = View::new(&r, 2, &[]);
+    assert!(v.bids().iter().all(|b| b.is_none()));
+    let mut o = vec![0.0; FEATURES];
+    encode::observe(&v, &mut o);
+    assert!((0..4).all(|k| o[encode::HAS_BID + k] == 0.0 && o[encode::BIDS + k] == 0.0));
+    // A seat that has bid sees only its own bid while others are still bidding.
+    let v0 = View::new(&r, 0, &[]);
+    assert_eq!(v0.bids(), vec![Some(2), None, None, None]);
+    r.apply(Action::Bid(0)).unwrap();
+    r.apply(Action::Bid(0)).unwrap();
+    // Everyone has bid: all bids are visible to everyone.
+    for s in 0..4 {
+        assert_eq!(
+            View::new(&r, s, &[]).bids(),
+            vec![Some(2), Some(1), Some(0), Some(0)]
+        );
+    }
+    // Bidding in turn (the printed rules), later bidders hear the earlier bids.
+    let mut t = Round::from_hands(Rules::official(4), 2, 3, &hands, Some(c("2h")));
+    t.apply(Action::Bid(2)).unwrap();
+    assert_eq!(View::new(&t, 1, &[]).bids()[0], Some(2));
+}

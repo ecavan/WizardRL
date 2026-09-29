@@ -106,11 +106,12 @@ pub fn observe(v: &View, out: &mut [f32]) {
     if !trick.is_empty() {
         out[WINNING + rel(trick[trick_winner(trick, v.trump())].0)] = 1.0;
     }
+    let bids = v.bids();
     for s in 0..n as u8 {
         let r = rel(s);
         let won = v.tricks_won(s);
         out[WON + r] = won as f32 / MAX_SIZE;
-        if let Some(b) = v.bids()[s as usize] {
+        if let Some(b) = bids[s as usize] {
             out[BIDS + r] = b as f32 / MAX_SIZE;
             out[HAS_BID + r] = 1.0;
             out[NEED + r] = (b as f32 - won as f32) / MAX_SIZE;

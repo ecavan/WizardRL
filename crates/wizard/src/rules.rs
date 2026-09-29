@@ -1,4 +1,5 @@
-//! The official rules. The only thing a table chooses is how many play.
+//! The official rules, plus one choice: whether bids are made in turn (the printed rules) or all
+//! at once (everyone shows their bid together, so nobody sees another bid before making theirs).
 
 pub const MIN_PLAYERS: u8 = 3;
 pub const MAX_PLAYERS: u8 = 6;
@@ -7,11 +8,26 @@ pub const MAX_PLAYERS: u8 = 6;
 pub struct Rules {
     /// 3 to 6.
     pub players: u8,
+    /// Everyone bids at the same time: while bidding, no one sees anyone else's bid.
+    pub simultaneous_bids: bool,
 }
 
 impl Rules {
+    /// The printed rules: bids go round the table in turn, starting left of the dealer, and
+    /// each player hears the bids before theirs.
     pub fn official(players: u8) -> Rules {
-        Rules { players }
+        Rules {
+            players,
+            simultaneous_bids: false,
+        }
+    }
+
+    /// Everyone bids at once (how Eli's family plays, and the default for training).
+    pub fn simultaneous(players: u8) -> Rules {
+        Rules {
+            players,
+            simultaneous_bids: true,
+        }
     }
 
     /// Rounds in a full game: round r deals r cards to each player until the deck runs out

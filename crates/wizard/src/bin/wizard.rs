@@ -5,6 +5,7 @@ use std::io::{self, BufRead, Write};
 use std::time::Instant;
 use wizard::bots::{self, Bot};
 use wizard::card::{self, cards, Card, Suit};
+use wizard::chart::ChartBot;
 use wizard::game::play_game;
 use wizard::net::NetBot;
 use wizard::rng::Rng;
@@ -13,13 +14,15 @@ use wizard::rules::Rules;
 use wizard::view::View;
 
 const USAGE: &str = "usage:
-  wizard sim  [--players N] [--games G] [--seed S] [--bots counting,random,...]
-  wizard play [--players N] [--seed S] [--bots counting,...] [--advisor FILE]
+  wizard sim  [--players N] [--games G] [--seed S] [--bots counting,random,...] [--in-turn]
+  wizard play [--players N] [--seed S] [--bots counting,...] [--advisor FILE] [--in-turn]
 
   --players  3 to 6                                        default 4
   --bots     one name per seat (sim) or per opponent (play):
              random | counting | net:FILE (a trained network, from python -m wizard_rl.export)
-  --advisor  FILE: a trained network that shows you its predicted score for each option";
+             | chart:FILE (bids from a bid chart CSV, plays like counting)
+  --advisor  FILE: a trained network that shows you its predicted score for each option
+  --in-turn  bid in turn (the printed rules) instead of everyone at once";
 
 struct Args {
     cmd: String,
@@ -28,6 +31,7 @@ struct Args {
     seed: Option<u64>,
     bots: Vec<String>,
     advisor: Option<String>,
+    in_turn: bool,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -40,6 +44,7 @@ fn parse_args() -> Result<Args, String> {
         seed: None,
         bots: Vec::new(),
         advisor: None,
+        in_turn: false,
     };
     while let Some(k) = it.next() {
         let mut val = || it.next().ok_or(format!("{k} needs a value"));
@@ -49,6 +54,7 @@ fn parse_args() -> Result<Args, String> {
             "--seed" => a.seed = Some(val()?.parse().map_err(|_| "bad --seed")?),
             "--bots" => a.bots = val()?.split(',').map(|s| s.trim().to_string()).collect(),
             "--advisor" => a.advisor = Some(val()?),
+            "--in-turn" => a.in_turn = true,
             "-h" | "--help" => return Err(String::new()),
             _ => return Err(format!("unknown option {k}")),
         }
@@ -57,7 +63,11 @@ fn parse_args() -> Result<Args, String> {
 }
 
 fn rules_for(a: &Args) -> Result<Rules, String> {
-    let r = Rules::official(a.players);
+    let r = if a.in_turn {
+        Rules::official(a.players)
+    } else {
+        Rules::simultaneous(a.players)
+    };
     r.validate()?;
     Ok(r)
 }
@@ -65,9 +75,14 @@ fn rules_for(a: &Args) -> Result<Rules, String> {
 fn make_bots(names: &[String]) -> Result<Vec<Box<dyn Bot>>, String> {
     names
         .iter()
-        .map(|n| match n.strip_prefix("net:") {
-            Some(path) => NetBot::load(path).map(|b| Box::new(b) as Box<dyn Bot>),
-            None => bots::by_name(n).ok_or(format!("unknown bot '{n}'")),
+        .map(|n| {
+            if let Some(path) = n.strip_prefix("net:") {
+                NetBot::load(path).map(|b| Box::new(b) as Box<dyn Bot>)
+            } else if let Some(path) = n.strip_prefix("chart:") {
+                ChartBot::load(path).map(|b| Box::new(b) as Box<dyn Bot>)
+            } else {
+                bots::by_name(n).ok_or(format!("unknown bot '{n}'"))
+            }
         })
         .collect()
 }
@@ -260,7 +275,9 @@ impl Bot for Human {
                     .collect();
                 println!(
                     "  trump: {trump} | bids so far: {}",
-                    if so_far.is_empty() {
+                    if v_simultaneous(v) {
+                        "hidden (everyone bids at once)".into()
+                    } else if so_far.is_empty() {
                         "none (you bid first)".into()
                     } else {
                         so_far.join(", ")
@@ -318,6 +335,10 @@ impl Bot for Human {
     }
 }
 
+fn v_simultaneous(v: &View) -> bool {
+    v.simultaneous_bids()
+}
+
 /// Wraps a bot so each of its moves is printed.
 struct Loud {
     inner: Box<dyn Bot>,
@@ -330,7 +351,10 @@ impl Bot for Loud {
     }
     fn act(&mut self, v: &View, rng: &mut Rng) -> Action {
         let a = self.inner.act(v, rng);
-        println!("  {} {}", self.label, a);
+        // With simultaneous bids, bids are only shown once everyone has bid.
+        if !(v_simultaneous(v) && matches!(a, Action::Bid(_))) {
+            println!("  {} {}", self.label, a);
+        }
         a
     }
 }

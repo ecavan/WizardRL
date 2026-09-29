@@ -55,6 +55,7 @@ def main(argv=None) -> None:
     p.add_argument("--reference", default=None, help="checkpoint to measure against (e.g. an earlier run's best.pt)")
     p.add_argument("--init", default=None, help="start from this checkpoint's weights (new optimizer, new run)")
     p.add_argument("--resume", default=None, help="continue this run from its checkpoint")
+    p.add_argument("--in-turn", action="store_true", help="bid in turn (printed rules) instead of all at once")
     p.add_argument("--device", default="auto", help="auto, cpu, mps or cuda")
     p.add_argument("--threads", type=int, default=0, help="CPU threads for torch (0 = default)")
     p.add_argument("--seed", type=int, default=0)
@@ -74,7 +75,8 @@ def main(argv=None) -> None:
         print(f"initialised from {a.init}")
     cfg = LoopConfig(batch=a.batch, lr=a.lr, lr_final=a.lr_final, lr_decay=int(a.lr_decay), eps_start=a.eps_start,
                      eps_end=a.eps_end, eps_decay=int(a.eps_decay))
-    env = WizardEnv(a.tables, players, dict(learner=wl, nets=wn, counting=wc), a.seed)
+    sim = not a.in_turn
+    env = WizardEnv(a.tables, players, dict(learner=wl, nets=wn, counting=wc), a.seed, False, sim)
     learner = Learner(env, net, cfg, device, a.seed)
     reference = load_qnet(a.reference) if a.reference else None
     best_edge = float("-inf")
@@ -117,9 +119,9 @@ def main(argv=None) -> None:
             last["snap"] = lr.state.decisions
         env.stats()
         net.eval()
-        ec = evaluate(net, device, a.eval_rounds, players, "counting")
-        er = evaluate(net, device, a.eval_rounds // 4, players, "random")
-        eref = evaluate(net, device, a.eval_rounds, players, "nets", reference) if reference is not None else None
+        ec = evaluate(net, device, a.eval_rounds, players, "counting", simultaneous=sim)
+        er = evaluate(net, device, a.eval_rounds // 4, players, "random", simultaneous=sim)
+        eref = evaluate(net, device, a.eval_rounds, players, "nets", reference, simultaneous=sim) if reference is not None else None
         net.train()
         cur_lr = lr.opt.param_groups[0]["lr"]
         w.writerow([round(now - t0), lr.state.decisions, lr.state.updates, f"{lr.state.last_loss:.4f}",
@@ -138,7 +140,7 @@ def main(argv=None) -> None:
         save("latest.pt", ec["edge"])
         last["t"], last["d"] = time.time(), lr.state.decisions
 
-    print(f"training on {device}; tables {a.tables}; players {players}; seats learner/frozen/counting {a.mix}; "
+    print(f"training on {device}; bids {'all at once' if sim else 'in turn'}; tables {a.tables}; players {players}; seats learner/frozen/counting {a.mix}; "
           f"network {net.config()}; out {a.out}", flush=True)
     learner.run(decisions=int(a.decisions) if a.decisions else None, seconds=a.hours * 3600 if a.hours else None,
                 on_tick=tick, tick_every=int(a.eval_every))

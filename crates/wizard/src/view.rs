@@ -46,8 +46,26 @@ impl<'a> View<'a> {
     pub fn hand(&self) -> CardSet {
         self.round.hand(self.seat)
     }
-    pub fn bids(&self) -> &'a [Option<u8>] {
-        self.round.bids()
+    /// Bids this seat can see. With simultaneous bidding, other players' bids stay hidden
+    /// until everyone has bid.
+    pub fn bids(&self) -> Vec<Option<u8>> {
+        let hidden = self.round.rules().simultaneous_bids
+            && matches!(
+                self.round.phase(),
+                Phase::Bid { .. } | Phase::PickTrump { .. }
+            );
+        self.round
+            .bids()
+            .iter()
+            .enumerate()
+            .map(|(s, &b)| {
+                if hidden && s as u8 != self.seat {
+                    None
+                } else {
+                    b
+                }
+            })
+            .collect()
     }
     pub fn my_bid(&self) -> Option<u8> {
         self.round.bid(self.seat)
@@ -69,6 +87,9 @@ impl<'a> View<'a> {
     }
     pub fn scores(&self) -> &'a [i32] {
         self.scores
+    }
+    pub fn simultaneous_bids(&self) -> bool {
+        self.round.rules().simultaneous_bids
     }
     pub fn is_my_turn(&self) -> bool {
         self.round.to_act() == Some(self.seat)

@@ -17,14 +17,16 @@ type Vec1<'py, T> = Bound<'py, PyArray1<T>>;
 /// A batch of Wizard tables. Each has one pending decision for Python at all times: the
 /// learner's, or a frozen network's.
 ///
-/// - `WizardEnv(num_tables, players=[3,4,5,6], opponents="selfplay", seed=0, duplicate=False)`;
+/// - `WizardEnv(num_tables, players=[3,4,5,6], opponents="selfplay", seed=0, duplicate=False,
+///   simultaneous=True, log_rounds=False)`;
 ///   `opponents` is a preset (`selfplay`, `train`, `counting`, `random`, `nets`) or a dict of
 ///   weights `{learner, nets, counting, random}` for the seats other than the learner's own
 /// - `observe()` -> `(obs[float32, B x FEATURES], legal[bool, B x ACTIONS], owner[int64, B])`,
 ///   owner 0 = the learner, k = frozen network k
 /// - `step(actions[int64, B])` applies one action index per table
-/// - `drain()` -> `(obs[N x FEATURES], actions[N], returns[N], made[N])`: the learner's
-///   decisions from finished rounds, with its round score and whether it made its bid
+/// - `drain()` -> `(obs[N x FEATURES], actions[N], returns[N], made[N], aux[N], legal[N x ACTIONS])`: the learner's
+///   decisions from finished rounds, with its round score, whether it made its bid, and the
+///   value passed with the action to `step(actions, aux)`
 /// - `set_nets(n)`: frozen networks 1..=n may be dealt into seats from now on
 /// - `stats()` -> dict of totals since the last call
 #[pyclass(unsendable)]
@@ -69,13 +71,16 @@ fn mix_from(obj: &Bound<'_, PyAny>) -> PyResult<SeatMix> {
 #[pymethods]
 impl WizardEnv {
     #[new]
-    #[pyo3(signature = (num_tables, players = vec![3, 4, 5, 6], opponents = None, seed = 0, duplicate = false))]
+    #[pyo3(signature = (num_tables, players = vec![3, 4, 5, 6], opponents = None, seed = 0, duplicate = false, simultaneous = true, log_rounds = false))]
+    #[allow(clippy::too_many_arguments)]
     fn new(
         num_tables: usize,
         players: Vec<u8>,
         opponents: Option<&Bound<'_, PyAny>>,
         seed: u64,
         duplicate: bool,
+        simultaneous: bool,
+        log_rounds: bool,
     ) -> PyResult<Self> {
         let mix = match opponents {
             Some(o) => mix_from(o)?,
@@ -87,6 +92,8 @@ impl WizardEnv {
                 players,
                 mix,
                 duplicate,
+                simultaneous,
+                log_rounds,
             },
             seed,
         )
@@ -107,6 +114,17 @@ impl WizardEnv {
         self.inner.set_nets(n);
     }
 
+    /// Count only the next `deals` deals of every table in `stats()` (0 = no limit). Evaluate
+    /// with a quota: stopping after "enough rounds" over-counts quick, small rounds.
+    fn set_quota(&mut self, deals: u64) {
+        self.inner.set_quota(deals);
+    }
+
+    /// Tables still short of their quota.
+    fn quota_left(&self) -> usize {
+        self.inner.quota_left()
+    }
+
     fn observe<'py>(
         &mut self,
         py: Python<'py>,
@@ -120,27 +138,87 @@ impl WizardEnv {
         Ok((o, m, w))
     }
 
-    fn step(&mut self, actions: PyReadonlyArray1<'_, i64>) -> PyResult<()> {
+    #[pyo3(signature = (actions, aux = None))]
+    fn step(
+        &mut self,
+        actions: PyReadonlyArray1<'_, i64>,
+        aux: Option<PyReadonlyArray1<'_, f32>>,
+    ) -> PyResult<()> {
         let a: Vec<usize> = actions
             .as_slice()?
             .iter()
             .map(|&x| usize::try_from(x).map_err(|_| PyValueError::new_err("negative action")))
             .collect::<PyResult<_>>()?;
-        self.inner.step(&a).map_err(PyValueError::new_err)
+        match aux {
+            Some(x) => self.inner.step_with(&a, Some(x.as_slice()?)),
+            None => self.inner.step(&a),
+        }
+        .map_err(PyValueError::new_err)
+    }
+
+    /// Finished rounds since the last call, one row per seat (needs `log_rounds=True`): a dict
+    /// of arrays `players, size, trump (0-3 = clubs, diamonds, hearts, spades; 4 = none),
+    /// position (1 = left of the dealer ... players = the dealer), hand (uint64 bitmask of the
+    /// cards dealt), bid, won, learner`.
+    fn drain_rounds<'py>(&mut self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let log = self.inner.drain_rounds();
+        let d = PyDict::new(py);
+        d.set_item(
+            "players",
+            PyArray1::from_vec(py, log.iter().map(|r| r.players).collect()),
+        )?;
+        d.set_item(
+            "size",
+            PyArray1::from_vec(py, log.iter().map(|r| r.size).collect()),
+        )?;
+        d.set_item(
+            "trump",
+            PyArray1::from_vec(py, log.iter().map(|r| r.trump).collect()),
+        )?;
+        d.set_item(
+            "position",
+            PyArray1::from_vec(py, log.iter().map(|r| r.position).collect()),
+        )?;
+        d.set_item(
+            "hand",
+            PyArray1::from_vec(py, log.iter().map(|r| r.hand).collect()),
+        )?;
+        d.set_item(
+            "bid",
+            PyArray1::from_vec(py, log.iter().map(|r| r.bid).collect()),
+        )?;
+        d.set_item(
+            "won",
+            PyArray1::from_vec(py, log.iter().map(|r| r.won).collect()),
+        )?;
+        d.set_item(
+            "learner",
+            PyArray1::from_vec(py, log.iter().map(|r| r.learner).collect()),
+        )?;
+        Ok(d)
     }
 
     #[allow(clippy::type_complexity)]
     fn drain<'py>(
         &mut self,
         py: Python<'py>,
-    ) -> PyResult<(Obs<'py>, Vec1<'py, i64>, Vec1<'py, f32>, Vec1<'py, f32>)> {
+    ) -> PyResult<(
+        Obs<'py>,
+        Vec1<'py, i64>,
+        Vec1<'py, f32>,
+        Vec1<'py, f32>,
+        Vec1<'py, f32>,
+        Legal<'py>,
+    )> {
         let s = self.inner.drain();
         let n = s.len();
         let obs = PyArray1::from_vec(py, s.obs).reshape([n, FEATURES])?;
         let acts = PyArray1::from_vec(py, s.actions.into_iter().map(|a| a as i64).collect());
         let rets = PyArray1::from_vec(py, s.returns);
         let made = PyArray1::from_vec(py, s.made);
-        Ok((obs, acts, rets, made))
+        let aux = PyArray1::from_vec(py, s.aux);
+        let legal = PyArray1::from_vec(py, s.legal).reshape([n, ACTIONS])?;
+        Ok((obs, acts, rets, made, aux, legal))
     }
 
     fn stats<'py>(&mut self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
@@ -154,6 +232,8 @@ impl WizardEnv {
         d.set_item("other_score", s.other_score)?;
         d.set_item("other_bids_made", s.other_bids_made)?;
         d.set_item("decisions", s.decisions)?;
+        d.set_item("edge_sum", s.edge_sum)?;
+        d.set_item("edge_rounds", s.edge_rounds)?;
         Ok(d)
     }
 }
@@ -196,10 +276,11 @@ fn rust_forward<'py>(
 
 /// The observation and legal bids for a bidding situation: `players`, the bidder's `hand`
 /// (e.g. `["7h", "10h", "wiz"]`), `trump` (`"h"`, ..., or `None` for no trump), `position` in the
-/// bidding order (1 = first, `players` = the dealer) and the `bids_before` it. Other hands are
-/// dealt at random from `seed`.
+/// seat order (1 = left of the dealer, `players` = the dealer) and, when bidding in turn
+/// (`simultaneous=False`), the `bids_before` it. Other hands are dealt at random from `seed`.
 #[pyfunction]
-#[pyo3(signature = (players, hand, trump, position, bids_before, seed = 0))]
+#[pyo3(signature = (players, hand, trump, position, bids_before = vec![], seed = 0, simultaneous = true))]
+#[allow(clippy::too_many_arguments)]
 fn bid_scenario<'py>(
     py: Python<'py>,
     players: u8,
@@ -208,6 +289,7 @@ fn bid_scenario<'py>(
     position: u8,
     bids_before: Vec<u8>,
     seed: u64,
+    simultaneous: bool,
 ) -> PyResult<(Vec1<'py, f32>, Vec1<'py, bool>)> {
     let cards = hand
         .iter()
@@ -225,6 +307,7 @@ fn bid_scenario<'py>(
         ),
     };
     let (round, me) = wizard::scenario::bid_scenario(
+        simultaneous,
         players,
         &cards,
         trump,
