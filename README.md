@@ -34,6 +34,7 @@ The output shows:
 crates/ps-core    cards, evaluator, live-player hand classes
 crates/ps-solve   spots, profiles, GTO vs node-locked exploit
 crates/ps-cli     the `ps` command
+crates/wizard     Wizard (the card game) engine for self-play RL; see its README
 profiles/         opponent archetypes (TOML): gto, station, nit, maniac, whale
 spots/            study spots (TOML)
 ```
