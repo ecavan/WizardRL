@@ -51,6 +51,7 @@ def main(argv=None) -> None:
     p.add_argument("--snapshot-every", type=float, default=2e7, help="decisions between frozen copies")
     p.add_argument("--pool", type=int, default=8, help="frozen copies kept")
     p.add_argument("--eval-every", type=float, default=2e7, help="decisions between evaluations")
+    p.add_argument("--save-every", type=float, default=5e6, help="decisions between checkpoints of latest.pt")
     p.add_argument("--eval-rounds", type=int, default=20_000)
     p.add_argument("--reference", default=None, help="checkpoint to measure against (e.g. an earlier run's best.pt)")
     p.add_argument("--init", default=None, help="start from this checkpoint's weights (new optimizer, new run)")
@@ -101,13 +102,14 @@ def main(argv=None) -> None:
     if new_log:
         w.writerow(COLUMNS)
     t0 = time.time()
-    last = dict(t=t0, d=learner.state.decisions, snap=learner.state.decisions)
+    last = dict(t=t0, d=learner.state.decisions, snap=learner.state.decisions, eval=learner.state.decisions)
 
     def save(name: str, edge: float) -> None:
         torch.save(dict(model=net.state_dict(), opt=learner.opt.state_dict(), decisions=learner.state.decisions,
                         updates=learner.state.updates, best_edge=best_edge, net=net.config(), edge=edge,
                         pool=[m.state_dict() for m in learner.frozen]),
-                   os.path.join(a.out, name))
+                   os.path.join(a.out, name + ".tmp"))
+        os.replace(os.path.join(a.out, name + ".tmp"), os.path.join(a.out, name))  # never a half-written file
 
     def tick(lr: Learner) -> None:
         nonlocal best_edge
@@ -117,6 +119,10 @@ def main(argv=None) -> None:
         if lr.state.decisions - last["snap"] >= 0.95 * a.snapshot_every:
             lr.freeze(a.pool)
             last["snap"] = lr.state.decisions
+        if lr.state.decisions - last["eval"] < 0.95 * a.eval_every:
+            save("latest.pt", float("nan"))  # a checkpoint between evaluations
+            return
+        last["eval"] = lr.state.decisions
         env.stats()
         net.eval()
         ec = evaluate(net, device, a.eval_rounds, players, "counting", simultaneous=sim)
@@ -143,8 +149,9 @@ def main(argv=None) -> None:
     print(f"training on {device}; bids {'all at once' if sim else 'in turn'}; tables {a.tables}; players {players}; seats learner/frozen/counting {a.mix}; "
           f"network {net.config()}; out {a.out}", flush=True)
     learner.run(decisions=int(a.decisions) if a.decisions else None, seconds=a.hours * 3600 if a.hours else None,
-                on_tick=tick, tick_every=int(a.eval_every))
+                on_tick=tick, tick_every=int(min(a.eval_every, a.save_every)))
     if learner.state.decisions != last["d"]:
+        last["eval"] = float("-inf")
         tick(learner)  # a final evaluation, unless one just ran
     log.close()
 

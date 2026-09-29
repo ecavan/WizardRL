@@ -3,7 +3,7 @@
 A rules engine for Wizard, the trick-taking card game, built for self-play reinforcement
 learning, playing the official rules. By default everyone bids at once (bids hidden until all
 are in); `--in-turn` bids in turn as printed. Training, results and the full guide:
-[`rl/README.md`](../../rl/README.md).
+the [top-level README](../../README.md).
 
 ```sh
 cargo run --release -p wizard -- play                 # you vs 3 counting bots
