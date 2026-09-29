@@ -103,6 +103,8 @@ def main(argv=None) -> None:
     p.add_argument("--hours", type=float, default=None)
     p.add_argument("--decisions", type=float, default=None)
     p.add_argument("--init", default=None, help="DMC checkpoint to start from")
+    p.add_argument("--resume", default=None, help="continue a PPO run from its latest.pt")
+    p.add_argument("--save-every", type=float, default=5e6, help="decisions between checkpoints of latest.pt")
     p.add_argument("--reference", default=None, help="DMC checkpoint to play head-to-head against")
     p.add_argument("--players", default="3,4,5,6")
     p.add_argument("--tables", type=int, default=512)
@@ -134,21 +136,28 @@ def main(argv=None) -> None:
     scale = 100.0
 
     pol = PolicyNet().to(device)
-    if a.init:
+    if a.init and not a.resume:
         init_from_dmc(pol, a.init, a.temperature)
         pol.to(device)
     reference = load_qnet(a.reference).to(device) if a.reference else None
     opt = torch.optim.Adam(pol.parameters(), lr=a.lr)
+    resumed = torch.load(a.resume, map_location="cpu", weights_only=False) if a.resume else None
+    if resumed:
+        pol.load_state_dict(resumed["model"])
+        opt.load_state_dict(resumed["opt"])
     env = WizardEnv(a.tables, players, dict(learner=wl, nets=wn, counting=wc), a.seed, False, True)
     frozen: list[PolicyNet] = []
     freezes = 0
     gen = torch.Generator().manual_seed(a.seed)
     with open(os.path.join(a.out, "config.json"), "w") as f:
         json.dump(dict(vars(a), net=pol.config(), device=str(device)), f, indent=2)
-    log = open(os.path.join(a.out, "metrics.csv"), "a", newline="")
+    log_path = os.path.join(a.out, "metrics.csv")
+    new_log = not os.path.exists(log_path)
+    log = open(log_path, "a", newline="")
     w = csv.writer(log)
-    w.writerow(["time_s", "decisions", "updates", "policy_loss", "value_loss", "entropy", "clip_frac",
-                "edge_vs_counting_sampled", "edge_vs_counting_greedy", "edge_vs_reference_sampled", "edge_vs_reference_greedy"])
+    if new_log:
+        w.writerow(["time_s", "decisions", "updates", "policy_loss", "value_loss", "entropy", "clip_frac",
+                    "edge_vs_counting_sampled", "edge_vs_counting_greedy", "edge_vs_reference_sampled", "edge_vs_reference_greedy"])
 
     def freeze():
         nonlocal freezes
@@ -180,11 +189,23 @@ def main(argv=None) -> None:
         return r
 
     decisions, updates, t0 = 0, 0, time.time()
+    best = float("-inf")
+    if resumed:
+        decisions, updates, best = resumed["decisions"], resumed["updates"], resumed["best"]
+        for sd in resumed["pool"]:
+            freeze()
+            frozen[-1].load_state_dict(sd)
+        print(f"resumed from {a.resume} at {decisions:,} decisions, pool {len(frozen)}", flush=True)
     buf = []
     buffered = 0
-    next_eval, next_snap = a.eval_every, a.snapshot_every
+    next_eval, next_snap, next_save = decisions + a.eval_every, decisions + a.snapshot_every, decisions + a.save_every
     stats = dict(pl=float("nan"), vl=float("nan"), ent=float("nan"), cf=float("nan"))
-    best = float("-inf")
+
+    def save_latest(edge):
+        path = os.path.join(a.out, "latest.pt")
+        torch.save(dict(model=pol.state_dict(), opt=opt.state_dict(), net=pol.config(), decisions=decisions, updates=updates,
+                        edge=edge, best=best, pool=[m.state_dict() for m in frozen]), path + ".tmp")
+        os.replace(path + ".tmp", path)
 
     def tick():
         nonlocal best
@@ -196,13 +217,14 @@ def main(argv=None) -> None:
         print(f"[{(time.time() - t0) / 60:6.1f} min] {decisions / 1e6:7.1f}M  entropy {stats['ent']:.3f}  clip {stats['cf']:.2f} | "
               f"vs counting: sampled {r['cs']:+5.1f}, greedy {r['cg']:+5.1f}{ref}", flush=True)
         score = r.get("rs", r["cs"])
-        torch.save(dict(model=pol.state_dict(), net=pol.config(), decisions=decisions, edge=score), os.path.join(a.out, "latest.pt"))
         if score > best:
             best = score
             torch.save(dict(model=pol.state_dict(), net=pol.config(), decisions=decisions, edge=score), os.path.join(a.out, "best.pt"))
+        save_latest(score)
 
     print(f"PPO on {device}; players {players}; out {a.out}", flush=True)
-    tick()
+    if not resumed:
+        tick()
     while True:
         # ---- play one step at every table
         with torch.no_grad():
@@ -268,6 +290,10 @@ def main(argv=None) -> None:
         if decisions >= next_eval:
             tick()
             next_eval += a.eval_every
+        elif decisions >= next_save:
+            save_latest(float("nan"))
+        if decisions >= next_save:
+            next_save = decisions + a.save_every
         if a.decisions and decisions >= a.decisions:
             break
         if a.hours and time.time() - t0 >= a.hours * 3600:

@@ -368,4 +368,4 @@ of styles, and let it infer the style from what it has seen that game.
 
 ## Licence
 
-AGPL-3.0-or-later (see [LICENSE](LICENSE)).
+MIT (see [LICENSE](LICENSE)).
