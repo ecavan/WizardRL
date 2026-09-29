@@ -8,7 +8,9 @@
 //! per layer:   u32 in  u32 out  f32[out * in] weights (row-major)  f32[out] bias
 //! ```
 //!
-//! all little-endian, with ReLU between layers. Outputs times `scale` are round scores in points.
+//! all little-endian, with ReLU between layers. The first `actions` outputs times `scale` are
+//! expected round scores in points; if there are `2 * actions` outputs, the rest are logits of the
+//! chance the seat makes its bid after taking that action.
 
 use crate::bots::Bot;
 use crate::encode::{self, ACTIONS, FEATURES};
@@ -31,6 +33,8 @@ pub struct Mlp {
     layers: Vec<Layer>,
     /// Multiply outputs by this to get points.
     pub scale: f32,
+    /// Whether the network also predicts the chance of making the bid.
+    pub make_head: bool,
 }
 
 fn read_u32(r: &mut impl Read) -> std::io::Result<u32> {
@@ -95,15 +99,20 @@ impl Mlp {
             });
             width = output;
         }
-        if width != actions {
+        if width != actions && width != 2 * actions {
             return Err(format!(
-                "last layer gives {width} outputs, expected {actions}"
+                "last layer gives {width} outputs, expected {actions} or {}",
+                2 * actions
             ));
         }
         if !r.is_empty() {
             return Err(format!("{} unexpected bytes at the end", r.len()));
         }
-        Ok(Mlp { layers, scale })
+        Ok(Mlp {
+            layers,
+            scale,
+            make_head: width == 2 * actions,
+        })
     }
 
     /// Predicted round score (in the network's units) of every action.
@@ -156,14 +165,23 @@ impl NetBot {
         Ok(NetBot::new(Mlp::load(path)?, name))
     }
 
-    /// Predicted round score (in points) of every legal action, best first.
-    pub fn values(&mut self, v: &View) -> Vec<(Action, f32)> {
+    /// Every legal action with its predicted round score (points) and, if the network has
+    /// that head, the chance of making the bid; best first.
+    pub fn values(&mut self, v: &View) -> Vec<(Action, f32, Option<f32>)> {
         encode::observe(v, &mut self.obs);
         encode::legal_mask(v, &mut self.mask);
         let q = self.net.forward(&self.obs);
-        let mut out: Vec<(Action, f32)> = (0..ACTIONS)
+        let head = self.net.make_head;
+        let mut out: Vec<(Action, f32, Option<f32>)> = (0..ACTIONS)
             .filter(|&i| self.mask[i])
-            .map(|i| (encode::action_from_index(i).unwrap(), q[i] * self.net.scale))
+            .map(|i| {
+                let p = head.then(|| 1.0 / (1.0 + (-q[ACTIONS + i]).exp()));
+                (
+                    encode::action_from_index(i).unwrap(),
+                    q[i] * self.net.scale,
+                    p,
+                )
+            })
             .collect();
         out.sort_by(|a, b| b.1.total_cmp(&a.1));
         out
@@ -184,6 +202,10 @@ mod tests {
     use super::*;
 
     fn tiny(features: usize, actions: usize) -> Vec<u8> {
+        tiny_out(features, actions, actions)
+    }
+
+    fn tiny_out(features: usize, actions: usize, outputs: usize) -> Vec<u8> {
         let mut b = MAGIC.to_vec();
         b.extend((features as u32).to_le_bytes());
         b.extend((actions as u32).to_le_bytes());
@@ -200,7 +222,7 @@ mod tests {
             }
         };
         push_layer(&mut b, features, 3, 0.01, -0.5);
-        push_layer(&mut b, 3, actions, 1.0, 0.25);
+        push_layer(&mut b, 3, outputs, 1.0, 0.25);
         b
     }
 
@@ -217,7 +239,16 @@ mod tests {
     }
 
     #[test]
+    fn make_head_is_optional() {
+        assert!(!Mlp::from_bytes(&tiny(FEATURES, ACTIONS)).unwrap().make_head);
+        let two = Mlp::from_bytes(&tiny_out(FEATURES, ACTIONS, 2 * ACTIONS)).unwrap();
+        assert!(two.make_head);
+        assert_eq!(two.forward(&vec![0.0; FEATURES]).len(), 2 * ACTIONS);
+    }
+
+    #[test]
     fn rejects_bad_files() {
+        assert!(Mlp::from_bytes(&tiny_out(FEATURES, ACTIONS, ACTIONS + 1)).is_err());
         assert!(Mlp::from_bytes(b"nope").is_err());
         assert!(Mlp::from_bytes(&tiny(10, ACTIONS)).is_err());
         let mut b = tiny(FEATURES, ACTIONS);

@@ -18,13 +18,23 @@ python -m wizard_rl.kuhn           # learner check on Kuhn poker, about a minute
 
 ```sh
 python -m wizard_rl.train --hours 8 --out runs/first
-python -m wizard_rl.train --hours 8 --out runs/first --resume runs/first/latest.pt   # continue
+python -m wizard_rl.train --hours 8 --out runs/first --resume runs/first/latest.pt       # continue
+python -m wizard_rl.train --hours 8 --out runs/second --init runs/first/best.pt \
+    --reference runs/first/best.pt --eps-start 0.05                                        # build on a run
 ```
 
-Every `--eval-every` decisions (default 2M) it plays the network against counting bots and
-random bots, prints a line and appends it to `runs/<name>/metrics.csv`, and saves `latest.pt`
-and `best.pt`. The number to watch is **edge vs counting**: the network's average round score
-minus the counting bots' in the same rounds. 0 means as good as the counting bot.
+Who it plays: one seat per table is always the learner; each other seat is the learner too
+(70%), a frozen older copy of it (20%, from a pool of 8 refreshed every 20M decisions), or a
+counting bot (10%). Change with `--mix learner,frozen,counting`.
+
+Every `--eval-every` decisions it measures the network on **duplicate deals** (each deal
+replayed with the network in every seat, so luck cancels) against counting bots, random bots
+and, with `--reference`, an earlier network. It prints a line, appends it to
+`runs/<name>/metrics.csv`, and saves `latest.pt` and `best.pt`. The number to watch is **edge
+vs counting**: its average round score minus theirs, on the same cards.
+
+The network has two outputs per action: the expected round score (which picks the move) and the
+chance of making its bid afterwards (trained alongside, shown by the advisor).
 
 `--device auto` picks the Apple GPU (`mps`) when there is one. The network is small, so the CPU
 can be as fast; try both for a minute (`--decisions 5e6 --eval-every 5e6`) and keep the faster.
@@ -33,7 +43,8 @@ Keep the Mac awake for long runs: `caffeinate -i python -m wizard_rl.train ...`.
 ## Play against it, or get its advice
 
 `models/starter.wznet` is a first network (45 minutes of training on 2 CPU cores): it already
-beats the counting bots by about 5 points a round. Try it before training your own:
+beats the counting bots by about 5 points a round (it predates the make-bid head, so the advisor
+shows scores only). Try it before training your own:
 `cargo run --release -p wizard -- play --advisor rl/models/starter.wznet`.
 
 ```sh

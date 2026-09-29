@@ -1,14 +1,19 @@
 """Deep Monte Carlo (the DouZero method): play, then pull each decision's predicted score
 toward the score its seat actually got for the round.
 
-    loss = (Q(s, a) - G)^2
+    loss = (Q(s, a) - G)^2  +  w * BCE(P_make(s, a), made)
 
-Works with any batch environment that has `observe() -> (obs, legal)`, `step(actions)` and
-`drain() -> (obs, actions, returns)`: the Rust Wizard tables, or the Kuhn poker check.
+The second term trains the optional make-bid head; it doesn't change how moves are chosen.
+
+Works with any batch environment that has `observe() -> (obs, legal[, owner])`,
+`step(actions)` and `drain() -> (obs, actions, returns[, made])`: the Rust Wizard tables, or
+the Kuhn poker check. `owner` > 0 marks a decision for frozen network `owner` (an older copy of
+the learner), which plays greedily and isn't trained on.
 """
 
 from __future__ import annotations
 
+import copy
 import time
 from dataclasses import dataclass, field
 
@@ -28,6 +33,7 @@ class LoopConfig:
     eps_end: float = 0.02        # ... decaying to this
     eps_decay: int = 20_000_000  # over this many decisions
     scale: float = 100.0         # returns are divided by this before fitting
+    make_weight: float = 0.25    # weight of the make-bid loss
     max_grad_norm: float = 10.0
 
 
@@ -37,9 +43,8 @@ class LoopState:
     samples: int = 0
     updates: int = 0
     last_loss: float = float("nan")
-    buf_obs: list = field(default_factory=list)
-    buf_act: list = field(default_factory=list)
-    buf_ret: list = field(default_factory=list)
+    last_make_loss: float = float("nan")
+    buf: list = field(default_factory=list)
     buffered: int = 0
 
 
@@ -48,8 +53,29 @@ class Learner:
         self.env, self.net, self.cfg, self.device = env, net.to(device), cfg, device
         self.opt = torch.optim.Adam(self.net.parameters(), lr=cfg.lr)
         self.state = LoopState()
+        self.frozen: list[QNet] = []
+        self.freezes = 0
         self.gen = torch.Generator(device="cpu")
         self.gen.manual_seed(seed)
+
+    # ------------------------------------------------------------------ frozen opponents
+
+    def freeze(self, max_pool: int) -> int:
+        """Add a frozen copy of the current network to the opponent pool (replacing the oldest
+        when full). Returns the pool size."""
+        snap = copy.deepcopy(self.net).eval()
+        for p in snap.parameters():
+            p.requires_grad_(False)
+        if len(self.frozen) < max_pool:
+            self.frozen.append(snap)
+        else:
+            self.frozen[self.freezes % max_pool] = snap  # round-robin: replaces the oldest
+        self.freezes += 1
+        if hasattr(self.env, "set_nets"):
+            self.env.set_nets(len(self.frozen))
+        return len(self.frozen)
+
+    # ------------------------------------------------------------------ playing
 
     def epsilon(self) -> float:
         c = self.cfg
@@ -58,31 +84,41 @@ class Learner:
 
     @torch.no_grad()
     def act(self) -> None:
-        obs, legal = self.env.observe()
-        q = self.net(torch.from_numpy(obs).to(self.device)).cpu()
-        a = pick_actions(q, torch.from_numpy(legal), self.epsilon(), self.gen)
-        self.env.step(a.numpy().astype(np.int64))
-        self.state.decisions += len(a)
-        o, act, ret = self.env.drain()
-        if len(act):
-            s = self.state
-            s.buf_obs.append(o)
-            s.buf_act.append(act)
-            s.buf_ret.append(ret)
-            s.buffered += len(act)
+        got = self.env.observe()
+        obs, legal = got[0], got[1]
+        owner = got[2] if len(got) > 2 else np.zeros(len(obs), dtype=np.int64)
+        o = torch.from_numpy(obs).to(self.device)
+        lg = torch.from_numpy(legal)
+        actions = torch.zeros(len(obs), dtype=torch.int64)
+        mine = owner == 0
+        if mine.any():
+            idx = torch.from_numpy(np.flatnonzero(mine))
+            q = self.net(o[idx.to(self.device)]).cpu()
+            actions[idx] = pick_actions(q, lg[idx], self.epsilon(), self.gen)
+            self.state.decisions += int(mine.sum())
+        for k in np.unique(owner[~mine]):
+            idx = torch.from_numpy(np.flatnonzero(owner == k))
+            q = self.frozen[int(k) - 1](o[idx.to(self.device)]).cpu()
+            actions[idx] = pick_actions(q, lg[idx], 0.0)
+        self.env.step(actions.numpy())
+        d = self.env.drain()
+        if len(d[1]):
+            made = d[3] if len(d) > 3 else np.zeros(len(d[1]), dtype=np.float32)
+            self.state.buf.append((d[0], d[1], d[2], made))
+            self.state.buffered += len(d[1])
+
+    # ------------------------------------------------------------------ learning
 
     def learn(self) -> None:
         s, c = self.state, self.cfg
         while s.buffered >= c.batch:
-            obs = np.concatenate(s.buf_obs)
-            act = np.concatenate(s.buf_act)
-            ret = np.concatenate(s.buf_ret)
+            obs, act, ret, made = (np.concatenate([b[i] for b in s.buf]) for i in range(4))
             # Shuffle so a batch mixes many rounds and tables.
             perm = np.random.default_rng(s.updates).permutation(len(act))
-            obs, act, ret = obs[perm], act[perm], ret[perm]
+            obs, act, ret, made = obs[perm], act[perm], ret[perm], made[perm]
             take = c.batch
-            self._update(obs[:take], act[:take], ret[:take])
-            s.buf_obs, s.buf_act, s.buf_ret = [obs[take:]], [act[take:]], [ret[take:]]
+            self._update(obs[:take], act[:take], ret[:take], made[:take])
+            s.buf = [(obs[take:], act[take:], ret[take:], made[take:])]
             s.buffered = len(act) - take
 
     def _set_lr(self) -> None:
@@ -93,15 +129,21 @@ class Learner:
         for g in self.opt.param_groups:
             g["lr"] = c.lr + f * (c.lr_final - c.lr)
 
-    def _update(self, obs, act, ret) -> None:
+    def _update(self, obs, act, ret, made) -> None:
         self._set_lr()
         o = torch.from_numpy(obs).to(self.device)
-        a = torch.from_numpy(act).to(self.device)
+        a = torch.from_numpy(act).to(self.device).unsqueeze(1)
         g = torch.from_numpy(ret).to(self.device) / self.cfg.scale
-        q = self.net(o).gather(1, a.unsqueeze(1)).squeeze(1)
-        loss = torch.nn.functional.mse_loss(q, g)
+        q, make_logits = self.net.both(o)
+        loss = torch.nn.functional.mse_loss(q.gather(1, a).squeeze(1), g)
+        total = loss
+        if make_logits is not None and self.cfg.make_weight > 0:
+            m = torch.from_numpy(made).to(self.device)
+            make_loss = torch.nn.functional.binary_cross_entropy_with_logits(make_logits.gather(1, a).squeeze(1), m)
+            total = loss + self.cfg.make_weight * make_loss
+            self.state.last_make_loss = float(make_loss.detach().cpu())
         self.opt.zero_grad(set_to_none=True)
-        loss.backward()
+        total.backward()
         torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.cfg.max_grad_norm)
         self.opt.step()
         self.state.updates += 1
@@ -109,8 +151,8 @@ class Learner:
         self.state.last_loss = float(loss.detach().cpu())
 
     def run(self, decisions: int | None = None, seconds: float | None = None, on_tick=None, tick_every: int = 1_000_000) -> None:
-        """Play and learn until `decisions` more decisions or `seconds` pass. `on_tick(learner)`
-        is called about every `tick_every` decisions."""
+        """Play and learn until `decisions` more learner decisions or `seconds` pass.
+        `on_tick(learner)` is called about every `tick_every` decisions."""
         start_d, start_t = self.state.decisions, time.time()
         next_tick = self.state.decisions + tick_every
         while True:

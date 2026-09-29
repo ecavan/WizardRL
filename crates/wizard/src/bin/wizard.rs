@@ -204,9 +204,15 @@ impl Human {
             let line: Vec<String> = vals
                 .iter()
                 .take(show)
-                .map(|(a, x)| format!("{a} {x:+.0}"))
+                .map(|(a, x, p)| match p {
+                    Some(p) => format!("{a} {x:+.0} ({:.0}% to make it)", 100.0 * p),
+                    None => format!("{a} {x:+.0}"),
+                })
                 .collect();
-            println!("  advisor (expected round score): {}", line.join(" | "));
+            println!(
+                "  advisor, expected points this round: {}",
+                line.join(" | ")
+            );
         }
     }
 

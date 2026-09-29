@@ -174,7 +174,7 @@ def check(name: str, p2: dict, decisions: int = 2_000_000, seed: int = 0, verbos
     torch.manual_seed(seed)
     device = best_device() if torch.cuda.is_available() else torch.device("cpu")
     env = KuhnEnv(256, p2, seed)
-    net = QNet(FEATURES, ACTIONS, hidden=64, layers=2)
+    net = QNet(FEATURES, ACTIONS, hidden=64, layers=2, make_head=False)
     cfg = LoopConfig(batch=1024, lr=1e-3, lr_final=1e-4, lr_decay=decisions, eps_start=0.3, eps_end=0.1, eps_decay=decisions // 2, scale=1.0)
     Learner(env, net, cfg, device, seed).run(decisions=decisions)
     exact = exact_q(p2, cfg.eps_end)
