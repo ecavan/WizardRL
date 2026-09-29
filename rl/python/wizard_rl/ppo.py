@@ -55,7 +55,7 @@ class PolicyNet(nn.Module):
         self.features, self.actions, self.hidden, self.layers = features, actions, hidden, layers
 
     def forward(self, obs):
-        h = self.body(obs)
+        h = self.body(obs[:, : self.features])  # an older network reads only the leading features
         return self.pi(h), self.v(h).squeeze(-1)
 
     def config(self) -> dict:
@@ -70,8 +70,11 @@ def init_from_dmc(pol: PolicyNet, dmc_path: str, temperature: float = 0.05) -> N
         src = [m for m in q.body if isinstance(m, nn.Linear)]
         dst = [m for m in pol.body if isinstance(m, nn.Linear)]
         assert len(src) == len(dst) + 1, "same depth expected"
-        for a, b in zip(src[:-1], dst):
-            b.weight.copy_(a.weight)
+        for i, (a, b) in enumerate(zip(src[:-1], dst)):
+            c = min(a.weight.shape[1], b.weight.shape[1])
+            if i == 0:
+                b.weight[:, c:].zero_()  # inputs the DMC network didn't have start at zero weight
+            b.weight[:, :c].copy_(a.weight[:, :c])
             b.bias.copy_(a.bias)
         head = src[-1]
         pol.pi.weight.copy_(head.weight[:ACTIONS] / temperature)
@@ -135,15 +138,19 @@ def main(argv=None) -> None:
     os.makedirs(a.out, exist_ok=True)
     scale = 100.0
 
-    pol = PolicyNet().to(device)
-    if a.init and not a.resume:
-        init_from_dmc(pol, a.init, a.temperature)
-        pol.to(device)
-    reference = load_qnet(a.reference).to(device) if a.reference else None
-    opt = torch.optim.Adam(pol.parameters(), lr=a.lr)
     resumed = torch.load(a.resume, map_location="cpu", weights_only=False) if a.resume else None
     if resumed:
+        pol = PolicyNet(**resumed["net"])
         pol.load_state_dict(resumed["model"])
+    elif a.init:
+        pol = PolicyNet(features=load_qnet(a.init).features)  # same inputs as the DMC network
+        init_from_dmc(pol, a.init, a.temperature)
+    else:
+        pol = PolicyNet()
+    pol.to(device)
+    reference = load_qnet(a.reference).to(device) if a.reference else None
+    opt = torch.optim.Adam(pol.parameters(), lr=a.lr)
+    if resumed:
         opt.load_state_dict(resumed["opt"])
     env = WizardEnv(a.tables, players, dict(learner=wl, nets=wn, counting=wc), a.seed, False, True)
     frozen: list[PolicyNet] = []

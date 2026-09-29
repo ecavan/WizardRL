@@ -22,6 +22,9 @@ impl<'a> View<'a> {
         }
     }
 
+    pub fn rules(&self) -> &'a crate::rules::Rules {
+        self.round.rules()
+    }
     pub fn seat(&self) -> u8 {
         self.seat
     }

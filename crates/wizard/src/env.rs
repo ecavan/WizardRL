@@ -145,6 +145,13 @@ pub struct EnvConfig {
     pub simultaneous: bool,
     /// Keep a record of every finished round (hands, bids, tricks), for bid charts.
     pub log_rounds: bool,
+    /// Play full games (rounds 1, 2, 3 ... cards, the deal moving left, scores adding up)
+    /// instead of lone rounds of random size. Every decision is then rewarded with how the
+    /// *game* went for its seat (see `win_weight`), and the network sees the game scores.
+    pub game: bool,
+    /// Game reward = 100 x (win_weight x win + (1 - win_weight) x share of opponents beaten),
+    /// ties split. 1.0 = only winning counts.
+    pub win_weight: f32,
 }
 
 /// One seat's round, for bid charts: what it was dealt and how it went.
@@ -183,6 +190,13 @@ pub struct Stats {
     /// tables on an equal footing; pooling seat-rounds would weight big tables more for "others".)
     pub edge_sum: f64,
     pub edge_rounds: u64,
+    /// Full games only (`EnvConfig::game`): games finished, and learner / other seat-games with
+    /// their win shares (ties split). `edge_sum / edge_rounds` is then per game, in points.
+    pub games: u64,
+    pub learner_games: u64,
+    pub learner_wins: f64,
+    pub other_games: u64,
+    pub other_wins: f64,
 }
 
 /// Training samples: `obs` is `len * FEATURES` long.
@@ -229,6 +243,13 @@ struct Table {
     pending: Stats,
     /// Deals (duplicate cycles, or rounds) this table has counted in the stats.
     counted: u64,
+    /// Full games: scores so far by seat, the cards' random stream for the rest of the game,
+    /// and the learner's decisions this game (seat, action, aux, made its bid that round).
+    totals: [i32; SEATS],
+    deal_rng: Rng,
+    game_traj: Vec<(u8, u32, f32, f32)>,
+    game_obs: Vec<f32>,
+    game_mask: Vec<bool>,
     /// The deal in progress when the quota was set: not counted (it's more likely to be a long
     /// one, having been caught in progress).
     skip: bool,
@@ -261,6 +282,9 @@ impl VecEnv {
             ));
         }
         cfg.mix.validate()?;
+        if !(0.0..=1.0).contains(&cfg.win_weight) {
+            return Err("win_weight must be between 0 and 1".into());
+        }
         if cfg.duplicate && !cfg.mix.is_single_kind() {
             return Err(
                 "duplicate deals need every other seat to be the same kind of player".into(),
@@ -293,6 +317,11 @@ impl VecEnv {
                 traj_mask: Vec::new(),
                 pending: Stats::default(),
                 counted: 0,
+                totals: [0; SEATS],
+                deal_rng: Rng::new(0),
+                game_traj: Vec::new(),
+                game_obs: Vec::new(),
+                game_mask: Vec::new(),
                 skip: false,
             });
         }
@@ -422,7 +451,8 @@ impl VecEnv {
         std::mem::take(&mut self.stats)
     }
 
-    /// Deal table `i` a new round (or the next replay of its deal, in duplicate mode).
+    /// Deal table `i` a new round (or the next replay of its deal, in duplicate mode). With
+    /// `game`, this starts a new game (or the next replay of one): round 1, scores at zero.
     fn redeal(&mut self, i: usize) {
         let cfg = &self.cfg;
         let nets = self.nets;
@@ -441,7 +471,11 @@ impl VecEnv {
         } else {
             Rules::official(n)
         };
-        let size = 1 + rng.below(rules.rounds() as u64) as u8;
+        let size = if cfg.game {
+            1
+        } else {
+            1 + rng.below(rules.rounds() as u64) as u8
+        };
         let dealer = rng.below(n as u64) as u8;
         t.round = Round::deal(rules, size, dealer, &mut rng);
         let mut seats = [Seat::Learner; SEATS];
@@ -462,6 +496,24 @@ impl VecEnv {
         for s in 0..n {
             t.dealt[s as usize] = t.round.hand(s);
         }
+        t.totals = [0; SEATS];
+        t.deal_rng = rng; // the rest of the game's cards (duplicate replays get the same ones)
+        t.game_traj.clear();
+        t.game_obs.clear();
+        t.game_mask.clear();
+    }
+
+    /// Full games: deal table `i` the game's next round (one more card, the deal moving left).
+    fn next_round(&mut self, i: usize) {
+        let t = &mut self.tables[i];
+        let rules = *t.round.rules();
+        let n = rules.players;
+        let size = t.round.size() + 1;
+        let dealer = (t.round.dealer() + 1) % n;
+        t.round = Round::deal(rules, size, dealer, &mut t.deal_rng);
+        for s in 0..n {
+            t.dealt[s as usize] = t.round.hand(s);
+        }
     }
 
     /// Play bot seats and finished rounds until table `i` waits on a decision from Python.
@@ -475,17 +527,27 @@ impl VecEnv {
                     let made: Vec<bool> = (0..n)
                         .map(|s| t.round.bid(s) == Some(t.round.tricks_won(s)))
                         .collect();
-                    for (k, &(seat, action, aux)) in t.traj.iter().enumerate() {
-                        self.out
-                            .obs
-                            .extend_from_slice(&t.traj_obs[k * FEATURES..(k + 1) * FEATURES]);
-                        self.out.actions.push(action);
-                        self.out.returns.push(scores[seat as usize] as f32);
-                        self.out.made.push(made[seat as usize] as u8 as f32);
-                        self.out.aux.push(aux);
-                        self.out
-                            .legal
-                            .extend_from_slice(&t.traj_mask[k * ACTIONS..(k + 1) * ACTIONS]);
+                    if self.cfg.game {
+                        // Held until the game ends, when the reward is known.
+                        for &(seat, action, aux) in &t.traj {
+                            t.game_traj
+                                .push((seat, action, aux, made[seat as usize] as u8 as f32));
+                        }
+                        t.game_obs.extend_from_slice(&t.traj_obs);
+                        t.game_mask.extend_from_slice(&t.traj_mask);
+                    } else {
+                        for (k, &(seat, action, aux)) in t.traj.iter().enumerate() {
+                            self.out
+                                .obs
+                                .extend_from_slice(&t.traj_obs[k * FEATURES..(k + 1) * FEATURES]);
+                            self.out.actions.push(action);
+                            self.out.returns.push(scores[seat as usize] as f32);
+                            self.out.made.push(made[seat as usize] as u8 as f32);
+                            self.out.aux.push(aux);
+                            self.out
+                                .legal
+                                .extend_from_slice(&t.traj_mask[k * ACTIONS..(k + 1) * ACTIONS]);
+                        }
                     }
                     if self.cfg.log_rounds {
                         let trump = t.round.trump().map_or(4, |s| s.index());
@@ -520,7 +582,7 @@ impl VecEnv {
                             on += 1;
                         }
                     }
-                    if ln > 0 && on > 0 {
+                    if ln > 0 && on > 0 && !self.cfg.game {
                         st.edge_sum += ls as f64 / ln as f64 - os as f64 / on as f64;
                         st.edge_rounds += 1;
                     }
@@ -533,6 +595,53 @@ impl VecEnv {
                             st.other_rounds += 1;
                             st.other_score += scores[s] as i64;
                             st.other_bids_made += made[s] as u64;
+                        }
+                    }
+                    if self.cfg.game {
+                        for s in 0..n as usize {
+                            t.totals[s] += scores[s];
+                        }
+                        if t.round.size() < t.round.rules().rounds() {
+                            self.next_round(i);
+                            continue;
+                        }
+                        // Game over: reward every decision of the game, and count the result.
+                        let reward = game_rewards(&t.totals[..n as usize], self.cfg.win_weight);
+                        for (k, &(seat, action, aux, made)) in t.game_traj.iter().enumerate() {
+                            self.out
+                                .obs
+                                .extend_from_slice(&t.game_obs[k * FEATURES..(k + 1) * FEATURES]);
+                            self.out.actions.push(action);
+                            self.out.returns.push(reward[seat as usize]);
+                            self.out.made.push(made);
+                            self.out.aux.push(aux);
+                            self.out
+                                .legal
+                                .extend_from_slice(&t.game_mask[k * ACTIONS..(k + 1) * ACTIONS]);
+                        }
+                        t.game_traj.clear();
+                        t.game_obs.clear();
+                        t.game_mask.clear();
+                        let wins = win_shares(&t.totals[..n as usize]);
+                        let st = &mut t.pending;
+                        st.games += 1;
+                        let (mut lt, mut ln, mut ot, mut on) = (0f64, 0f64, 0f64, 0f64);
+                        for s in 0..n as usize {
+                            if t.seats[s] == Seat::Learner {
+                                st.learner_games += 1;
+                                st.learner_wins += wins[s];
+                                lt += t.totals[s] as f64;
+                                ln += 1.0;
+                            } else {
+                                st.other_games += 1;
+                                st.other_wins += wins[s];
+                                ot += t.totals[s] as f64;
+                                on += 1.0;
+                            }
+                        }
+                        if ln > 0.0 && on > 0.0 {
+                            st.edge_sum += lt / ln - ot / on;
+                            st.edge_rounds += 1;
                         }
                     }
                     if !self.cfg.duplicate || t.dup_left == 0 {
@@ -554,19 +663,34 @@ impl VecEnv {
                         self.stats.other_bids_made += p.other_bids_made;
                         self.stats.edge_sum += p.edge_sum;
                         self.stats.edge_rounds += p.edge_rounds;
+                        self.stats.games += p.games;
+                        self.stats.learner_games += p.learner_games;
+                        self.stats.learner_wins += p.learner_wins;
+                        self.stats.other_games += p.other_games;
+                        self.stats.other_wins += p.other_wins;
                     }
                     self.redeal(i);
                 }
                 Some(seat) => match t.seats[seat as usize] {
                     Seat::Learner | Seat::Net(_) => {
-                        let v = View::new(&t.round, seat, &[]);
+                        let scores: &[i32] = if self.cfg.game {
+                            &t.totals[..t.round.players() as usize]
+                        } else {
+                            &[]
+                        };
+                        let v = View::new(&t.round, seat, scores);
                         encode::observe(&v, &mut t.obs);
                         encode::legal_mask(&v, &mut t.mask);
                         return;
                     }
                     kind => {
                         let a = {
-                            let v = View::new(&t.round, seat, &[]);
+                            let scores: &[i32] = if self.cfg.game {
+                                &t.totals[..t.round.players() as usize]
+                            } else {
+                                &[]
+                            };
+                            let v = View::new(&t.round, seat, scores);
                             match kind {
                                 Seat::Counting => CountingBot.act(&v, &mut t.rng),
                                 _ => RandomBot.act(&v, &mut t.rng),
@@ -580,6 +704,37 @@ impl VecEnv {
     }
 }
 
+/// Each seat's share of the win (1 for a clear winner, split on a tie, 0 otherwise).
+fn win_shares(totals: &[i32]) -> Vec<f64> {
+    let best = *totals.iter().max().expect("players");
+    let tied = totals.iter().filter(|&&t| t == best).count() as f64;
+    totals
+        .iter()
+        .map(|&t| if t == best { 1.0 / tied } else { 0.0 })
+        .collect()
+}
+
+/// The game reward per seat, in points (0 to 100): `win_weight` x winning plus the rest x the
+/// share of opponents finished ahead of (ties count half).
+fn game_rewards(totals: &[i32], win_weight: f32) -> Vec<f32> {
+    let n = totals.len();
+    let wins = win_shares(totals);
+    (0..n)
+        .map(|s| {
+            let beaten: f64 = (0..n)
+                .filter(|&o| o != s)
+                .map(|o| match totals[s].cmp(&totals[o]) {
+                    std::cmp::Ordering::Greater => 1.0,
+                    std::cmp::Ordering::Equal => 0.5,
+                    std::cmp::Ordering::Less => 0.0,
+                })
+                .sum();
+            let place = beaten / (n - 1) as f64;
+            (100.0 * (win_weight as f64 * wins[s] + (1.0 - win_weight as f64) * place)) as f32
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -591,6 +746,8 @@ mod tests {
             duplicate: false,
             simultaneous: true,
             log_rounds: false,
+            game: false,
+            win_weight: 1.0,
         }
     }
 
@@ -707,6 +864,8 @@ mod tests {
                 duplicate: true,
                 simultaneous: true,
                 log_rounds: false,
+                game: false,
+                win_weight: 1.0,
             },
             11,
         )
@@ -753,6 +912,8 @@ mod tests {
                 duplicate: true,
                 simultaneous: true,
                 log_rounds: false,
+                game: false,
+                win_weight: 1.0,
             },
             1
         )
@@ -769,6 +930,8 @@ mod tests {
                 duplicate: false,
                 simultaneous: true,
                 log_rounds: true,
+                game: false,
+                win_weight: 1.0,
             },
             21,
         )
@@ -818,6 +981,8 @@ mod tests {
                 duplicate: true,
                 simultaneous: true,
                 log_rounds: false,
+                game: false,
+                win_weight: 1.0,
             },
             13,
         )
@@ -850,6 +1015,8 @@ mod tests {
                 duplicate: true,
                 simultaneous: true,
                 log_rounds: false,
+                game: false,
+                win_weight: 1.0,
             },
             3,
         )
@@ -891,6 +1058,96 @@ mod tests {
         assert_eq!(st.edge_rounds, 100 * 4);
         env.set_quota(0);
         assert_eq!(env.quota_left(), 0);
+    }
+
+    #[test]
+    fn full_games_reward_every_decision_with_the_game_result() {
+        let mut env = VecEnv::new(
+            1,
+            EnvConfig {
+                players: vec![4],
+                mix: SeatMix::SELF_PLAY,
+                duplicate: false,
+                simultaneous: true,
+                log_rounds: true,
+                game: true,
+                win_weight: 1.0,
+            },
+            21,
+        )
+        .unwrap();
+        let mut rng = Rng::new(4);
+        run(&mut env, 8000, &mut rng);
+        let st = env.take_stats();
+        let s = env.drain();
+        let log = env.drain_rounds();
+        assert!(st.games >= 4, "{} games", st.games);
+        assert_eq!(
+            st.rounds,
+            15 * st.games + (st.rounds % 15),
+            "rounds come in games of 15"
+        );
+        // Win shares add up to one per game; with win_weight 1 a return is 100 / (winners) or 0.
+        assert!((st.learner_wins + st.other_wins - st.games as f64).abs() < 1e-9);
+        assert!(s.len() > 0);
+        for &r in &s.returns {
+            assert!(
+                r == 0.0
+                    || [100.0, 50.0, 100.0 / 3.0, 25.0]
+                        .iter()
+                        .any(|w| (r - w).abs() < 1e-3),
+                "{r}"
+            );
+        }
+        // Rounds are played in order, 1 to 15 cards.
+        let sizes: Vec<u8> = log.iter().step_by(4).map(|r| r.size).take(15).collect();
+        assert_eq!(sizes, (1..=15).collect::<Vec<u8>>());
+    }
+
+    #[test]
+    fn game_rewards_split_ties_and_count_opponents_beaten() {
+        let r = game_rewards(&[100, 50, 100, 0], 0.5);
+        // Seats 0 and 2 share the win (0.5 each) and beat 1.5 of 3 opponents... plus the tie.
+        assert!((r[0] - 100.0 * (0.5 * 0.5 + 0.5 * (2.5 / 3.0)) as f32).abs() < 1e-3);
+        assert_eq!(r[0], r[2]);
+        assert!((r[1] - 100.0 * 0.5 * (1.0 / 3.0) as f32).abs() < 1e-3);
+        assert_eq!(r[3], 0.0);
+        assert_eq!(game_rewards(&[10, 20, 30], 1.0), vec![0.0, 0.0, 100.0]);
+    }
+
+    #[test]
+    fn duplicate_games_of_a_player_against_itself_have_zero_edge() {
+        let mut env = VecEnv::new(
+            6,
+            EnvConfig {
+                players: vec![4],
+                mix: SeatMix::COUNTING,
+                duplicate: true,
+                simultaneous: true,
+                log_rounds: false,
+                game: true,
+                win_weight: 1.0,
+            },
+            8,
+        )
+        .unwrap();
+        for _ in 0..20000 {
+            let acts: Vec<usize> = (0..env.len())
+                .map(|i| {
+                    let t = &mut env.tables[i];
+                    let seat = t.round.to_act().unwrap();
+                    let v = View::new(&t.round, seat, &t.totals[..t.round.players() as usize]);
+                    encode::action_index(CountingBot.act(&v, &mut t.rng))
+                })
+                .collect();
+            env.step(&acts).unwrap();
+        }
+        let st = env.take_stats();
+        assert!(st.edge_rounds > 0, "some games finished");
+        assert!((st.edge_sum / st.edge_rounds as f64).abs() < 1e-9);
+        let lw = st.learner_wins / st.learner_games as f64;
+        let ow = st.other_wins / st.other_games as f64;
+        assert!((lw - ow).abs() < 1e-9, "{lw} {ow}");
     }
 
     #[test]

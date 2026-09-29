@@ -25,11 +25,12 @@ class QNet(nn.Module):
         self.features, self.actions, self.hidden, self.layers, self.make_head = features, actions, hidden, layers, make_head
 
     def forward(self, obs: torch.Tensor) -> torch.Tensor:
-        """Expected score of every action, `[B, actions]`."""
-        return self.body(obs)[:, : self.actions]
+        """Expected score of every action, `[B, actions]`. An older network (fewer features)
+        reads the leading features only: the game features were appended at the end."""
+        return self.body(obs[:, : self.features])[:, : self.actions]
 
     def both(self, obs: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor | None]:
-        out = self.body(obs)
+        out = self.body(obs[:, : self.features])
         return out[:, : self.actions], (out[:, self.actions :] if self.make_head else None)
 
     def config(self) -> dict:
@@ -48,21 +49,21 @@ def load_qnet(path: str) -> QNet:
 
 
 def warm_start(net: QNet, path: str) -> None:
-    """Copy weights from an earlier checkpoint with the same body; the score half of the last
-    layer carries over even if the old network had no make-bid head."""
+    """Copy weights from an earlier checkpoint with the same depth. Where shapes differ, the
+    overlap is copied: the score half of the last layer carries over even if the old network had
+    no make-bid head, and inputs the old network didn't have (the game features) start with zero
+    weight, so the new network begins by playing exactly like the old one."""
     old = load_qnet(path)
     src, dst = old.body, net.body
     assert len(src) == len(dst), "different depth"
     with torch.no_grad():
-        for a, b in zip(src, dst):
+        for i, (a, b) in enumerate(zip(src, dst)):
             if isinstance(a, nn.Linear):
-                if a.weight.shape == b.weight.shape:
-                    b.weight.copy_(a.weight)
-                    b.bias.copy_(a.bias)
-                else:
-                    n = min(a.weight.shape[0], b.weight.shape[0])
-                    b.weight[:n].copy_(a.weight[:n])
-                    b.bias[:n].copy_(a.bias[:n])
+                r, c = min(a.weight.shape[0], b.weight.shape[0]), min(a.weight.shape[1], b.weight.shape[1])
+                if i == 0 and b.weight.shape[1] > a.weight.shape[1]:
+                    b.weight[:, c:].zero_()
+                b.weight[:r, :c].copy_(a.weight[:r, :c])
+                b.bias[:r].copy_(a.bias[:r])
 
 
 def pick_actions(q: torch.Tensor, legal: torch.Tensor, epsilon: float, generator: torch.Generator | None = None) -> torch.Tensor:

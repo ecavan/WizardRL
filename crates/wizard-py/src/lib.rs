@@ -18,7 +18,9 @@ type Vec1<'py, T> = Bound<'py, PyArray1<T>>;
 /// learner's, or a frozen network's.
 ///
 /// - `WizardEnv(num_tables, players=[3,4,5,6], opponents="selfplay", seed=0, duplicate=False,
-///   simultaneous=True, log_rounds=False)`;
+///   simultaneous=True, log_rounds=False, game=False, win_weight=1.0)`; with `game`, tables play
+///   full games and every decision's return is the game reward (0-100: winning, and with
+///   `win_weight` < 1 partly the share of opponents beaten);
 ///   `opponents` is a preset (`selfplay`, `train`, `counting`, `random`, `nets`) or a dict of
 ///   weights `{learner, nets, counting, random}` for the seats other than the learner's own
 /// - `observe()` -> `(obs[float32, B x FEATURES], legal[bool, B x ACTIONS], owner[int64, B])`,
@@ -71,7 +73,7 @@ fn mix_from(obj: &Bound<'_, PyAny>) -> PyResult<SeatMix> {
 #[pymethods]
 impl WizardEnv {
     #[new]
-    #[pyo3(signature = (num_tables, players = vec![3, 4, 5, 6], opponents = None, seed = 0, duplicate = false, simultaneous = true, log_rounds = false))]
+    #[pyo3(signature = (num_tables, players = vec![3, 4, 5, 6], opponents = None, seed = 0, duplicate = false, simultaneous = true, log_rounds = false, game = false, win_weight = 1.0))]
     #[allow(clippy::too_many_arguments)]
     fn new(
         num_tables: usize,
@@ -81,6 +83,8 @@ impl WizardEnv {
         duplicate: bool,
         simultaneous: bool,
         log_rounds: bool,
+        game: bool,
+        win_weight: f32,
     ) -> PyResult<Self> {
         let mix = match opponents {
             Some(o) => mix_from(o)?,
@@ -94,6 +98,8 @@ impl WizardEnv {
                 duplicate,
                 simultaneous,
                 log_rounds,
+                game,
+                win_weight,
             },
             seed,
         )
@@ -234,6 +240,11 @@ impl WizardEnv {
         d.set_item("decisions", s.decisions)?;
         d.set_item("edge_sum", s.edge_sum)?;
         d.set_item("edge_rounds", s.edge_rounds)?;
+        d.set_item("games", s.games)?;
+        d.set_item("learner_games", s.learner_games)?;
+        d.set_item("learner_wins", s.learner_wins)?;
+        d.set_item("other_games", s.other_games)?;
+        d.set_item("other_wins", s.other_wins)?;
         Ok(d)
     }
 }
@@ -337,5 +348,7 @@ fn _engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("ACT_CARD", encode::ACT_CARD)?;
     m.add("PHASE", encode::PHASE)?;
     m.add("HAND", encode::HAND)?;
+    m.add("GAME", encode::GAME)?;
+    m.add("ROUND_FEATURES", encode::ROUND_FEATURES)?;
     Ok(())
 }

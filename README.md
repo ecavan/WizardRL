@@ -16,7 +16,9 @@ in Rust with no Python needed.
 **Contents:** [Quick start](#quick-start) · [The rules it plays](#the-rules-it-plays) ·
 [How it learns](#how-it-learns) · [Commands](#commands) · [Results](#results) ·
 [Bid charts](#bid-charts) · [Probabilities vs best move (PPO)](#a-learner-that-outputs-probabilities-ppo) ·
-[Size and speed](#size-and-speed) · [Files](#files) · [What's next](#whats-next)
+[Playing to win](#playing-to-win-the-game) · [How beatable is it?](#how-beatable-is-it) ·
+[Look-ahead search](#look-ahead-search) · [Size and speed](#size-and-speed) · [Files](#files) ·
+[What's next](#whats-next)
 
 ---
 
@@ -97,9 +99,9 @@ A few details that matter:
   of 8 (20%), or a simple counting bot (10%).
 - **Chance of making the bid.** A second output learns the probability of making the bid from
   here. It doesn't change the moves; the advisor shows it ("bid 1: +15, 71% to make it").
-- **What it sees.** 503 numbers from its own seat's point of view: its hand, trump, cards
+- **What it sees.** 514 numbers from its own seat's point of view: its hand, trump, cards
   played so far, the current trick, bids and tricks won by everyone (bids are hidden until
-  everyone has bid), which suits each player has shown they're out of, and more. See
+  everyone has bid), which suits each player has shown they're out of, and in a full game the scores so far. See
   [`crates/wizard/src/encode.rs`](crates/wizard/src/encode.rs). It never sees other hands.
 - **What it can do.** 85 actions: 4 trump suits, bids 0 to 20, or one of the 60 cards. Illegal
   moves are masked out.
@@ -138,7 +140,10 @@ python -m wizard_rl.train --hours 5 --out runs/next --init runs/first/best.pt \
 ```
 
 - `--init` copies a network's weights into a new run (new optimizer, new log). `--resume`
-  continues a run exactly where it stopped.
+  continues a run exactly where it stopped; `latest.pt` is saved every `--save-every` decisions
+  (default 5M, a few minutes), so a crash loses little.
+- `--hours`, `--decisions` (more decisions) or `--until` (total decisions, counted across
+  resumes) say when to stop.
 - `--reference` also measures each checkpoint head-to-head against that network, so you can see
   whether the new run is actually beating the old one.
 - `--in-turn` trains with bids in turn instead of all at once.
@@ -149,6 +154,11 @@ python -m wizard_rl.train --hours 5 --out runs/next --init runs/first/best.pt \
 - `--device auto` uses the Apple GPU (`mps`) if there is one. The network is small, so the CPU can
   be as fast; try both for a few minutes (`--decisions 5e6 --eval-every 5e6`) and keep the faster.
 - `--threads N` caps the CPU threads PyTorch uses.
+- `--game`: play **full games** and reward **winning the game** instead of each round's score
+  (see [Playing to win the game](#playing-to-win-the-game)). `--win-weight 0.8` mixes in 20%
+  "share of opponents finished ahead of". Evaluation then reports points per game and win rates.
+- `--opponent FILE`: **exploiter** mode. Every other seat is that fixed network and nothing else,
+  so the learner learns to beat it specifically (see [How beatable is it?](#how-beatable-is-it)).
 
 Every `--eval-every` decisions (default 20M) it prints a line like
 
@@ -173,6 +183,7 @@ python -m wizard_rl.evaluate runs/first/best.pt                          # vs co
 python -m wizard_rl.evaluate runs/first/best.pt --vs random
 python -m wizard_rl.evaluate runs/next/best.pt --vs runs/first/best.pt   # head-to-head: new vs old
 python -m wizard_rl.evaluate runs/ppo1/best.pt --sample --vs runs/first/best.pt   # a PPO bot, sampling its moves
+python -m wizard_rl.evaluate runs/game1/best.pt --game --rounds 4000 --vs runs/first/best.pt   # full games: points per game, win %
 ```
 
 It prints the edge per table size and overall, with an error bar (± two standard errors: if the
@@ -202,10 +213,16 @@ cargo run --release -p wizard -- sim --games 2000 --bots chart:rl/charts/bid_cha
 
 - `play`: you play a full game in the terminal. `--bots` lists your opponents; `--advisor` shows
   the bot's expected points (and chance of making the bid) for each of your options.
-- `sim`: bots play each other; prints average game score, win rate and bid rate for each. The
-  bots rotate seats game to game.
-- Bot names: `random`, `counting`, `net:FILE` (a trained network), `chart:FILE` (bids from a bid
-  chart CSV, plays like the counting bot).
+- `sim`: bots play full games against each other as **duplicate games**. Each deal is played
+  once in every seating, so every bot holds every hand and luck mostly cancels. For each bot it
+  prints the average game score, its margin over the rest of the table, its win rate and how
+  often it made its bid, with **95% confidence intervals**.
+- Bot names:
+  - `random`, `counting`;
+  - `net:FILE`: a trained network;
+  - `chart:FILE`: bids from a bid chart CSV, plays like the counting bot;
+  - `search:FILE[:samples[:width]]`: a network that **looks ahead before bidding**. See
+    [Look-ahead search](#look-ahead-search).
 - `--players 3..6`, `--seed N`, `--in-turn`.
 
 ### Ask it about a hand
@@ -308,6 +325,49 @@ to read). `ppo.py` trains such a learner with Proximal Policy Optimization:
 
 ---
 
+## Playing to win the game
+
+The main bot maximizes each round's score. In a real game, what matters is **winning**: a
+player 80 points behind with two rounds left should gamble on a big bid, and a leader should
+play safe. With `--game`:
+
+- **Full games.** Rounds of 1, 2, 3 ... cards are played, the deal moves left, and scores add
+  up.
+- **More to see.** The network also sees the game so far: everyone's score, its margin over the
+  best other player, how many players are ahead of it, and the rounds left.
+- **The reward** for every decision is how the game ended for that seat: 100 for a win (shared on
+  a tie), 0 otherwise.
+
+A game-trained network starts from the round-score network: the new inputs start at zero weight,
+so it begins by playing the same way.
+
+<!-- GAME -->
+
+## How beatable is it?
+
+Against a copy of itself the bot's edge is exactly zero, so that says nothing. The real
+question is how much a player could win **if they knew exactly how it plays**. That's the
+exploiter test: train a new network (`--opponent`) whose only job is to beat the frozen main bot,
+with every other seat being that bot. The exploiter's final edge measures how exploitable the
+bot is, in the spirit of "distance from GTO" in poker. A small edge means there's no easy hole to
+find.
+
+<!-- EXPLOIT -->
+
+## Look-ahead search
+
+`search:FILE` bids the way a careful player thinks it through. For each of the network's
+favourite bids (3 by default), it deals the cards it can't see at random many times (32 by
+default). It plays each imagined round to the end with the network making every other decision,
+then bids whatever scored best on average. Every candidate is tried on the same imagined deals,
+so the comparison is sharp. The imagined rounds all advance together, so the network runs on
+big batches. That takes about a second per game on one core. Play after the bid is the plain
+network.
+
+<!-- SEARCH -->
+
+---
+
 ## Size and speed
 
 - **Network:** 3 hidden layers of 512 units, 870,570 parameters. `.wznet` export: 3.5 MB.
@@ -350,9 +410,11 @@ The engine side (`crates/wizard/src`):
 
 - `rules.rs`, `round.rs`, `game.rs`: the rules, one round as a state machine, full games.
 - `view.rs`: what a seat may see (bots get only this; other bids are hidden until everyone has bid).
-- `encode.rs`: the 503 numbers the network sees and its 85 actions.
+- `encode.rs`: the 514 numbers the network sees (503 about the round, 11 about the game so far)
+  and its 85 actions.
 - `env.rs`: many tables at once for training; frozen-network seats; duplicate deals; stats.
 - `bots.rs`, `chart.rs`, `net.rs`: the random and counting bots, the chart bot, a trained network.
+- `search.rs`: the look-ahead bidder.
 - `scenario.rs`: builds a bidding situation to ask a network about.
 
 ---

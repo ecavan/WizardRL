@@ -6,6 +6,7 @@ license.workspace = true
 description = "Wizard (the trick-taking card game): rules engine, baseline bots and a terminal table"
 
 [dependencies]
+matrixmultiply = "0.3"
 
 [[bin]]
 name = "wizard"

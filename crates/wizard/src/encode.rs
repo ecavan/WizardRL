@@ -31,7 +31,11 @@ pub const WON: usize = HAS_BID + SEATS; // 6: tricks won / 20
 pub const NEED: usize = WON + SEATS; // 6: (bid - won) / 20, for seats that have bid
 pub const VOIDS: usize = NEED + SEATS; // 24: known out-of-suit, relative seat x suit
 pub const TRICK_POS: usize = VOIDS + SEATS * 4; // 1: cards already in this trick / 5
-pub const FEATURES: usize = TRICK_POS + 1;
+pub const GAME: usize = TRICK_POS + 1; // 11: the game so far (zeros for a lone round), see `observe`
+pub const FEATURES: usize = GAME + 11;
+/// Features of networks trained before the game features existed; the game features were
+/// appended, so such a network reads the first `ROUND_FEATURES` numbers and nothing changes.
+pub const ROUND_FEATURES: usize = GAME;
 
 // Action numbering.
 pub const ACT_TRUMP: usize = 0; // 4 suits
@@ -124,7 +128,32 @@ pub fn observe(v: &View, out: &mut [f32]) {
         }
     }
     out[TRICK_POS] = trick.len() as f32 / (SEATS - 1) as f32;
+
+    // The game so far (only inside a full game): scores before this round, by relative seat;
+    // my margin over the best other player; rounds still to come after this one; my rank.
+    let scores = v.scores();
+    if scores.len() == n {
+        out[GAME] = 1.0;
+        for s in 0..n as u8 {
+            out[GAME + 1 + rel(s)] = scores[s as usize] as f32 / SCORE_SCALE;
+        }
+        let mine = scores[me];
+        let best_other = (0..n)
+            .filter(|&s| s != me)
+            .map(|s| scores[s])
+            .max()
+            .unwrap_or(mine);
+        out[GAME + 7] = (mine - best_other) as f32 / SCORE_SCALE;
+        let rounds = (DECK_SIZE / n) as f32;
+        out[GAME + 8] = (rounds - v.size() as f32) / MAX_SIZE;
+        out[GAME + 9] = (mine > best_other) as u8 as f32;
+        let ahead = (0..n).filter(|&s| s != me && scores[s] > mine).count();
+        out[GAME + 10] = ahead as f32 / (n - 1) as f32;
+    }
 }
+
+/// Game scores are divided by this in the observation.
+const SCORE_SCALE: f32 = 200.0;
 
 /// Legal actions as a mask of length `ACTIONS`.
 pub fn legal_mask(v: &View, out: &mut [bool]) {
@@ -145,12 +174,35 @@ mod tests {
 
     #[test]
     fn layout_is_contiguous() {
-        assert_eq!(FEATURES, 503);
+        assert_eq!(
+            ROUND_FEATURES, 503,
+            "networks from before the game features read 503"
+        );
+        assert_eq!(FEATURES, 514);
         assert_eq!(ACTIONS, 85);
         for i in 0..ACTIONS {
             assert_eq!(action_index(action_from_index(i).unwrap()), i);
         }
         assert!(action_from_index(ACTIONS).is_none());
+    }
+
+    #[test]
+    fn game_features_show_the_score_race() {
+        let mut rng = Rng::new(5);
+        let r = Round::deal(Rules::simultaneous(4), 3, 0, &mut rng);
+        let mut o = vec![0.0; FEATURES];
+        // Lone round: no game features.
+        observe(&View::new(&r, 1, &[]), &mut o);
+        assert!(o[GAME..].iter().all(|&x| x == 0.0));
+        // Seat 1 has 60, the leader (seat 3) 100: 40 behind, one player ahead, 12 rounds to come.
+        observe(&View::new(&r, 1, &[20, 60, -10, 100]), &mut o);
+        assert_eq!(o[GAME], 1.0);
+        assert_eq!(o[GAME + 1], 60.0 / 200.0); // me
+        assert_eq!(o[GAME + 1 + 2], 100.0 / 200.0); // seat 3 is two to my left
+        assert_eq!(o[GAME + 7], -40.0 / 200.0);
+        assert_eq!(o[GAME + 8], 12.0 / 20.0);
+        assert_eq!(o[GAME + 9], 0.0);
+        assert_eq!(o[GAME + 10], 1.0 / 3.0);
     }
 
     #[test]

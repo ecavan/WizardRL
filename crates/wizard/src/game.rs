@@ -53,14 +53,41 @@ pub fn play_round(
 
 /// Play a full game. The first dealer is drawn from `rng`; the deal moves one seat left each round.
 pub fn play_game(rules: Rules, bots: &mut [&mut dyn Bot], rng: &mut Rng) -> GameResult {
+    run_game(rules, bots, rng, None)
+}
+
+/// Play a full game with the cards (and first dealer) drawn from `deals` and the bots' own
+/// randomness from `rng`, so the same `deals` seed deals the same cards whatever the bots do:
+/// the basis of duplicate games.
+pub fn play_game_dealt(
+    rules: Rules,
+    bots: &mut [&mut dyn Bot],
+    deals: &mut Rng,
+    rng: &mut Rng,
+) -> GameResult {
+    run_game(rules, bots, rng, Some(deals))
+}
+
+fn run_game(
+    rules: Rules,
+    bots: &mut [&mut dyn Bot],
+    rng: &mut Rng,
+    mut deals: Option<&mut Rng>,
+) -> GameResult {
     rules.validate().expect("valid rules");
     let n = rules.players;
     let mut totals = vec![0i32; n as usize];
     let mut rounds = Vec::with_capacity(rules.rounds() as usize);
     let mut decisions = 0;
-    let mut dealer = rng.below(n as u64) as u8;
+    let mut dealer = match deals.as_deref_mut() {
+        Some(d) => d.below(n as u64) as u8,
+        None => rng.below(n as u64) as u8,
+    };
     for size in 1..=rules.rounds() {
-        let mut round = Round::deal(rules, size, dealer, rng);
+        let mut round = match deals.as_deref_mut() {
+            Some(d) => Round::deal(rules, size, dealer, d),
+            None => Round::deal(rules, size, dealer, rng),
+        };
         decisions += play_round(&mut round, bots, &totals, rng);
         let scores = round.scores().expect("round finished");
         for (t, s) in totals.iter_mut().zip(&scores) {

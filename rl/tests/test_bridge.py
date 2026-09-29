@@ -6,7 +6,7 @@ import torch
 import os
 import tempfile
 
-from wizard_rl import ACT_BID, ACT_CARD, ACTIONS, FEATURES, HAND, PHASE, WizardEnv, action_name, rust_forward
+from wizard_rl import ACT_BID, ACT_CARD, ACTIONS, FEATURES, GAME, HAND, PHASE, ROUND_FEATURES, WizardEnv, action_name, rust_forward
 from wizard_rl.export import export
 from wizard_rl.net import QNet, pick_actions
 
@@ -108,7 +108,38 @@ def test_evaluation_with_a_quota():
     assert abs(r["edge"]) < 5, r  # random vs random: small, noisy
 
 
+def test_full_games_and_older_networks():
+    """Game mode: returns are game rewards (0..100) and the game features are filled in. A network
+    from before the game features (503 inputs) still runs, in PyTorch and in Rust."""
+    env = WizardEnv(8, [4], "selfplay", 3, False, True, False, True, 1.0)
+    rng = np.random.default_rng(0)
+    seen_game = False
+    for _ in range(3000):
+        obs, legal, _ = env.observe()
+        seen_game |= bool((obs[:, GAME] == 1).all())
+        acts = np.array([rng.choice(np.flatnonzero(m)) for m in legal], dtype=np.int64)
+        env.step(acts)
+    assert seen_game
+    _, _, ret, *_ = env.drain()
+    assert len(ret) > 0 and ret.min() >= 0 and ret.max() <= 100
+    st = env.stats()
+    assert st["games"] > 0 and abs(st["learner_wins"] + st["other_wins"] - st["games"]) < 1e-6
+
+    old = QNet(ROUND_FEATURES, ACTIONS, hidden=32, layers=2)
+    x = torch.from_numpy(obs)
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "old.pt")
+        torch.save(dict(model=old.state_dict(), net=old.config()), path)
+        export(path, os.path.join(d, "old.wznet"))
+        rust = rust_forward(os.path.join(d, "old.wznet"), obs)
+    with torch.no_grad():
+        ours = old.body(x[:, :ROUND_FEATURES]).numpy()
+        assert np.allclose(old(x).numpy(), ours[:, :ACTIONS])
+    assert np.allclose(rust, ours, atol=1e-4)
+
+
 if __name__ == "__main__":
+    test_full_games_and_older_networks()
     test_evaluation_with_a_quota()
     test_frozen_nets_and_duplicate()
     test_export_matches_pytorch()

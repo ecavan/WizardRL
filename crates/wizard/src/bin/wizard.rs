@@ -6,11 +6,12 @@ use std::time::Instant;
 use wizard::bots::{self, Bot};
 use wizard::card::{self, cards, Card, Suit};
 use wizard::chart::ChartBot;
-use wizard::game::play_game;
-use wizard::net::NetBot;
+use wizard::game::play_game_dealt;
+use wizard::net::{Mlp, NetBot};
 use wizard::rng::Rng;
 use wizard::round::{Action, Phase, Round, TrumpSource};
 use wizard::rules::Rules;
+use wizard::search::SearchBot;
 use wizard::view::View;
 
 const USAGE: &str = "usage:
@@ -21,6 +22,8 @@ const USAGE: &str = "usage:
   --bots     one name per seat (sim) or per opponent (play):
              random | counting | net:FILE (a trained network, from python -m wizard_rl.export)
              | chart:FILE (bids from a bid chart CSV, plays like counting)
+             | search:FILE[:samples[:width]] (a network that looks ahead before bidding:
+               plays out `samples` imagined deals for each of its top `width` bids; 32, 3)
   --advisor  FILE: a trained network that shows you its predicted score for each option
   --in-turn  bid in turn (the printed rules) instead of everyone at once";
 
@@ -78,6 +81,25 @@ fn make_bots(names: &[String]) -> Result<Vec<Box<dyn Bot>>, String> {
         .map(|n| {
             if let Some(path) = n.strip_prefix("net:") {
                 NetBot::load(path).map(|b| Box::new(b) as Box<dyn Bot>)
+            } else if let Some(spec) = n.strip_prefix("search:") {
+                // search:FILE[:samples[:width]]
+                let mut parts = spec.split(':');
+                let path = parts.next().unwrap_or_default();
+                let samples = parts
+                    .next()
+                    .map_or(Ok(32), str::parse)
+                    .map_err(|_| "bad search samples")?;
+                let width = parts
+                    .next()
+                    .map_or(Ok(3), str::parse)
+                    .map_err(|_| "bad search width")?;
+                let net = Mlp::load(path)?;
+                Ok(Box::new(SearchBot::new(
+                    net,
+                    format!("search:{path}"),
+                    samples,
+                    width,
+                )) as Box<dyn Bot>)
             } else if let Some(path) = n.strip_prefix("chart:") {
                 ChartBot::load(path).map(|b| Box::new(b) as Box<dyn Bot>)
             } else {
@@ -125,63 +147,111 @@ fn sim(a: &Args) -> Result<(), String> {
     let mut pool = make_bots(&names)?;
     let seed = a.seed.unwrap_or(1);
     let mut rng = Rng::new(seed);
-    // Per bot (not per seat): bots rotate through the seats game by game.
-    let mut total = vec![0i64; n];
+    // Duplicate games: each deal is played n times, the bots rotating one seat each time, so
+    // every bot holds every hand once. Per deal (all n seatings) we record each bot's average
+    // score, margin over the rest of the table, and win share; the error bars come from the
+    // spread of those per-deal averages.
+    let deals = a.games.div_ceil(n as u64).max(2);
+    let mut score = vec![Vec::with_capacity(deals as usize); n];
+    let mut margin = vec![Vec::with_capacity(deals as usize); n];
+    let mut win = vec![Vec::with_capacity(deals as usize); n];
     let mut made = vec![0u64; n];
     let mut rounds = vec![0u64; n];
-    let mut wins = vec![0f64; n];
     let mut decisions = 0u64;
     let t0 = Instant::now();
-    for g in 0..a.games {
-        let shift = (g % n as u64) as usize;
-        // seat s is played by bot (s + shift) % n
-        let order: Vec<usize> = (0..n).map(|s| (s + shift) % n).collect();
-        let mut seats: Vec<&mut dyn Bot> = Vec::with_capacity(n);
-        {
-            // Borrow the bots in seat order.
-            let mut refs: Vec<Option<&mut Box<dyn Bot>>> = pool.iter_mut().map(Some).collect();
-            for &b in &order {
-                seats.push(refs[b].take().unwrap().as_mut());
+    for _ in 0..deals {
+        let deal_seed = rng.next_u64();
+        let (mut sc, mut mg, mut wn) = (vec![0f64; n], vec![0f64; n], vec![0f64; n]);
+        for shift in 0..n {
+            // seat s is played by bot (s + shift) % n
+            let order: Vec<usize> = (0..n).map(|s| (s + shift) % n).collect();
+            let mut seats: Vec<&mut dyn Bot> = Vec::with_capacity(n);
+            {
+                let mut refs: Vec<Option<&mut Box<dyn Bot>>> = pool.iter_mut().map(Some).collect();
+                for &b in &order {
+                    seats.push(refs[b].take().unwrap().as_mut());
+                }
+            }
+            let mut deal_rng = Rng::new(deal_seed);
+            let res = play_game_dealt(rules, &mut seats, &mut deal_rng, &mut rng);
+            decisions += res.decisions;
+            let best = *res.totals.iter().max().unwrap();
+            let tied = res.totals.iter().filter(|&&t| t == best).count() as f64;
+            let sum: f64 = res.totals.iter().map(|&t| t as f64).sum();
+            for (seat, &b) in order.iter().enumerate() {
+                let t = res.totals[seat] as f64;
+                sc[b] += t / n as f64;
+                mg[b] += (t - (sum - t) / (n - 1) as f64) / n as f64;
+                if res.totals[seat] == best {
+                    wn[b] += 1.0 / tied / n as f64;
+                }
+                for r in &res.rounds {
+                    rounds[b] += 1;
+                    made[b] += (r.bids[seat] == r.won[seat]) as u64;
+                }
             }
         }
-        let res = play_game(rules, &mut seats, &mut rng);
-        decisions += res.decisions;
-        let best = *res.totals.iter().max().unwrap();
-        let tied = res.totals.iter().filter(|&&t| t == best).count() as f64;
-        for (seat, &b) in order.iter().enumerate() {
-            total[b] += res.totals[seat] as i64;
-            if res.totals[seat] == best {
-                wins[b] += 1.0 / tied;
-            }
-            for r in &res.rounds {
-                rounds[b] += 1;
-                made[b] += (r.bids[seat] == r.won[seat]) as u64;
-            }
+        for b in 0..n {
+            score[b].push(sc[b]);
+            margin[b].push(mg[b]);
+            win[b].push(wn[b]);
         }
     }
     let secs = t0.elapsed().as_secs_f64();
-    println!("{} games, {} players, seed {}", a.games, n, seed);
+    let games = deals * n as u64;
     println!(
-        "{:<4} {:<10} {:>10} {:>9} {:>10}",
-        "bot", "name", "avg score", "win %", "bid made"
+        "{games} games ({deals} deals x {n} seatings), {n} players, bids {}, seed {seed}",
+        if a.in_turn { "in turn" } else { "all at once" }
+    );
+    println!(
+        "{:<4} {:<22} {:>16} {:>20} {:>16} {:>9}",
+        "bot", "name", "avg score", "margin vs others", "win %", "bid made"
     );
     for b in 0..n {
+        let (s, se_s) = mean_se(&score[b]);
+        let (m, se_m) = mean_se(&margin[b]);
+        let (w, se_w) = mean_se(&win[b]);
         println!(
-            "{:<4} {:<10} {:>10.1} {:>8.1}% {:>9.1}%",
+            "{:<4} {:<22} {:>8.1} ± {:>5.1} {:>+11.1} ± {:>5.1} {:>7.1} ± {:>4.1}% {:>8.1}%",
             b,
-            names[b],
-            total[b] as f64 / a.games as f64,
-            100.0 * wins[b] / a.games as f64,
+            short_name(&names[b]),
+            s,
+            1.96 * se_s,
+            m,
+            1.96 * se_m,
+            100.0 * w,
+            196.0 * se_w,
             100.0 * made[b] as f64 / rounds[b] as f64
         );
     }
+    println!("± is a 95% confidence interval over deals (each deal played in every seating).");
     println!(
         "{:.2}s, {:.0} games/s, {:.2}M decisions/s (single thread)",
         secs,
-        a.games as f64 / secs,
+        games as f64 / secs,
         decisions as f64 / secs / 1e6
     );
     Ok(())
+}
+
+fn mean_se(x: &[f64]) -> (f64, f64) {
+    let n = x.len() as f64;
+    let m = x.iter().sum::<f64>() / n;
+    let var = x.iter().map(|v| (v - m) * (v - m)).sum::<f64>() / (n - 1.0).max(1.0);
+    (m, (var / n).sqrt())
+}
+
+/// "net:rl/models/simul1.wznet" -> "net:simul1.wznet"
+fn short_name(name: &str) -> String {
+    match name.split_once(':') {
+        Some((kind, path)) => format!(
+            "{kind}:{}",
+            std::path::Path::new(path)
+                .file_name()
+                .map_or(path.into(), |f| f.to_string_lossy())
+        ),
+        None => name.to_string(),
+    }
 }
 
 // ------------------------------------------------------------------------------------------ play

@@ -13,7 +13,7 @@
 //! chance the seat makes its bid after taking that action.
 
 use crate::bots::Bot;
-use crate::encode::{self, ACTIONS, FEATURES};
+use crate::encode::{self, ACTIONS, FEATURES, ROUND_FEATURES};
 use crate::rng::Rng;
 use crate::round::Action;
 use crate::view::View;
@@ -69,7 +69,8 @@ impl Mlp {
         let io = |e: std::io::Error| format!("truncated file: {e}");
         let features = read_u32(&mut r).map_err(io)? as usize;
         let actions = read_u32(&mut r).map_err(io)? as usize;
-        if features != FEATURES || actions != ACTIONS {
+        // Networks from before the game features read only the round features (a prefix).
+        if (features != FEATURES && features != ROUND_FEATURES) || actions != ACTIONS {
             return Err(format!(
                 "network is for {features} features / {actions} actions, this engine uses {FEATURES} / {ACTIONS}"
             ));
@@ -116,8 +117,9 @@ impl Mlp {
     }
 
     /// Predicted round score (in the network's units) of every action.
+    /// Accepts a full observation even for an older network that reads only a prefix of it.
     pub fn forward(&self, x: &[f32]) -> Vec<f32> {
-        let mut cur = x.to_vec();
+        let mut cur = x[..self.layers[0].input.min(x.len())].to_vec();
         let last = self.layers.len() - 1;
         for (k, l) in self.layers.iter().enumerate() {
             assert_eq!(cur.len(), l.input);
@@ -132,6 +134,66 @@ impl Mlp {
                 }
             }
             debug_assert_eq!(out.len(), l.output);
+            cur = out;
+        }
+        cur
+    }
+}
+
+impl Mlp {
+    /// Features the network reads (a prefix of the observation for older networks).
+    pub fn inputs(&self) -> usize {
+        self.layers[0].input
+    }
+
+    /// Outputs per row.
+    pub fn outputs(&self) -> usize {
+        self.layers.last().expect("layers").output
+    }
+
+    /// `forward` for `rows` observations at once (`x` is `rows * width`, row-major), using a fast
+    /// matrix multiply. Returns `rows * outputs()`.
+    pub fn forward_batch(&self, x: &[f32], rows: usize, width: usize) -> Vec<f32> {
+        assert_eq!(x.len(), rows * width);
+        let first = self.layers[0].input;
+        assert!(width >= first);
+        let mut cur: Vec<f32> = if width == first {
+            x.to_vec()
+        } else {
+            x.chunks(width)
+                .flat_map(|r| r[..first].iter().copied())
+                .collect()
+        };
+        let last = self.layers.len() - 1;
+        for (k, l) in self.layers.iter().enumerate() {
+            let mut out = vec![0f32; rows * l.output];
+            // out[rows x o] = cur[rows x i] . w^T, with w stored [o x i] row-major
+            unsafe {
+                matrixmultiply::sgemm(
+                    rows,
+                    l.input,
+                    l.output,
+                    1.0,
+                    cur.as_ptr(),
+                    l.input as isize,
+                    1,
+                    l.w.as_ptr(),
+                    1,
+                    l.input as isize,
+                    0.0,
+                    out.as_mut_ptr(),
+                    l.output as isize,
+                    1,
+                );
+            }
+            for row in out.chunks_mut(l.output) {
+                for (v, b) in row.iter_mut().zip(&l.b) {
+                    *v += b;
+                    if k != last && *v < 0.0 {
+                        *v = 0.0;
+                    }
+                }
+            }
             cur = out;
         }
         cur

@@ -12,6 +12,7 @@ cargo run --release -p wizard -- sim --games 20000 --bots counting,random,random
 cargo run --release -p wizard -- play --advisor rl/models/simul1.wznet      # a trained network's advice
 cargo run --release -p wizard -- sim --bots net:rl/models/simul1.wznet,counting,counting,counting
 cargo run --release -p wizard -- sim --bots chart:rl/charts/bid_chart.csv,counting,counting,counting
+cargo run --release -p wizard -- sim --bots search:rl/models/simul1.wznet,net:rl/models/simul1.wznet,net:rl/models/simul1.wznet,net:rl/models/simul1.wznet
 cargo test --release -p wizard
 ```
 
@@ -33,12 +34,15 @@ cargo test --release -p wizard
 - `card.rs`: the deck (cards are `u8`, hands are `u64` bitmasks)
 - `rules.rs`: the official rules (table size, and bids all at once or in turn)
 - `round.rs`: one round as a state machine, the trick-winner and follow-suit rules, scoring
-- `game.rs`: full games, the deal rotating left
+- `game.rs`: full games, the deal rotating left (`play_game_dealt` keeps the cards independent of
+  the bots' choices, for duplicate games)
 - `view.rs`: what one seat may see (bots only get a `View`)
 - `bots.rs`: `RandomBot` (the floor) and `CountingBot` (a casual player: counts likely tricks, plays greedily)
 - `chart.rs`: `ChartBot`, which bids from a bid chart CSV and plays like `CountingBot`
+- `search.rs`: `SearchBot`, a network that plays out imagined deals before choosing its bid
 - `encode.rs`: what the network sees (503 numbers from the acting seat's point of view) and its 85 actions
-- `env.rs`: a batch of tables for training; the learner's seats wait for Python, bots play the rest
+- `env.rs`: a batch of tables for training (lone rounds, or full games rewarded by the result);
+  the learner's seats wait for Python, bots play the rest
 - `net.rs`: runs an exported network (`.wznet`) in Rust: `NetBot`, `--bots net:FILE`, `--advisor FILE`
 - `scenario.rs`: builds a bidding situation (hand, trump, seat) to ask a network about
 - `tests/rules.rs`: hand-worked tricks and rounds, and fuzzing of thousands of random rounds
