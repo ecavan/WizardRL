@@ -15,11 +15,12 @@ use wizard::rules::Rules;
 use wizard::search::SearchBot;
 use wizard::style::{Style, StyleBot};
 use wizard::view::{SeatHistory, View};
+use wizard::winprob::{self, WinProb};
 
 const USAGE: &str = "usage:
   wizard sim  [--players N] [--games G] [--seed S] [--bots counting,random,...] [--in-turn]
-  wizard play [--players N] [--seed S] [--bots counting,...] [--advisor FILE] [--in-turn]
-  wizard watch [--players N] [--seed S] [--bots ...] [--advisor FILE] [--delay MS] [--in-turn]
+  wizard play [--players N] [--seed S] [--bots counting,...] [--advisor FILE] [--winprob FILE] [--in-turn]
+  wizard watch [--players N] [--seed S] [--bots ...] [--advisor FILE] [--winprob FILE] [--delay MS] [--in-turn]
 
   --players  3 to 6                                        default 4
   --bots     one name per seat (sim) or per opponent (play):
@@ -30,7 +31,10 @@ const USAGE: &str = "usage:
              | style:NAME:BOT (BOT with a habit: overbid, underbid, early-wizard, wild),
                e.g. style:early-wizard:net:FILE
   --advisor  FILE: a trained network that shows you its predicted score for each option
-             (watch: shows its view of every bid)
+             (watch: shows its view of every bid; play: also what your choice cost)
+  --winprob  FILE: win-chance model (python -m wizard_rl.winprob export); shows everyone's
+             chance of winning the game after each round. Default rl/models/winprob.wzwp
+             if it exists; --winprob none to turn it off
   --delay    watch: pause this many milliseconds after each trick (e.g. 800)
   --in-turn  bid in turn (the printed rules) instead of everyone at once";
 
@@ -41,6 +45,7 @@ struct Args {
     seed: Option<u64>,
     bots: Vec<String>,
     advisor: Option<String>,
+    winprob: Option<String>,
     in_turn: bool,
     delay: u64,
 }
@@ -55,6 +60,7 @@ fn parse_args() -> Result<Args, String> {
         seed: None,
         bots: Vec::new(),
         advisor: None,
+        winprob: None,
         in_turn: false,
         delay: 0,
     };
@@ -66,6 +72,7 @@ fn parse_args() -> Result<Args, String> {
             "--seed" => a.seed = Some(val()?.parse().map_err(|_| "bad --seed")?),
             "--bots" => a.bots = val()?.split(',').map(|s| s.trim().to_string()).collect(),
             "--advisor" => a.advisor = Some(val()?),
+            "--winprob" => a.winprob = Some(val()?),
             "--in-turn" => a.in_turn = true,
             "--delay" => a.delay = val()?.parse().map_err(|_| "bad --delay")?,
             "-h" | "--help" => return Err(String::new()),
@@ -280,6 +287,49 @@ fn short_name(name: &str) -> String {
 struct Human {
     input: io::StdinLock<'static>,
     advisor: Option<NetBot>,
+    winprob: Option<WinProb>,
+}
+
+const DEFAULT_WINPROB: &str = "rl/models/winprob.wzwp";
+
+/// The win-chance model: --winprob FILE, or the default file if it's there.
+fn load_winprob(a: &Args) -> Result<Option<WinProb>, String> {
+    match a.winprob.as_deref() {
+        Some("none") => Ok(None),
+        Some(path) => WinProb::load(path).map(Some),
+        None if std::path::Path::new(DEFAULT_WINPROB).exists() => {
+            WinProb::load(DEFAULT_WINPROB).map(Some)
+        }
+        None => Ok(None),
+    }
+}
+
+/// "win chances: P0 31% (+6) | ..." after a round; `before` is updated to the new chances.
+fn show_chances(
+    wp: &WinProb,
+    totals: &[i32],
+    left: u32,
+    before: &mut Vec<f64>,
+    who: &dyn Fn(u8) -> String,
+) {
+    let now = wp.chances(totals, left);
+    let parts: Vec<String> = (0..totals.len())
+        .map(|s| {
+            let d = 100.0 * (now[s] - before[s]);
+            let change = if d.abs() < 0.5 {
+                String::new()
+            } else {
+                format!(" ({d:+.0})")
+            };
+            format!("{} {:.0}%{change}", who(s as u8), 100.0 * now[s])
+        })
+        .collect();
+    println!(
+        "  chance to win the game{}: {}",
+        if left == 0 { " (final)" } else { "" },
+        parts.join(" | ")
+    );
+    *before = now;
 }
 
 fn sorted_hand(v: &View) -> Vec<Card> {
@@ -318,6 +368,43 @@ impl Human {
                 "  advisor, expected points this round: {}",
                 line.join(" | ")
             );
+        }
+    }
+
+    /// After you choose: what the advisor thinks your choice cost, next to its favourite.
+    fn review(&mut self, v: &View, chosen: Action) {
+        if let Some(adv) = self.advisor.as_mut() {
+            let vals = adv.values(v);
+            if let (Some(best), Some(mine)) =
+                (vals.first(), vals.iter().find(|(a, _, _)| *a == chosen))
+            {
+                if best.0 == chosen {
+                    println!("  advisor: {chosen} is its choice too");
+                } else {
+                    // What the lost points are worth in chance of winning the game: your
+                    // margins after the round with each option's expected points (the other
+                    // players' rounds taken as even), so it's a rough reading.
+                    let wpa = self.winprob.as_ref().map(|wp| {
+                        let totals = v.scores();
+                        let (d1, d2) = winprob::margins(totals, v.seat() as usize);
+                        let left = (v.rules().rounds() - v.size()) as u32;
+                        let at = |pts: f32| {
+                            let p = pts.round() as i32;
+                            wp.prob(v.players(), left, d1 + p, d2 + p)
+                        };
+                        100.0 * (at(best.1) - at(mine.1))
+                    });
+                    println!(
+                        "  advisor: {chosen} costs about {:.1} points{} vs {} ({:+.0} vs {:+.0})",
+                        best.1 - mine.1,
+                        wpa.map(|w| format!(", about {w:.1}% of your chance to win the game"))
+                            .unwrap_or_default(),
+                        best.0,
+                        mine.1,
+                        best.1
+                    );
+                }
+            }
         }
     }
 
@@ -379,6 +466,7 @@ impl Bot for Human {
                     let s = self.ask(&format!("  your bid (0-{}): ", v.size()));
                     if let Ok(b) = s.parse::<u8>() {
                         if b <= v.size() {
+                            self.review(v, Action::Bid(b));
                             return Action::Bid(b);
                         }
                     }
@@ -412,7 +500,10 @@ impl Bot for Human {
                         .and_then(|i| hand.get(i.wrapping_sub(1)).copied())
                         .or_else(|| card::parse(&s));
                     match c {
-                        Some(c) if legal & card::bit(c) != 0 => return Action::Play(c),
+                        Some(c) if legal & card::bit(c) != 0 => {
+                            self.review(v, Action::Play(c));
+                            return Action::Play(c);
+                        }
                         Some(c) if v.hand() & card::bit(c) != 0 => {
                             println!("  you must follow suit")
                         }
@@ -469,7 +560,9 @@ fn play(a: &Args) -> Result<(), String> {
     seats.push(Box::new(Human {
         input: Box::leak(Box::new(io::stdin())).lock(),
         advisor,
+        winprob: load_winprob(a)?,
     }));
+    let wp = load_winprob(a)?;
     for (i, b) in make_bots(&names)?.into_iter().enumerate() {
         seats.push(Box::new(Loud {
             inner: b,
@@ -485,6 +578,7 @@ fn play(a: &Args) -> Result<(), String> {
     let mut rng = Rng::new(seed);
     let mut totals = vec![0i32; n];
     let mut history = vec![SeatHistory::default(); n];
+    let mut chances = vec![1.0 / n as f64; n];
     let mut dealer = rng.below(n as u64) as u8;
     let who = |s: u8| {
         if s == 0 {
@@ -595,6 +689,15 @@ fn play(a: &Args) -> Result<(), String> {
             })
             .collect();
         println!("round {size} scores | {}", line.join(" | "));
+        if let Some(wp) = &wp {
+            show_chances(
+                wp,
+                &totals,
+                (rules.rounds() - size) as u32,
+                &mut chances,
+                &who,
+            );
+        }
         dealer = (dealer + 1) % n as u8;
     }
     let best = *totals.iter().max().unwrap();
@@ -642,6 +745,8 @@ fn watch(a: &Args) -> Result<(), String> {
     }
     let mut seats = make_bots(&names)?;
     let mut advisor = a.advisor.as_deref().map(NetBot::load).transpose()?;
+    let wp = load_winprob(a)?;
+    let mut chances = vec![1.0 / n as f64; n];
     let seed = a.seed.unwrap_or_else(|| {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -764,6 +869,15 @@ fn watch(a: &Args) -> Result<(), String> {
                 scores[s as usize],
                 totals[s as usize],
                 if b == w { "" } else { "   missed" }
+            );
+        }
+        if let Some(wp) = &wp {
+            show_chances(
+                wp,
+                &totals,
+                (rules.rounds() - size) as u32,
+                &mut chances,
+                &who,
             );
         }
         pause(a.delay * 2);

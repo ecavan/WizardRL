@@ -259,7 +259,23 @@ cargo run --release -p wizard -- sim --games 2000 --bots chart:rl/charts/bid_cha
   trick card by card, and the scores. `--delay 800` pauses between tricks; `--seed` replays a
   game. By default all seats are `rl/models/simul1.wznet`.
 - `play`: you play a full game in the terminal. `--bots` lists your opponents; `--advisor` shows
-  the bot's expected points (and chance of making the bid) for each of your options.
+  the bot's expected points (and chance of making the bid) for each of your options, and after
+  you choose, what your choice cost next to its favourite, in points and in chance of winning
+  the game:
+
+  ```text
+  advisor: A♦ costs about 9.7 points, about 2.0% of your chance to win the game vs J♠ (+11 vs +21)
+  ```
+- Both show **everyone's chance of winning the game** after each round, and how much the round
+  moved it (the win-probability model below, `rl/models/winprob.wzwp`; `--winprob none` hides it):
+
+  ```text
+  chance to win the game: P0 1% (-6) | P1 61% (+11) | P2 0% (-4) | P3 38%
+  ```
+
+  The chances come from the score situation only (margins over the leader and the second-best
+  player, rounds left), scaled to add up to 100%. A move's cost in win chance is a rough reading:
+  your margins with each option's expected points, the other players' rounds taken as even.
 - `sim`: bots play full games against each other as **duplicate games**. Each deal is played
   once in every seating, so every bot holds every hand and luck mostly cancels. For each bot it
   prints the average game score, its margin over the rest of the table, its win rate and how
@@ -605,13 +621,24 @@ rewards what a round-score bot can't see:
 
 ```sh
 python -m wizard_rl.winprob models/simul1.pt --out models/winprob.pt
-python -m wizard_rl.train --game --game-reward wpa --winprob models/winprob.pt --init models/simul1.pt \
-    --reference models/simul1.pt --out runs/game2 --lr 1e-4 --lr-final 2e-5 --until 2e8
+python -m wizard_rl.winprob export models/winprob.pt models/winprob.wzwp   # for watch / play
+python -m wizard_rl.train --game --game-reward wpa --wpa-weight 2 --winprob models/winprob.pt \
+    --init models/simul1.pt --reference models/simul1.pt --out runs/game2 --lr 1e-4 --lr-final 2e-5 --until 2e8
 ```
 
 (`--game-reward margin` rewards the final margin over the best other player instead.)
 
-<!-- GAME2 -->
+**Result of pure WPA:** better than the win reward, but still worse than the round-score bot. After
+100M decisions it won 17.7% of its games against tables of `simul1` (a fair share is 22.2%) and
+scored 90 points a game less. The likely reason is that WPA goes flat when a game is nearly
+decided. With a big lead or a hopeless deficit, every move changes the chance of winning by almost
+nothing, so the bot stops caring and its play gets sloppy.
+
+**Third attempt: points plus a win bonus** (`--wpa-weight 2`). Each round is worth its score plus
+2 × 100 × the change in win chance, so +10% win chance is worth 20 points. The bot keeps playing
+for points in every situation and tilts towards what helps it win.
+
+<!-- GAME3 -->
 
 ## How beatable is it?
 
@@ -718,6 +745,7 @@ The engine side (`crates/wizard/src`):
 - `env.rs`: many tables at once for training; frozen-network seats; duplicate deals; stats.
 - `bots.rs`, `chart.rs`, `net.rs`: the random and counting bots, the chart bot, a trained network.
 - `search.rs`: the look-ahead bidder.
+- `winprob.rs`: the chance of winning the game from the scores (for `watch` and `play`).
 - `scenario.rs`: builds a bidding situation, or a first-trick card-play situation, to ask a network about.
 
 ---

@@ -74,6 +74,9 @@ def main(argv=None) -> None:
                         "player's; 'wpa' = each round rewarded by how much it changed the chance of winning "
                         "(needs --winprob, see winprob.py)")
     p.add_argument("--winprob", default=None, help="win-probability model for --game-reward wpa")
+    p.add_argument("--wpa-weight", type=float, default=None,
+                   help="with --game-reward wpa: learn from round score + this x win probability added "
+                        "(e.g. 2: +10%% chance of winning is worth 20 points) instead of WPA alone")
     p.add_argument("--eval-games", type=int, default=2000, help="with --game: learner games per evaluation")
     p.add_argument("--device", default="auto", help="auto, cpu, mps or cuda")
     p.add_argument("--threads", type=int, default=0, help="CPU threads for torch (0 = default)")
@@ -110,7 +113,7 @@ def main(argv=None) -> None:
         if not a.winprob:
             p.error("--game-reward wpa needs --winprob")
         wp = load_winprob(a.winprob)
-        learner.reward_fn = lambda d, ctx: wpa_returns(wp, ctx)
+        learner.reward_fn = lambda d, ctx: wpa_returns(wp, ctx, a.wpa_weight)
     reference = load_qnet(a.reference) if a.reference else None
     if styles:
         from .styles import STYLES
@@ -209,7 +212,7 @@ def main(argv=None) -> None:
         save("latest.pt", score)
         last["t"], last["d"] = time.time(), lr.state.decisions
 
-    print(f"training on {device}; {('full games, reward: win probability added per round' if a.game_reward == 'wpa' else 'full games, reward: margin over the best other player' if a.game_reward == 'margin' else 'full games, reward: win' + (f' {a.win_weight:g} + placement' if a.win_weight < 1 else '')) if a.game else 'lone rounds, reward: round score'}; "
+    print(f"training on {device}; {(('full games, reward: round score + ' + f'{a.wpa_weight:g}' + ' x win probability added' if a.wpa_weight is not None else 'full games, reward: win probability added per round') if a.game_reward == 'wpa' else 'full games, reward: margin over the best other player' if a.game_reward == 'margin' else 'full games, reward: win' + (f' {a.win_weight:g} + placement' if a.win_weight < 1 else '')) if a.game else 'lone rounds, reward: round score'}; "
           f"bids {'all at once' if sim else 'in turn'}; tables {a.tables}; players {players}; "
           f"{'exploiting ' + a.opponent + ' (every other seat)' if a.opponent else ('styled opponents ' + ','.join(styles) + f' ({wn:.0%} of seats)') if styles else 'seats learner/frozen/counting ' + a.mix}; "
           f"network {net.config()}; out {a.out}", flush=True)

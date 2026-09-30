@@ -230,9 +230,9 @@ impl WizardEnv {
         Ok((obs, acts, rets, made, aux, legal))
     }
 
-    /// The game context of the samples from the last `drain()` (`[N x 6]`: players, rounds left
+    /// The game context of the samples from the last `drain()` (`[N x 7]`: players, rounds left
     /// after the round, margin over the best and second-best other player before the round,
-    /// and after it; zeros outside full games).
+    /// and after it, and the seat's score for the round; zeros outside full games).
     fn last_context<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray2<f32>>> {
         let n = self.last_ctx.len() / CONTEXT;
         PyArray1::from_vec(py, self.last_ctx.clone()).reshape([n, CONTEXT])

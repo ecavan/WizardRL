@@ -28,6 +28,7 @@ pub mod scenario;
 pub mod search;
 pub mod style;
 pub mod view;
+pub mod winprob;
 
 pub use card::{Card, CardSet, Suit};
 pub use round::{Action, Event, Phase, Round};

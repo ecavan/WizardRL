@@ -1,6 +1,7 @@
 """Win probability from the score situation, and "win probability added" as a reward.
 
     python -m wizard_rl.winprob models/simul1.pt --out models/winprob.pt     # fit W
+    python -m wizard_rl.winprob export models/winprob.pt models/winprob.wzwp # for `wizard watch/play`
 
 W(players, rounds left, my margin over the best other player, over the second best) = chance of
 winning the game from here, fitted on self-play games of a trained network (a small network,
@@ -61,13 +62,18 @@ class WinProb(nn.Module):
         return torch.where(done, final, p)
 
 
-def wpa_returns(model: WinProb, ctx: np.ndarray) -> np.ndarray:
-    """100 x (W after - W before) for each sample, from `env.last_context()` rows
-    (players, rounds left after the round, margins before, margins after)."""
+def wpa_returns(model: WinProb, ctx: np.ndarray, weight: float | None = None) -> np.ndarray:
+    """100 x (W after - W before) for each sample, from `env.last_context()` rows (players,
+    rounds left after the round, margins before, margins after, own round score). With `weight`,
+    the round score plus weight x that: points as usual, plus a bonus for moving the chance of
+    winning (weight 2: +10% win chance is worth 20 points)."""
     n, left, b1, b2, a1, a2 = (ctx[:, i] for i in range(6))
     before = model.prob(n, left + 1, b1, b2)
     after = model.prob(n, left, a1, a2)
-    return (100.0 * (after - before)).numpy().astype(np.float32)
+    wpa = (100.0 * (after - before)).numpy().astype(np.float32)
+    if weight is None:
+        return wpa
+    return (ctx[:, 6] + weight * wpa).astype(np.float32)
 
 
 def load_winprob(path: str) -> WinProb:
@@ -97,7 +103,35 @@ def collect(net, games: int, seed: int = 3):
     return data
 
 
+def export(pt_path: str, out_path: str) -> None:
+    """Write W for the Rust engine (`wizard watch` and `wizard play` show win chances with it):
+
+        b"WZWINP01"  u32 layers,  per layer: u32 in  u32 out  f32[out * in] weights  f32[out] bias
+
+    little-endian, ReLU between layers; inputs as in `WinProb.inputs`, output a logit."""
+    import struct
+    m = load_winprob(pt_path)
+    linears = [x for x in m.body if isinstance(x, nn.Linear)]
+    with open(out_path, "wb") as f:
+        f.write(b"WZWINP01")
+        f.write(struct.pack("<I", len(linears)))
+        for lin in linears:
+            w = lin.weight.detach().float().numpy()
+            f.write(struct.pack("<II", w.shape[1], w.shape[0]))
+            f.write(w.astype("<f4").tobytes())
+            f.write(lin.bias.detach().float().numpy().astype("<f4").tobytes())
+    print(f"wrote {out_path}")
+    for left, d1 in ((10, -50), (3, -50), (1, 30)):
+        print(f"  check: 4 players, {left} rounds left, {d1:+d}: {float(m.prob([4], [left], [d1], [d1])[0]):.4f}")
+
+
 def main(argv=None) -> None:
+    import sys
+    argv = sys.argv[1:] if argv is None else argv
+    if argv and argv[0] == "export":
+        if len(argv) != 3:
+            raise SystemExit("usage: python -m wizard_rl.winprob export WINPROB.pt OUT.wzwp")
+        return export(argv[1], argv[2])
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("model", help="network whose self-play games define the win chances")
     p.add_argument("--games", type=int, default=40_000, help="seat-games of self-play")

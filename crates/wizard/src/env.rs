@@ -216,13 +216,14 @@ pub struct Samples {
     pub legal: Vec<bool>,
     /// Full games only: the game situation around each decision's round, `CONTEXT` numbers per
     /// sample (zeros for lone rounds): players, rounds left after this round, then the seat's
-    /// margin over the best and the second-best other player before the round, and after it.
+    /// margin over the best and the second-best other player before the round, and after it,
+    /// and the seat's own score for the round.
     /// Enough to reward a round by how much it changed the seat's chance of winning.
     pub ctx: Vec<f32>,
 }
 
 /// Numbers per sample in `Samples::ctx`.
-pub const CONTEXT: usize = 6;
+pub const CONTEXT: usize = 7;
 
 /// A seat's margins over the best and second-best other player (0 when there is no second).
 fn margins(totals: &[i32], seat: usize) -> (f32, f32) {
@@ -570,7 +571,7 @@ impl VecEnv {
                                 action,
                                 aux,
                                 made[seat as usize] as u8 as f32,
-                                [n as f32, left, b1, b2, a1, a2],
+                                [n as f32, left, b1, b2, a1, a2, scores[seat as usize] as f32],
                             ));
                         }
                         t.game_obs.extend_from_slice(&t.traj_obs);
