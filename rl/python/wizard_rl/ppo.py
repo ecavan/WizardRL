@@ -6,6 +6,9 @@ The DMC bot always plays its single best-scoring move. This one learns a probabi
 move (a *policy*), so it can mix: bid 1 seventy percent of the time and 2 thirty percent, say.
 That's what equilibrium play needs in games like poker, and it's harder to read.
 
+With `--anchor DMC.pt --kl 0.1` it stays close to the DMC bot's choices (a KL penalty towards
+softmax(DMC points / 5)) and only moves where that clearly pays: DMC decides, PPO fine-tunes.
+
 How it learns (Proximal Policy Optimization, with whole-round returns):
 
     advantage  A = G/scale - V(s)                       how much better the round went than expected
@@ -117,9 +120,20 @@ def main(argv=None) -> None:
     p.add_argument("--epochs", type=int, default=3)
     p.add_argument("--clip", type=float, default=0.2)
     p.add_argument("--entropy", type=float, default=0.003)
+    p.add_argument("--anchor", default=None,
+                   help="a DMC checkpoint to stay close to: adds kl x KL(policy || softmax(DMC points / anchor-temp)) "
+                        "to the loss, so the policy only moves away from the DMC bot where it clearly pays")
+    p.add_argument("--kl", type=float, default=0.1, help="weight of the anchor term")
+    p.add_argument("--anchor-temp", type=float, default=5.0, help="points: how sharply the anchor prefers DMC's best move")
     p.add_argument("--value-coef", type=float, default=0.5)
     p.add_argument("--temperature", type=float, default=0.05, help="softmax temperature for --init")
     p.add_argument("--mix", default="0.7,0.2,0.1", help="other seats: learner,frozen,counting weights")
+    p.add_argument("--game", action="store_true", help="full games, rewarded by winning (as in train --game)")
+    p.add_argument("--win-weight", type=float, default=1.0)
+    p.add_argument("--styles", default=None,
+                   help="exploitation: most other seats are --style-net with these habits "
+                        "(overbid,underbid,early-wizard,wild,softN,plain); no frozen copies of the policy")
+    p.add_argument("--style-net", default=None, help="DMC network the styled opponents play with")
     p.add_argument("--snapshot-every", type=float, default=2.5e7)
     p.add_argument("--pool", type=int, default=8)
     p.add_argument("--eval-every", type=float, default=2.5e7)
@@ -135,6 +149,9 @@ def main(argv=None) -> None:
     device = best_device() if a.device == "auto" else torch.device(a.device)
     players = [int(x) for x in a.players.split(",")]
     wl, wn, wc = (float(x) for x in a.mix.split(","))
+    styles = a.styles.split(",") if a.styles else []
+    if styles and a.mix == p.get_default("mix"):
+        wl, wn, wc = 0.25, 0.75, 0.0
     os.makedirs(a.out, exist_ok=True)
     scale = 100.0
 
@@ -149,11 +166,21 @@ def main(argv=None) -> None:
         pol = PolicyNet()
     pol.to(device)
     reference = load_qnet(a.reference).to(device) if a.reference else None
+    anchor = load_qnet(a.anchor).to(device).eval() if a.anchor else None
     opt = torch.optim.Adam(pol.parameters(), lr=a.lr)
     if resumed:
         opt.load_state_dict(resumed["opt"])
-    env = WizardEnv(a.tables, players, dict(learner=wl, nets=wn, counting=wc), a.seed, False, True)
+    env = WizardEnv(a.tables, players, dict(learner=wl, nets=wn, counting=wc), a.seed, False, True, False,
+                    a.game, a.win_weight)
     frozen: list[PolicyNet] = []
+    # Styled opponents (exploitation runs): owner k plays styled_players[k - 1] instead of a frozen policy.
+    styled_players = []
+    if styles:
+        from .players import make_player
+        net_path = a.style_net or a.anchor or a.init
+        styled_players = [make_player(f"{net_path}@{st}" if st != "plain" else net_path, device, 100 + i)
+                          for i, st in enumerate(styles)]
+        env.set_nets(len(styles))
     freezes = 0
     gen = torch.Generator().manual_seed(a.seed)
     with open(os.path.join(a.out, "config.json"), "w") as f:
@@ -186,12 +213,16 @@ def main(argv=None) -> None:
             return policy_act(pol, o, lg, False)[0]
 
         r = {}
-        r["cs"] = evaluate_fn(sampled, device, a.eval_rounds, players, "counting")["edge"]
-        r["cg"] = evaluate_fn(greedy, device, a.eval_rounds, players, "counting")["edge"]
+        g = dict(game=a.game)
+        r["cs"] = evaluate_fn(sampled, device, a.eval_rounds, players, "counting", **g)["edge"]
+        r["cg"] = evaluate_fn(greedy, device, a.eval_rounds, players, "counting", **g)["edge"]
         if reference is not None:
             ref = lambda o, lg: reference(o).masked_fill(~lg, float("-inf")).argmax(1)  # noqa: E731
-            r["rs"] = evaluate_fn(sampled, device, a.eval_rounds, players, "nets", ref)["edge"]
-            r["rg"] = evaluate_fn(greedy, device, a.eval_rounds, players, "nets", ref)["edge"]
+            r["rs"] = evaluate_fn(sampled, device, a.eval_rounds, players, "nets", ref, **g)["edge"]
+            r["rg"] = evaluate_fn(greedy, device, a.eval_rounds, players, "nets", ref, **g)["edge"]
+        # against each styled opponent (a whole table of it), most-likely move
+        for i, st in enumerate(styles):
+            r[f"style:{st}"] = evaluate_fn(greedy, device, a.eval_rounds // 2, players, "nets", styled_players[i], **g)["edge"]
         pol.train()
         return r
 
@@ -199,7 +230,7 @@ def main(argv=None) -> None:
     best = float("-inf")
     if resumed:
         decisions, updates, best = resumed["decisions"], resumed["updates"], resumed["best"]
-        for sd in resumed["pool"]:
+        for sd in resumed["pool"] if not styled_players else []:
             freeze()
             frozen[-1].load_state_dict(sd)
         print(f"resumed from {a.resume} at {decisions:,} decisions, pool {len(frozen)}", flush=True)
@@ -221,8 +252,10 @@ def main(argv=None) -> None:
                     f"{stats['cf']:.3f}", f"{r['cs']:.2f}", f"{r['cg']:.2f}", f"{r.get('rs', float('nan')):.2f}", f"{r.get('rg', float('nan')):.2f}"])
         log.flush()
         ref = f" | vs DMC bot: sampled {r['rs']:+5.2f}, greedy {r['rg']:+5.2f}" if "rs" in r else ""
+        sty = "".join(f" | vs {k[6:]}: {v:+.1f}" for k, v in r.items() if k.startswith("style:"))
+        unit = "game" if a.game else "round"
         print(f"[{(time.time() - t0) / 60:6.1f} min] {decisions / 1e6:7.1f}M  entropy {stats['ent']:.3f}  clip {stats['cf']:.2f} | "
-              f"vs counting: sampled {r['cs']:+5.1f}, greedy {r['cg']:+5.1f}{ref}", flush=True)
+              f"per {unit}: vs counting: sampled {r['cs']:+5.1f}, greedy {r['cg']:+5.1f}{ref}{sty}", flush=True)
         score = r.get("rs", r["cs"])
         if score > best:
             best = score
@@ -247,7 +280,10 @@ def main(argv=None) -> None:
                 decisions += int(mine.sum())
             for k in np.unique(owner[owner > 0]):
                 sel = torch.from_numpy(owner == k)
-                act, _ = policy_act(frozen[int(k) - 1], o[sel.to(device)], lg[sel.to(device)], True, gen)
+                if styled_players:
+                    act = styled_players[int(k) - 1](o[sel.to(device)], lg[sel.to(device)])
+                else:
+                    act, _ = policy_act(frozen[int(k) - 1], o[sel.to(device)], lg[sel.to(device)], True, gen)
                 acts[sel] = act.cpu()
             env.step(acts.numpy(), aux.numpy())
             d = env.drain()
@@ -283,6 +319,12 @@ def main(argv=None) -> None:
                     p_all = logp_all.exp()
                     ent = -(p_all * logp_all.masked_fill(~legal_m[idx], 0.0)).sum(1).mean()
                     loss = pl + a.value_coef * vl - a.entropy * ent
+                    if anchor is not None:
+                        with torch.no_grad():
+                            pts = anchor(ob[idx]) * scale
+                            logp_anchor = torch.log_softmax(masked_logits(pts / a.anchor_temp, legal_m[idx]), dim=1)
+                        diff = (logp_all - logp_anchor).masked_fill(~legal_m[idx], 0.0)
+                        loss = loss + a.kl * (p_all * diff).sum(1).mean()
                     opt.zero_grad(set_to_none=True)
                     loss.backward()
                     torch.nn.utils.clip_grad_norm_(pol.parameters(), 1.0)
@@ -292,7 +334,8 @@ def main(argv=None) -> None:
                     cfs.append(((ratio - 1).abs() > a.clip).float().mean().item())
             stats.update(pl=float(np.mean(pls)), vl=float(np.mean(vls)), ent=float(np.mean(ents)), cf=float(np.mean(cfs)))
         if decisions >= next_snap:
-            freeze()
+            if not styled_players:
+                freeze()
             next_snap += a.snapshot_every
         if decisions >= next_eval:
             tick()

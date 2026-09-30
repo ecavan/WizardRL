@@ -216,6 +216,22 @@ margin per game, with 95% intervals. Players are written `PATH[@style]`:
 The diagonal (a player against itself) should read exactly a fair share, which is a built-in
 check.
 
+### Place real players on the strength curve
+
+Keep a score sheet of real games, one row per player per round (`rl/scoresheet_template.csv`
+shows the format: `game,players,cards,player,bid,won`), then:
+
+```sh
+python -m wizard_rl.family my_games.csv
+```
+
+For each player it prints how often they made their bid and their points per round, next to the
+same numbers for the bot and for its imperfect `@softT` copies at that table size, and the
+closest match. A player who makes 60% of their bids at a 4-player table plays at about
+`@soft4`, where the bot wins about 58% of games against three of them. One evening is a small
+sample (±10–15 points on the made rate), so treat it as a rough placement that sharpens as the
+sheet grows.
+
 ### Export a network for Rust
 
 ```sh
@@ -230,6 +246,7 @@ pool from a training checkpoint (38 MB → 3.5 MB); every Python command accepts
 ### Play, watch, and simulate (Rust)
 
 ```sh
+cargo run --release -p wizard -- watch --advisor rl/models/simul1.wznet --delay 800   # watch 4 bots play
 cargo run --release -p wizard -- play                                   # you vs 3 counting bots
 cargo run --release -p wizard -- play --players 5 --advisor rl/models/simul1.wznet
 cargo run --release -p wizard -- play --bots net:rl/models/simul1.wznet,counting,counting
@@ -237,6 +254,10 @@ cargo run --release -p wizard -- sim --games 2000 --bots net:rl/models/simul1.wz
 cargo run --release -p wizard -- sim --games 2000 --bots chart:rl/charts/bid_chart.csv,counting,counting,counting
 ```
 
+- `watch`: bots play a full game with every hand face up. You see trump, each bid (with
+  `--advisor FILE`, the network's expected points and chance of making it for every bid), every
+  trick card by card, and the scores. `--delay 800` pauses between tricks; `--seed` replays a
+  game. By default all seats are `rl/models/simul1.wznet`.
 - `play`: you play a full game in the terminal. `--bots` lists your opponents; `--advisor` shows
   the bot's expected points (and chance of making the bid) for each of your options.
 - `sim`: bots play full games against each other as **duplicate games**. Each deal is played
@@ -267,7 +288,7 @@ making it. For example, "one card, K♥, hearts trump, 4 players, leading". Edit
 ### Bid charts
 
 ```sh
-python -m wizard_rl.bidchart runs/first/best.pt --out charts          # 3, 4, 5 and 6 players
+python -m wizard_rl.bidchart runs/first/best.pt --out charts --logs runs/chartdata   # 3, 4, 5 and 6 players
 ```
 
 See [Bid charts](#bid-charts) below.
@@ -277,6 +298,13 @@ See [Bid charts](#bid-charts) below.
 ```sh
 python -m wizard_rl.ppo --hours 4 --init runs/first/best.pt --reference runs/first/best.pt --out runs/ppo1
 ```
+
+- `--anchor models/simul1.pt --kl 0.1`: **DMC decides, PPO fine-tunes**. A penalty keeps the policy
+  close to the DMC bot (KL towards softmax(DMC points / 5)), so it only moves where that clearly
+  pays. This is the trick Meta used for its Diplomacy bot.
+- `--game --styles overbid,underbid,early-wizard,wild,soft4,plain --style-net models/simul1.pt`:
+  **PPO for exploitation**. It plays full games against habit players and learns to deviate from
+  the anchor where a habit makes it pay.
 
 See [below](#a-learner-that-outputs-probabilities-ppo).
 
@@ -336,11 +364,46 @@ Per round, duplicate deals (± two standard errors):
 The edge shrinks as the table grows. With more players there are more hands to beat, and each
 decision matters less.
 
-<!-- LEAGUE -->
+### Strength curve: the bot against imperfect versions of itself
+
+The fairest stand-in for good human players available so far: three copies of the bot that make
+human-sized mistakes. A `@softT` player picks each move at random in proportion to
+exp(points / T). With a small T it almost always plays the best move or a near-tie. With a larger
+T it slips more often and gives up more points. Full games, 4 players, 800 duplicate games per row:
+
+| Opponents (3 seats) | They pick the best move* | They give up per decision | Bot's win rate (fair 25%) | Bot's margin per game |
+| --- | --- | --- | --- | --- |
+| `simul1@soft0.5` | 85% (bids 98%) | 0.1 points | 27 ± 2% | +5 ± 5 |
+| `simul1@soft1` | 77% (bids 95%) | 0.2 | 27 ± 3% | +14 ± 8 |
+| `simul1@soft2` | 67% (bids 90%) | 0.5 | 40 ± 4% | +52 ± 9 |
+| `simul1@soft4` | 57% (bids 80%) | 1.1 | 58 ± 4% | +117 ± 7 |
+| `simul1@soft6` | 51% (bids 73%) | 1.6 | 73 ± 4% | +163 ± 11 |
+| `simul1@soft10` | 44% (bids 59%) | 2.4 | 86 ± 2% | +224 ± 4 |
+
+\*Share of decisions with more than one legal move where they pick the bot's own top choice.
+Many decisions are near-ties (which small card to throw away), so "not the best move" often
+costs almost nothing.
+
+So the win rate says as much about the opponents as about the bot. Against players who are
+nearly as good, it wins barely more than its fair share. Against players who give away one or
+two points a decision, it wins most games. How strong a real table is can only be measured with
+real games (see `family` above).
+
+### League table
+
+Full games, 4 players (1000 duplicate games per cell). Each cell: the row player's win rate
+(fair share 25%) and its margin per game, ± 95% interval.
+
+| Player \ table of | counting (floor) | `night1` | `simul1@soft10` | `simul1` |
+| --- | --- | --- | --- | --- |
+| **simul1** | 88 ± 1%, +225 ± 9 | 50 ± 3%, +97 ± 7 | 86 ± 2%, +224 ± 4 | 25%, 0 (check) |
+| **ppo1** (most likely move) | 87 ± 2%, +226 ± 7 | 53 ± 2%, +107 ± 2 | 89 ± 2%, +238 ± 6 | 25 ± 3%, +3 ± 4 |
+| **ppo1** (sampling) | 84 ± 2%, +211 ± 6 | 49 ± 2%, +93 ± 4 | 86 ± 2%, +220 ± 7 | 23 ± 2%, −11 ± 3 |
+| **night1** | 73 ± 3%, +163 ± 10 | 25%, 0 (check) | 78 ± 2%, +192 ± 10 | 12 ± 3%, −84 ± 6 |
 
 ### The bid chart on its own
 
-A bot that bids by the chart and plays like the counting bot (`chart:rl/charts/bid_chart.csv`), against counting bots:
+(The earlier, bucketed chart.) A bot that bids by the chart and plays like the counting bot (`chart:rl/charts/bid_chart.csv`), against counting bots:
 
 | Players | Chart bot's margin per game | Its win rate (fair share) |
 | --- | --- | --- |
@@ -355,37 +418,51 @@ still comes from how it plays the cards.
 
 ## Bid charts
 
-`python -m wizard_rl.bidchart MODEL` has the bot play 150,000 rounds against itself at each table
+`python -m wizard_rl.bidchart MODEL` has the bot play 200,000 rounds against itself at each table
 size (everyone bidding at once). It records every hand and how many tricks it took. Then it fits
-a value for each **kind of card**:
+a value for **every card**: Wizard, Jester, each rank of trump (A, K, ... 2), and each rank of
+the other suits.
 
-| With trump | No trump |
-| --- | --- |
-| Wizard, Jester | Wizard, Jester |
-| trump A, K, Q, J, 10–7, 6–2 | A, K, Q, J, 10–2 (any suit) |
-| off-suit A, K, Q, J, 10–2 | |
+This is done separately for each table size and range of hand sizes (1, 2, 3–4, 5–7, 8–10,
+11–15, 16–20 cards), finding the values that best predict tricks taken (least squares). To bid,
+**add up your cards and round**. Rounds with no trump (a Jester turned up, or the last round) get
+their own table, where every suit is an off-suit.
 
-For each table size and range of round sizes (1, 2, 3–4, 5–7, 8–10, 11–15, 16–20 cards), it
-finds the values that best predict tricks taken (least squares). To bid, **add up your cards and
-round**. Values change with round size. For example, an off-suit ace is often a trick with 3
-cards in hand, but in a 12-card round it's more likely to get trumped.
+**Choosing the chart's form.** Each option was tested on 30% of hands held out from the fit
+(4 players shown):
 
-Rounds with no trump (a Jester turned up, or the last round) get their own table.
+| Chart | Average miss (tricks) | Chart bid exactly right | Same bid as the bot |
+| --- | --- | --- | --- |
+| buckets (trump 10–7, 6–2, off-suit 10–2, ...) | 0.451 | 67.5% | 85.8% |
+| buckets + bonus rows (extra trumps, voids) | 0.449 | 67.5% | 85.7% |
+| **one value per rank** (used) | **0.442** | **68.9%** | **88.7%** |
+| per rank + bonus rows | 0.440 | 69.0% | 88.7% |
 
-It writes these files to `--out`:
+- **Rounding.** Tuning the cut-off to maximize points instead of rounding at .5 added only 0.2
+  points per round (the best cut-off is about .45), so the chart just rounds.
+- **The bot's own bids still earn more** (26.5 vs 23.7 points per round at 4 players, with the
+  same play). They weigh everything the chart can't: which cards go together, seat, and the rest
+  of the table.
 
-- `bid_chart.md`: full chart, two decimals, with accuracy rows: *average miss*, *chart bid made*
-  (how often the rounded total was exactly the tricks taken), *bot's own bid made*, and a small
+**Jesters (and Wizards) beyond tricks.** A Jester is worth about zero tricks, but it's far from
+useless: you can always duck a trick with it. So the chart also measures how much each one raises
+your chance of **making your bid**, compared with holding another card instead. At 4 players it's
++26% in a 1-card round down to +10% in the big rounds, more than a Wizard (+19% to +8%).
+
+It writes these files to `--out` (the current ones are in [`rl/charts/`](rl/charts/)):
+
+- `bid_chart.md`: the full chart, two decimals, with accuracy rows (*average miss*, *chart bid
+  made*, *bot's own bid made*), the Jester and Wizard "chance to make your bid" rows, and a small
   per-seat adjustment.
-- `bid_cheat_sheet.md`: the same, rounded to tenths, for use at the table. (Quarters were too
-  coarse: in a 15-card round, a low card worth 0.1 rounds to 0, and a dozen of them add up to
-  more than a trick.)
-- `bid_chart.html`: an interactive page. Pick the table size and trump, read the chart, and tap in
-  your hand to get the bid. Open it in any browser.
+- `bid_cheat_sheet.md`: the same, rounded to tenths, for use at the table.
+- `bid_chart.html`: an interactive page. Pick the table size and trump suit, read the chart, then
+  tap the cards in your hand to get the bid. It can't be fed impossible hands: one of each card,
+  at most 4 Wizards and 4 Jesters.
 - `bid_chart.csv` / `bid_chart_simple.csv` / `bid_chart.json`: the values as data.
   `--bots chart:FILE` plays with a CSV.
 
-The charts for the current model are in [`rl/charts/`](rl/charts/).
+`--logs DIR` saves the self-play hands and reuses them next time, so the chart can be rebuilt in
+seconds after a change to the fitting.
 
 ---
 
@@ -405,7 +482,27 @@ to read). `ppo.py` trains such a learner with Proximal Policy Optimization:
 - **Starting point.** It starts from the DMC network (probabilities = softmax of DMC scores / 5
   points), so the question is fair: can it improve on the DMC bot from where it stands?
 
-<!-- PPO -->
+**Result.** PPO trained for 30M decisions, starting from `simul1`. Head-to-head on duplicate deals,
+against a table of `simul1` (per round, ± two standard errors):
+
+| PPO playing... | 3 players | 4 | 5 | 6 | all |
+| --- | --- | --- | --- | --- | --- |
+| **by sampling its probabilities** (mixing) | −1.25 | −0.53 | −0.76 | −0.36 | **−0.73 ± 0.17** |
+| its most likely move | +0.73 | +0.49 | +0.06 | +0.04 | **+0.33 ± 0.12** |
+
+- **Mixing doesn't pay in Wizard, at least against these opponents.** Sampling costs about 0.7
+  points a round.
+- **Why.** In poker, mixing keeps an opponent who adapts to you from reading your hand. Here the
+  opponents don't adapt, bids are simultaneous, and the cards say most of what there is to know.
+  So a random choice between two moves is just a small mistake part of the time. Early in
+  training the probabilities were spread wide (−8 a round). PPO learned to put almost all its
+  weight on one move, which is the sign that mixing isn't wanted.
+- **PPO's most likely move is slightly better** than the DMC bot (+0.3 a round, about +5 a game
+  at 4 players). That's extra fine-tuning, not mixing.
+- **We keep the DMC bot.** Its outputs are expected points, which the advisor, the charts and
+  the look-ahead search rely on, and the PPO gain is small. If an adapting opponent (like the
+  exploiter below) can take a lot off a predictable bot, mixing may earn its keep. That's worth
+  re-testing then.
 
 ---
 
@@ -436,7 +533,11 @@ with every other seat being that bot. The exploiter's final edge measures how ex
 bot is, in the spirit of "distance from GTO" in poker. A small edge means there's no easy hole to
 find.
 
-<!-- EXPLOIT -->
+**Result.** An exploiter started from `simul1` and trained for 100M decisions with every other seat
+being `simul1`. It found an edge of **+0.5 ± 0.1 points per round** (3 players +1.2, 4 players
++0.4, 5 and 6 players +0.2 to +0.3), about +8 points over a whole 4-player game. So there's no big
+hole for someone who knows exactly how the bot plays to exploit. (Caveat: an exploiter trained
+from scratch might find different weaknesses; this one searched near the bot's own play.)
 
 ## Look-ahead search
 
@@ -507,6 +608,9 @@ rl/
     bidchart.py            bid charts from self-play
     chartpage.py/.html     the interactive bid chart page
     ppo.py                 the policy (probabilities) learner, for comparison
+    league.py, players.py  league tables; player specs like PATH@soft4
+    family.py              place real players (from a score sheet) on the strength curve
+    distill.py             copy a network into a smaller one
     styles.py              habits for opponent seats (overbid, underbid, early Wizards, wild)
     kuhn.py                learner check on Kuhn poker
   tests/test_bridge.py     Rust <-> Python checks

@@ -1,5 +1,6 @@
 //! `wizard sim`  — bots play each other; prints scores, bid accuracy and speed.
 //! `wizard play` — you play a game against bots in the terminal.
+//! `wizard watch` — watch bots play a full game, every hand face up.
 
 use std::io::{self, BufRead, Write};
 use std::time::Instant;
@@ -13,11 +14,12 @@ use wizard::round::{Action, Phase, Round, TrumpSource};
 use wizard::rules::Rules;
 use wizard::search::SearchBot;
 use wizard::style::{Style, StyleBot};
-use wizard::view::View;
+use wizard::view::{SeatHistory, View};
 
 const USAGE: &str = "usage:
   wizard sim  [--players N] [--games G] [--seed S] [--bots counting,random,...] [--in-turn]
   wizard play [--players N] [--seed S] [--bots counting,...] [--advisor FILE] [--in-turn]
+  wizard watch [--players N] [--seed S] [--bots ...] [--advisor FILE] [--delay MS] [--in-turn]
 
   --players  3 to 6                                        default 4
   --bots     one name per seat (sim) or per opponent (play):
@@ -28,6 +30,8 @@ const USAGE: &str = "usage:
              | style:NAME:BOT (BOT with a habit: overbid, underbid, early-wizard, wild),
                e.g. style:early-wizard:net:FILE
   --advisor  FILE: a trained network that shows you its predicted score for each option
+             (watch: shows its view of every bid)
+  --delay    watch: pause this many milliseconds after each trick (e.g. 800)
   --in-turn  bid in turn (the printed rules) instead of everyone at once";
 
 struct Args {
@@ -38,6 +42,7 @@ struct Args {
     bots: Vec<String>,
     advisor: Option<String>,
     in_turn: bool,
+    delay: u64,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -51,6 +56,7 @@ fn parse_args() -> Result<Args, String> {
         bots: Vec::new(),
         advisor: None,
         in_turn: false,
+        delay: 0,
     };
     while let Some(k) = it.next() {
         let mut val = || it.next().ok_or(format!("{k} needs a value"));
@@ -61,6 +67,7 @@ fn parse_args() -> Result<Args, String> {
             "--bots" => a.bots = val()?.split(',').map(|s| s.trim().to_string()).collect(),
             "--advisor" => a.advisor = Some(val()?),
             "--in-turn" => a.in_turn = true,
+            "--delay" => a.delay = val()?.parse().map_err(|_| "bad --delay")?,
             "-h" | "--help" => return Err(String::new()),
             _ => return Err(format!("unknown option {k}")),
         }
@@ -135,6 +142,7 @@ fn main() {
     let res = match args.cmd.as_str() {
         "sim" => sim(&args),
         "play" => play(&args),
+        "watch" => watch(&args),
         _ => Err(format!("unknown command '{}'", args.cmd)),
     };
     if let Err(e) = res {
@@ -476,6 +484,7 @@ fn play(a: &Args) -> Result<(), String> {
     });
     let mut rng = Rng::new(seed);
     let mut totals = vec![0i32; n];
+    let mut history = vec![SeatHistory::default(); n];
     let mut dealer = rng.below(n as u64) as u8;
     let who = |s: u8| {
         if s == 0 {
@@ -547,7 +556,7 @@ fn play(a: &Args) -> Result<(), String> {
                     );
                 }
                 let a = {
-                    let v = View::new(&round, seat, &totals);
+                    let v = View::with_history(&round, seat, &totals, &history);
                     refs[seat as usize].act(&v, &mut rng)
                 };
                 round.apply(a).map_err(|e| e.to_string())?;
@@ -571,6 +580,7 @@ fn play(a: &Args) -> Result<(), String> {
         let scores = round.scores().unwrap();
         for s in 0..n {
             totals[s] += scores[s];
+            history[s].record(&round, s as u8);
         }
         let line: Vec<String> = (0..n as u8)
             .map(|s| {
@@ -594,5 +604,183 @@ fn play(a: &Args) -> Result<(), String> {
         .collect();
     println!("\nFinal: {:?}  winner: {}", totals, winners.join(" and "));
     println!("(seed {seed}: replay this deal sequence with --seed {seed})");
+    Ok(())
+}
+
+// ----------------------------------------------------------------------------------------- watch
+
+/// Cards sorted for display: Wizards, trump high to low, other suits high to low, Jesters.
+fn sort_cards(set: card::CardSet, trump: Option<Suit>) -> Vec<Card> {
+    let mut hand: Vec<Card> = cards(set).collect();
+    hand.sort_by_key(|c| match card::kind(*c) {
+        card::Kind::Wizard => (0, 0, 0),
+        card::Kind::Jester => (3, 0, 0),
+        card::Kind::Normal { suit, rank } => (
+            if Some(suit) == trump { 1 } else { 2 },
+            suit.index(),
+            -(rank as i16),
+        ),
+    });
+    hand
+}
+
+fn watch(a: &Args) -> Result<(), String> {
+    let rules = rules_for(a)?;
+    let n = rules.players as usize;
+    let default_net = "rl/models/simul1.wznet";
+    let names: Vec<String> = if a.bots.is_empty() {
+        if std::path::Path::new(default_net).exists() {
+            vec![format!("net:{default_net}"); n]
+        } else {
+            vec!["counting".into(); n]
+        }
+    } else {
+        a.bots.clone()
+    };
+    if names.len() != n {
+        return Err(format!("--bots needs {n} names, got {}", names.len()));
+    }
+    let mut seats = make_bots(&names)?;
+    let mut advisor = a.advisor.as_deref().map(NetBot::load).transpose()?;
+    let seed = a.seed.unwrap_or_else(|| {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos() as u64)
+            .unwrap_or(7)
+    });
+    let pause = |ms: u64| {
+        if ms > 0 {
+            io::stdout().flush().ok();
+            std::thread::sleep(std::time::Duration::from_millis(ms));
+        }
+    };
+    let mut rng = Rng::new(seed);
+    let mut totals = vec![0i32; n];
+    let mut history = vec![SeatHistory::default(); n];
+    let mut dealer = rng.below(n as u64) as u8;
+    let who = |s: u8| format!("P{s}");
+    println!(
+        "Wizard, {n} players, bids {}.",
+        if a.in_turn { "in turn" } else { "all at once" }
+    );
+    for (s, name) in names.iter().enumerate() {
+        println!("  P{s}: {}", short_name(name));
+    }
+    for size in 1..=rules.rounds() {
+        let mut round = Round::deal(rules, size, dealer, &mut rng);
+        println!(
+            "\n=== Round {size} of {}: {size} card{} each, {} deals ===",
+            rules.rounds(),
+            if size == 1 { "" } else { "s" },
+            who(dealer)
+        );
+        match round.trump_source() {
+            TrumpSource::TurnedCard(c) => println!(
+                "turned up {}: {} are trump",
+                card::name(c),
+                round.trump().unwrap()
+            ),
+            TrumpSource::WizardTurned(_) => println!(
+                "turned up a Wizard: the dealer ({}) names trump",
+                who(dealer)
+            ),
+            TrumpSource::JesterTurned(_) => println!("turned up a Jester: no trump"),
+            TrumpSource::NoCardTurned => println!("last round, no card to turn up: no trump"),
+        }
+        let mut done_tricks = 0;
+        let mut shown_hands = false;
+        let mut shown_bids = false;
+        while let Some(seat) = round.to_act() {
+            if !shown_hands && !matches!(round.phase(), Phase::PickTrump { .. }) {
+                shown_hands = true;
+                if let TrumpSource::WizardTurned(_) = round.trump_source() {
+                    println!("{} names {} trump", who(dealer), round.trump().unwrap());
+                }
+                for s in 0..n as u8 {
+                    let h: Vec<String> = sort_cards(round.hand(s), round.trump())
+                        .iter()
+                        .map(|&c| card::name(c))
+                        .collect();
+                    println!("  {} holds  {}", who(s), h.join(" "));
+                }
+            }
+            if !shown_bids && matches!(round.phase(), Phase::Play { .. }) {
+                shown_bids = true;
+                let bids: Vec<String> = (0..n as u8)
+                    .map(|s| format!("{} {}", who(s), round.bid(s).unwrap()))
+                    .collect();
+                println!(
+                    "bids: {} (total {} for {size} tricks)",
+                    bids.join(", "),
+                    round.bids().iter().map(|b| b.unwrap() as u32).sum::<u32>()
+                );
+            }
+            let v = View::with_history(&round, seat, &totals, &history);
+            if let (Some(adv), Phase::Bid { .. }) = (advisor.as_mut(), round.phase()) {
+                let opts: Vec<String> = adv
+                    .values(&v)
+                    .iter()
+                    .take(3)
+                    .map(|(act, x, p)| match p {
+                        Some(p) => format!("{act} {x:+.0} ({:.0}%)", 100.0 * p),
+                        None => format!("{act} {x:+.0}"),
+                    })
+                    .collect();
+                println!("  advisor for {}: {}", who(seat), opts.join(" | "));
+            }
+            let act = seats[seat as usize].act(&v, &mut rng);
+            round.apply(act).map_err(|e| e.to_string())?;
+            if round.completed_tricks().len() > done_tricks {
+                let t = round.completed_tricks().last().unwrap();
+                done_tricks += 1;
+                let line: Vec<String> = t
+                    .plays
+                    .iter()
+                    .map(|&(s, c)| format!("{} {}", who(s), card::name(c)))
+                    .collect();
+                let won: Vec<String> = (0..n as u8)
+                    .map(|s| format!("{}/{}", round.tricks_won(s), round.bid(s).unwrap()))
+                    .collect();
+                println!(
+                    "  trick {done_tricks}: {}  -> {} takes it   [won/bid: {}]",
+                    line.join(", "),
+                    who(t.winner),
+                    won.join(" ")
+                );
+                pause(a.delay);
+            }
+        }
+        let scores = round.scores().unwrap();
+        for s in 0..n {
+            totals[s] += scores[s];
+            history[s].record(&round, s as u8);
+        }
+        println!("round {size} result:");
+        for s in 0..n as u8 {
+            let (b, w) = (round.bid(s).unwrap(), round.tricks_won(s));
+            println!(
+                "  {}: bid {b}, took {w}  {:+4}  total {:5}{}",
+                who(s),
+                scores[s as usize],
+                totals[s as usize],
+                if b == w { "" } else { "   missed" }
+            );
+        }
+        pause(a.delay * 2);
+        dealer = (dealer + 1) % n as u8;
+    }
+    let best = *totals.iter().max().unwrap();
+    let mut order: Vec<usize> = (0..n).collect();
+    order.sort_by_key(|&s| -totals[s]);
+    println!("\nFinal standings:");
+    for s in order {
+        println!(
+            "  P{s} {:<22} {:5}{}",
+            short_name(&names[s]),
+            totals[s],
+            if totals[s] == best { "  winner" } else { "" }
+        );
+    }
+    println!("(seed {seed}: replay with --seed {seed})");
     Ok(())
 }

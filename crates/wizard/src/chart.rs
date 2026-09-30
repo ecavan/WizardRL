@@ -5,7 +5,7 @@
 //!
 //! The CSV has one row per (table size, trump or no trump, range of round sizes, card kind):
 //! `players,trump,lo,hi,kind,value`, with `trump` = `trump` | `no_trump` and kinds as in
-//! [`kind_name`].
+//! [`kind_name`] (one value per rank: "trump 10", "off-suit A", ...).
 
 use crate::bots::{Bot, CountingBot};
 use crate::card::{cards, is_jester, is_wizard, rank_of, suit_of, Card, Suit};
@@ -14,33 +14,23 @@ use crate::round::{Action, Phase};
 use crate::view::View;
 use std::collections::HashMap;
 
-/// The chart's name for a card's kind: "Wizard", "Jester", "trump A" … "trump 6-2",
-/// "off-suit A" … "off-suit 10-2". In no-trump rounds every suit is off-suit.
-pub fn kind_name(c: Card, trump: Option<Suit>) -> &'static str {
+/// The chart's name for a card's kind: "Wizard", "Jester", "trump A" ... "trump 2",
+/// "off-suit A" ... "off-suit 2". In no-trump rounds every suit is off-suit.
+pub fn kind_name(c: Card, trump: Option<Suit>) -> String {
     if is_wizard(c) {
-        return "Wizard";
+        return "Wizard".into();
     }
     if is_jester(c) {
-        return "Jester";
+        return "Jester".into();
     }
-    let rank = rank_of(c).expect("a standard card"); // 0 = deuce … 12 = ace
+    const RANKS: [&str; 13] = [
+        "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A",
+    ];
+    let rank = RANKS[rank_of(c).expect("a standard card") as usize]; // 0 = deuce ... 12 = ace
     if suit_of(c) == trump {
-        match rank {
-            12 => "trump A",
-            11 => "trump K",
-            10 => "trump Q",
-            9 => "trump J",
-            5..=8 => "trump 10-7",
-            _ => "trump 6-2",
-        }
+        format!("trump {rank}")
     } else {
-        match rank {
-            12 => "off-suit A",
-            11 => "off-suit K",
-            10 => "off-suit Q",
-            9 => "off-suit J",
-            _ => "off-suit 10-2",
-        }
+        format!("off-suit {rank}")
     }
 }
 
@@ -136,7 +126,12 @@ impl ChartBot {
         })?;
         Some(
             hand.iter()
-                .map(|&c| band.values.get(kind_name(c, trump)).copied().unwrap_or(0.0))
+                .map(|&c| {
+                    band.values
+                        .get(&kind_name(c, trump))
+                        .copied()
+                        .unwrap_or(0.0)
+                })
                 .sum(),
         )
     }
@@ -169,7 +164,7 @@ mod tests {
 
     const CSV: &str = "players,trump,cards,lo,hi,kind,value
 4,trump,3-4 cards,3,4,Wizard,1.0
-4,trump,3-4 cards,3,4,trump 6-2,0.4
+4,trump,3-4 cards,3,4,trump 3,0.4
 4,trump,3-4 cards,3,4,off-suit A,0.5
 4,no_trump,15 cards,15,15,off-suit K,0.3
 ";
@@ -189,11 +184,11 @@ mod tests {
         assert_eq!(bot.expected_tricks(&hand, Some(Suit::Hearts), 5, 3), None);
         assert_eq!(
             kind_name(parse("10h").unwrap(), Some(Suit::Hearts)),
-            "trump 10-7"
+            "trump 10"
         );
         assert_eq!(
             kind_name(parse("6h").unwrap(), Some(Suit::Hearts)),
-            "trump 6-2"
+            "trump 6"
         );
         assert_eq!(kind_name(parse("Ah").unwrap(), None), "off-suit A");
         assert!(ChartBot::parse("players,trump\n", "x").is_err());

@@ -1,0 +1,9 @@
+game,players,cards,player,bid,won
+1,4,1,Eli,0,0
+1,4,1,Sister,1,1
+1,4,1,Mom,0,0
+1,4,1,Dad,0,0
+1,4,2,Eli,1,1
+1,4,2,Sister,1,0
+1,4,2,Mom,0,1
+1,4,2,Dad,0,0

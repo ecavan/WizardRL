@@ -39,8 +39,8 @@ h1 { font-family: var(--display); font-weight: 400; font-size: clamp(28px, 4.4vw
 .seg button:last-child { border-right: 0; }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-.main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 22px; align-items: start; }
-@media (max-width: 880px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 22px; align-items: start; }
+@media (max-width: 880px) { .main { grid-template-columns: minmax(0, 1fr); } .counter { order: -1; } }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
 .panel h2 { font-family: var(--display); font-weight: 400; font-size: 20px; margin: 0 0 4px; }
 .panel .sub { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
@@ -71,6 +71,14 @@ tr.first-acc th, tr.first-acc td { border-top: 1px solid var(--line); padding-to
 .kind { display: grid; grid-template-columns: minmax(0, 1fr) auto 52px; align-items: center; gap: 8px; font-size: 14px; }
 .kind .val { font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: right; }
 .kind.has .name { font-weight: 700; }
+.suitrow { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 6px; }
+.suitname { font-size: 18px; line-height: 1; }
+.suitname.red { color: var(--cool); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font: inherit; font-family: var(--mono); font-size: 12px; min-width: 30px; height: 28px; padding: 0 4px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.chip.trump { border-color: color-mix(in oklab, var(--heat) 45%, var(--line)); }
+.chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chip:disabled { opacity: .35; cursor: default; }
 .result { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; }
 .bid { display: flex; align-items: baseline; gap: 10px; }
 .bid .n { font-family: var(--display); font-size: 48px; line-height: 1; }
@@ -112,7 +120,7 @@ footer p { margin: 0; }
     <section class="panel counter" aria-labelledby="calc-h">
       <div>
         <h2 id="calc-h">Count a hand</h2>
-        <p class="sub">Set how many cards you hold, then tap in your cards by kind. <span class="example" id="example-tag">Example hand</span></p>
+        <p class="sub">Set trump and how many cards you hold, then tap the cards in your hand. <span class="example" id="example-tag">Example hand</span></p>
       </div>
       <div class="size">
         <span class="label" id="lbl-size">Cards in hand</span>
@@ -131,7 +139,7 @@ footer p { margin: 0; }
   <footer>
     <p id="how"></p>
     <p><b>Reading the accuracy rows.</b> <i>Chart bid made</i>: how often the rounded chart total was exactly the tricks the bot went on to take. <i>Bot's own bid made</i>: the same for the bot's real bids, which also weigh everything else it can see. <i>Average miss</i>: how far the chart total lands from the tricks taken, in tricks.</p>
-    <p>Everyone bids at once, so nobody's bid depends on anyone else's. Jesters can come out slightly below zero: holding one means fewer cards in your hand that can win.</p>
+    <p>Everyone bids at once, so nobody's bid depends on anyone else's. A Jester is worth about zero tricks, but it is far from useless: you can always duck a trick with it, so each one you hold raises your chance of making your bid (the "Each Jester" row, compared with holding another card instead). Wizards work the same way from the other side.</p>
   </footer>
 </div>
 
@@ -141,23 +149,21 @@ const DATA = /*DATA*/null;
   const $ = (id) => document.getElementById(id);
   const tables = DATA.tables;
   const playerCounts = Object.keys(tables).map(Number).sort((a, b) => a - b);
-  const LABEL = {
-    "Wizard": ["Wizard", ""], "Jester": ["Jester", ""],
-    "trump A": ["A", "trump"], "trump K": ["K", "trump"], "trump Q": ["Q", "trump"], "trump J": ["J", "trump"],
-    "trump 10-7": ["10 – 7", "trump"], "trump 6-2": ["6 – 2", "trump"],
-    "off-suit A": ["A", "off-suit"], "off-suit K": ["K", "off-suit"], "off-suit Q": ["Q", "off-suit"], "off-suit J": ["J", "off-suit"],
-    "off-suit 10-2": ["10 – 2", "off-suit"],
-  };
+  // "trump 10" -> ["10", "trump"], "off-suit A" -> ["A", "off-suit"], "Wizard" -> ["Wizard", ""]
+  const LABEL = (k) => { const m = k.match(/^(trump|off-suit) (.+)$/); return m ? [m[2], m[1]] : [k, ""]; };
+  const SUITS = [["♠", "spades"], ["♥", "hearts"], ["♦", "diamonds"], ["♣", "clubs"]];
+  const RANKS = ["A", "K", "Q", "J", "10", "9", "8", "7", "6", "5", "4", "3", "2"];
   const NT_SUIT = "any suit";
   const load = (k, d) => { try { const v = localStorage.getItem("wbc-" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
   const save = (k, v) => { try { localStorage.setItem("wbc-" + k, JSON.stringify(v)); } catch (e) {} };
 
   const state = {
     players: load("players", playerCounts.includes(4) ? 4 : playerCounts[0]),
-    trump: load("trump", "trump"),
+    suit: load("suit", 1), // trump suit index into SUITS, or -1 for no trump
     prec: load("prec", "q"),
     size: 5,
-    hand: { "Wizard": 1, "trump A": 1, "off-suit K": 1, "trump 6-2": 1, "off-suit 10-2": 1 },
+    // cards held: "s:R" for suit index s and rank R, plus how many Wizards and Jesters
+    cards: new Set(["1:A", "1:4", "0:K", "3:9"]), wizards: 1, jesters: 0,
     example: true,
   };
   if (!playerCounts.includes(state.players)) state.players = playerCounts[0];
@@ -165,7 +171,7 @@ const DATA = /*DATA*/null;
   const maxCards = () => Math.floor(60 / state.players);
   const lastRound = () => state.size === maxCards();
   // The last round never has trump; any other round can go either way.
-  const effTrump = () => (lastRound() ? "no_trump" : state.trump);
+  const effTrump = () => (lastRound() || state.suit < 0 ? "no_trump" : "trump");
   const kinds = () => (effTrump() === "trump" ? DATA.kinds : DATA.no_trump_kinds);
   const rows = (key) => tables[String(state.players)][key];
   const q = (v) => Math.round(v * 10) / 10; // "Simple": tenths
@@ -178,7 +184,7 @@ const DATA = /*DATA*/null;
     return (x < -0.001 ? "−" : "") + t;
   }
   function kindLabel(k) {
-    const [r, s] = LABEL[k];
+    const [r, s] = LABEL(k);
     if (effTrump() === "no_trump" && s === "off-suit") return [r, NT_SUIT];
     return [r, s];
   }
@@ -208,9 +214,10 @@ const DATA = /*DATA*/null;
       state.size = Math.min(state.size, maxCards());
       render();
     });
-    seg($("trump"), [["trump", "Trump suit"], ["no_trump", "No trump"]], effTrump(), (v) => {
-      if (lastRound() && v === "trump") { state.size = maxCards() - 1; }
-      state.trump = v; save("trump", v); render();
+    const cur = effTrump() === "no_trump" ? -1 : state.suit;
+    seg($("trump"), [...SUITS.map(([sym], i) => [i, sym]), [-1, "No trump"]], cur, (v) => {
+      if (lastRound() && v >= 0) { state.size = maxCards() - 1; }
+      state.suit = v; save("suit", v); render();
     });
     seg($("prec"), [["q", "Simple"], ["x", "Exact"]], state.prec, (v) => { state.prec = v; save("prec", v); render(); });
   }
@@ -234,7 +241,9 @@ const DATA = /*DATA*/null;
       });
       h += "</tr>";
     }
-    const acc = [["Chart bid made", (b) => pctf(state.prec === "q" ? b.q_hit : b.hit)], ["Bot's own bid made", (b) => pctf(b.bot_hit)], ["Average miss", (b) => b.mae.toFixed(2)]];
+    const pp = (x) => (x == null ? "" : (x >= 0 ? "+" : "−") + Math.round(Math.abs(x) * 100) + "%");
+    const acc = [["Chart bid made", (b) => pctf(state.prec === "q" ? b.q_hit : b.hit)], ["Bot's own bid made", (b) => pctf(b.bot_hit)], ["Average miss", (b) => b.mae.toFixed(2)],
+                 ["Each Jester: chance to make your bid", (b) => pp(b.make?.Jester)], ["Each Wizard: chance to make your bid", (b) => pp(b.make?.Wizard)]];
     acc.forEach(([name, f], j) => {
       h += `<tr class="acc ${j === 0 ? "first-acc" : ""}"><th scope="row">${name}</th>` + bands.map((b) => `<td>${f(b)}</td>`).join("") + "</tr>";
     });
@@ -252,6 +261,10 @@ const DATA = /*DATA*/null;
   const pctf = (x) => Math.round(x * 100) + "%";
   const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
 
+  // The value of one card: its kind depends on whether its suit is trump this round.
+  const kindOf = (suitIdx, rank) => (effTrump() === "trump" && suitIdx === state.suit ? "trump " : "off-suit ") + rank;
+  const count = () => state.cards.size + state.wizards + state.jesters;
+
   function renderCounter() {
     $("size").textContent = state.size;
     $("size-dn").disabled = state.size <= 1;
@@ -259,37 +272,54 @@ const DATA = /*DATA*/null;
     $("example-tag").hidden = !state.example;
     const key = effTrump();
     const { row, borrowed } = bandFor(state.size, key);
+    const val = (k) => (row ? shown(row.values[k] ?? 0) : 0);
+    const full = count() >= state.size;
     const box = $("kinds");
     box.innerHTML = "";
-    // In no-trump rounds, trump kinds don't exist: fold any entered ones into the off-suit kinds.
-    if (key === "no_trump") {
-      for (const k of Object.keys(state.hand)) {
-        if (k.startsWith("trump ")) {
-          const to = k === "trump 10-7" || k === "trump 6-2" ? "off-suit 10-2" : "off-suit " + k.slice(6);
-          state.hand[to] = (state.hand[to] || 0) + state.hand[k];
-          delete state.hand[k];
-        }
-      }
-    }
-    for (const k of kinds()) {
-      const n = state.hand[k] || 0;
-      const [r, s] = kindLabel(k);
-      const v = row ? row.values[k] : null;
+    // Wizards and Jesters: 0 to 4 of each
+    for (const [label, field, k] of [["Wizards", "wizards", "Wizard"], ["Jesters", "jesters", "Jester"]]) {
+      const n = state[field];
       const d = document.createElement("div");
       d.className = "kind" + (n ? " has" : "");
-      d.innerHTML = `<span class="name">${r}${s ? ` <span class="small">${s}</span>` : ""}</span>
-        <span class="step"><button type="button" aria-label="One fewer ${k}">−</button><output aria-label="${k} held">${n}</output><button type="button" aria-label="One more ${k}">+</button></span>
-        <span class="val">${v == null ? "" : (n ? "+" + fmt(shown(v) * n) : fmt(v) + " ea")}</span>`;
+      d.innerHTML = `<span class="name">${label}</span>
+        <span class="step"><button type="button" aria-label="One fewer ${k}">−</button><output aria-label="${label} held">${n}</output><button type="button" aria-label="One more ${k}">+</button></span>
+        <span class="val">${row ? fmt(row.values[k]) + " ea" : ""}</span>`;
       const [dn, up] = d.querySelectorAll("button");
       dn.disabled = n === 0;
-      up.disabled = count() >= state.size;
-      dn.addEventListener("click", () => { state.hand[k] = Math.max(0, n - 1); state.example = false; render(); });
-      up.addEventListener("click", () => { state.hand[k] = n + 1; state.example = false; render(); });
+      up.disabled = n >= 4 || full;
+      dn.addEventListener("click", () => { state[field] = n - 1; state.example = false; render(); });
+      up.addEventListener("click", () => { state[field] = n + 1; state.example = false; render(); });
       box.appendChild(d);
     }
+    // One row of chips per suit, trump first: tap the cards you hold.
+    const order = [0, 1, 2, 3].sort((a, b) => (b === state.suit && key === "trump") - (a === state.suit && key === "trump"));
+    for (const si of order) {
+      const [sym, name] = SUITS[si];
+      const isTrump = key === "trump" && si === state.suit;
+      const rowEl = document.createElement("div");
+      rowEl.className = "suitrow";
+      rowEl.innerHTML = `<span class="suitname ${si === 1 || si === 2 ? "red" : ""}">${sym}<span class="small"> ${isTrump ? "trump" : name}</span></span>`;
+      const chips = document.createElement("span");
+      chips.className = "chips";
+      for (const r of RANKS) {
+        const id = `${si}:${r}`, on = state.cards.has(id);
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "chip" + (on ? " on" : "") + (isTrump ? " trump" : "");
+        b.textContent = r;
+        b.setAttribute("aria-pressed", String(on));
+        b.setAttribute("aria-label", `${r} of ${name}${isTrump ? " (trump)" : ""}: ${fmt(val(kindOf(si, r)))} tricks`);
+        b.title = `${fmt(val(kindOf(si, r)))} tricks`;
+        b.disabled = !on && full;
+        b.addEventListener("click", () => { on ? state.cards.delete(id) : state.cards.add(id); state.example = false; render(); });
+        chips.appendChild(b);
+      }
+      rowEl.appendChild(chips);
+      box.appendChild(rowEl);
+    }
     const c = count();
-    let total = 0;
-    if (row) for (const k of kinds()) total += (state.hand[k] || 0) * shown(row.values[k]);
+    let total = state.wizards * val("Wizard") + state.jesters * val("Jester");
+    for (const id of state.cards) { const [si, r] = id.split(":"); total += val(kindOf(Number(si), r)); }
     const bid = Math.max(0, Math.min(state.size, Math.round(total)));
     $("bid").textContent = c ? String(bid) : "–";
     $("total").textContent = c ? `bid · chart total ${total.toFixed(2)} tricks` : "tap in your cards";
@@ -300,13 +330,13 @@ const DATA = /*DATA*/null;
       ? `Seat: leading first takes ${fmtSigned(first)} tricks vs the chart on average; the dealer ${fmtSigned(dealer)}.` : "";
   }
   const fmtSigned = (x) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(2);
-  const count = () => kinds().reduce((s, k) => s + (state.hand[k] || 0), 0);
 
   function trimHand() {
-    // Keep the hand no bigger than the cards held.
-    let over = count() - state.size;
-    for (const k of [...kinds()].reverse()) {
-      while (over > 0 && (state.hand[k] || 0) > 0) { state.hand[k]--; over--; }
+    // Keep the hand no bigger than the cards held (drop the most recently listed cards first).
+    while (count() > state.size) {
+      if (state.jesters) state.jesters--;
+      else if (state.cards.size) state.cards.delete([...state.cards].pop());
+      else state.wizards--;
     }
   }
 
@@ -319,7 +349,7 @@ const DATA = /*DATA*/null;
 
   $("size-dn").addEventListener("click", () => { state.size = Math.max(1, state.size - 1); render(); });
   $("size-up").addEventListener("click", () => { state.size = Math.min(maxCards(), state.size + 1); render(); });
-  $("clear").addEventListener("click", () => { state.hand = {}; state.example = false; render(); });
+  $("clear").addEventListener("click", () => { state.cards = new Set(); state.wizards = 0; state.jesters = 0; state.example = false; render(); });
 
   const total = playerCounts.map((n) => tables[String(n)].rounds).reduce((a, b) => a + b, 0);
   $("lede").innerHTML = `How many tricks each card is worth, learned by a bot that played itself ${Number(DATA.rounds).toLocaleString()} rounds at each table size. <b>Add up your cards, round to the nearest whole number, and bid that.</b>`;

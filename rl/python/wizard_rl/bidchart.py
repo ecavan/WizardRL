@@ -13,9 +13,9 @@ by least squares. The fitted values are the chart: an off-suit ace might be wort
 with 4 players in a 3-card round, but only 0.3 in a 12-card round, where it's more likely to get
 trumped. To bid, add up the values of your cards and round to the nearest whole number.
 
-Card kinds (with trump): Wizard, Jester, trump A / K / Q / J / 10-7 / 6-2, and off-suit
-A / K / Q / J / 10-2. In no-trump rounds (a Jester turned up, or the last round) every suit is
-"off-suit", so those rounds get their own chart.
+Card kinds: Wizard, Jester, and every rank of trump and of the other suits (A, K, ... 2). In
+no-trump rounds (a Jester turned up, or the last round) every suit is "off-suit", so those rounds
+get their own chart.
 """
 
 from __future__ import annotations
@@ -31,9 +31,12 @@ import torch
 from . import WizardEnv
 from .net import load_qnet, pick_actions
 
-KINDS = ["Wizard", "Jester", "trump A", "trump K", "trump Q", "trump J", "trump 10-7", "trump 6-2",
-         "off-suit A", "off-suit K", "off-suit Q", "off-suit J", "off-suit 10-2"]
-NO_TRUMP_KINDS = ["Wizard", "Jester", "off-suit A", "off-suit K", "off-suit Q", "off-suit J", "off-suit 10-2"]
+RANKS = ["A", "K", "Q", "J", "10", "9", "8", "7", "6", "5", "4", "3", "2"]  # high to low
+# One value per rank (not buckets): tested on held-out hands, per-rank values predict tricks
+# better (4 players: 68.9% vs 67.5% of chart bids exactly right) and match the bot's own bid more
+# often (88.7% vs 85.8%). Bonus rows for trump length or voids added almost nothing.
+KINDS = ["Wizard", "Jester"] + [f"trump {r}" for r in RANKS] + [f"off-suit {r}" for r in RANKS]
+NO_TRUMP_KINDS = ["Wizard", "Jester"] + [f"off-suit {r}" for r in RANKS]
 
 
 def size_bands(rounds: int) -> list[tuple[int, int]]:
@@ -42,29 +45,18 @@ def size_bands(rounds: int) -> list[tuple[int, int]]:
 
 
 def features(hand: np.ndarray, trump: np.ndarray) -> np.ndarray:
-    """Count of each card kind in each hand. `hand` is a uint64 bitmask per row."""
+    """Count of each card kind in each hand. `hand` is a uint64 bitmask per row; `trump` is the
+    suit index, or 4 for no trump."""
     n = len(hand)
     bits = ((hand[:, None] >> np.arange(60, dtype=np.uint64)[None, :]) & np.uint64(1)).astype(bool)
     x = np.zeros((n, len(KINDS)), dtype=np.float32)
     x[:, 0] = bits[:, 52:56].sum(1)
     x[:, 1] = bits[:, 56:60].sum(1)
     for s in range(4):
-        cards = bits[:, 13 * s:13 * s + 13]  # rank 0 = deuce ... 12 = ace
-        is_trump = trump == s
-        ace, king, queen, jack = cards[:, 12], cards[:, 11], cards[:, 10], cards[:, 9]
-        mid = cards[:, 5:9].sum(1)   # 7, 8, 9, 10
-        low = cards[:, 0:5].sum(1)   # 2 .. 6
-        x[:, 2] += np.where(is_trump, ace, 0)
-        x[:, 3] += np.where(is_trump, king, 0)
-        x[:, 4] += np.where(is_trump, queen, 0)
-        x[:, 5] += np.where(is_trump, jack, 0)
-        x[:, 6] += np.where(is_trump, mid, 0)
-        x[:, 7] += np.where(is_trump, low, 0)
-        x[:, 8] += np.where(~is_trump, ace, 0)
-        x[:, 9] += np.where(~is_trump, king, 0)
-        x[:, 10] += np.where(~is_trump, queen, 0)
-        x[:, 11] += np.where(~is_trump, jack, 0)
-        x[:, 12] += np.where(~is_trump, mid + low, 0)
+        cards = bits[:, 13 * s:13 * s + 13][:, ::-1]  # column 0 = ace ... 12 = deuce, as RANKS
+        is_trump = (trump == s)[:, None]
+        x[:, 2:15] += np.where(is_trump, cards, 0)
+        x[:, 15:28] += np.where(~is_trump, cards, 0)
     return x
 
 
@@ -108,8 +100,15 @@ def score(x: np.ndarray, coef: np.ndarray, y: np.ndarray) -> tuple[float, float]
     return float(np.abs(est - y).mean()), float((np.clip(np.rint(est), 0, None) == y).mean())
 
 
-def build(net, players: int, rounds: int) -> dict:
-    log = collect(net, players, rounds)
+def build(net, players: int, rounds: int, logs: str | None = None) -> dict:
+    path = os.path.join(logs, f"selfplay_{players}.npz") if logs else None
+    if path and os.path.exists(path):
+        log = dict(np.load(path))  # hands saved by an earlier run (--save-logs)
+    else:
+        log = collect(net, players, rounds)
+        if logs:
+            os.makedirs(logs, exist_ok=True)
+            np.savez_compressed(path, **log)
     x = features(log["hand"], log["trump"].astype(np.int64))
     y = log["won"].astype(np.float32)
     bid = log["bid"].astype(np.int64)
@@ -132,8 +131,14 @@ def build(net, players: int, rounds: int) -> dict:
             q_mae, q_hit = score(xs, simple(coef), y[sel])
             bot_hit = float((bid[sel] == y[sel]).mean())
             resid[sel] = y[sel] - xs @ coef
+            # Jesters and Wizards also help you *make* your bid (dump or grab a trick at will),
+            # which a trick count can't show: the change in the chance of making the bid per card
+            # held, compared with the same hand holding another card instead.
+            made = (bid[sel] == y[sel]).astype(np.float64)
+            mc, *_ = np.linalg.lstsq(np.column_stack([np.ones(len(xs)), xs]), made, rcond=None)
+            make = {k: float(mc[1 + kinds.index(k)]) for k in ("Wizard", "Jester")}
             out[key].append(dict(band=(lo, hi), values=dict(zip(kinds, coef)), mae=mae, n=n, hit=hit,
-                                 q_mae=q_mae, q_hit=q_hit, bot_hit=bot_hit))
+                                 q_mae=q_mae, q_hit=q_hit, bot_hit=bot_hit, make=make))
     # Seat: does leading first (seat 1) or dealing (seat n) take more tricks than the cards say?
     ok = ~np.isnan(resid)
     out["seat"] = {int(p): float(resid[ok & (pos == p)].mean()) for p in range(1, players + 1) if (ok & (pos == p)).any()}
@@ -146,7 +151,8 @@ def jsonable(res: dict) -> dict:
     def row(r):
         return dict(lo=r["band"][0], hi=r["band"][1], name=band_name(r["band"]), n=r["n"],
                     values={k: round(float(v), 4) for k, v in r["values"].items()},
-                    mae=round(r["mae"], 3), hit=round(r["hit"], 3), q_hit=round(r["q_hit"], 3), bot_hit=round(r["bot_hit"], 3))
+                    mae=round(r["mae"], 3), hit=round(r["hit"], 3), q_hit=round(r["q_hit"], 3), bot_hit=round(r["bot_hit"], 3),
+                    make={k: round(v, 3) for k, v in r["make"].items()})
     return dict(trump=[row(r) for r in res["trump"]], no_trump=[row(r) for r in res["no_trump"]],
                 seat={str(k): round(v, 3) for k, v in res["seat"].items()}, bid_made=round(res["bid_made"], 3), rounds=res["rounds"])
 
@@ -171,6 +177,8 @@ def to_markdown(players: int, res: dict) -> str:
         lines.append("| *average miss (tricks)* | " + " | ".join(f"{r['mae']:.2f}" for r in rows) + " |")
         lines.append("| *chart bid made* | " + " | ".join(f"{r['hit']:.0%}" for r in rows) + " |")
         lines.append("| *bot's own bid made* | " + " | ".join(f"{r['bot_hit']:.0%}" for r in rows) + " |")
+        lines.append("| *each Jester: chance to make your bid* | " + " | ".join(f"{r['make']['Jester']:+.0%}" for r in rows) + " |")
+        lines.append("| *each Wizard: chance to make your bid* | " + " | ".join(f"{r['make']['Wizard']:+.0%}" for r in rows) + " |")
         lines.append("")
     seat = res["seat"]
     names = {1: "left of dealer (leads first)", players: "dealer"}
@@ -214,6 +222,7 @@ def main(argv=None) -> None:
     p.add_argument("--out", default="charts")
     p.add_argument("--players", default="3,4,5,6")
     p.add_argument("--rounds", type=int, default=150_000, help="rounds of self-play per table size")
+    p.add_argument("--logs", default=None, help="folder to save the self-play hands in (and reuse them from next time)")
     a = p.parse_args(argv)
     net = load_qnet(a.model)
     os.makedirs(a.out, exist_ok=True)
@@ -228,11 +237,13 @@ def main(argv=None) -> None:
           "- *bot's own bid made*: the same for the bot's real bids, which also weigh everything else it sees.",
           "- *Seat*: add this for your seat (it's small; the dealer usually gains a little from playing last "
           "to the first trick).",
-          "- Jesters can come out slightly negative: holding one leaves fewer cards that can win.", ""]
+          "- Jesters are worth about 0 tricks, but they are far from useless: *each Jester* shows how much one "
+          "raises your chance of making your bid (you can always duck a trick with it). Wizards do the same "
+          "the other way (you can always take one).", ""]
     rows_csv, rows_q = [], []
     results = {}
     for n in (int(x) for x in a.players.split(",")):
-        res = build(net, n, a.rounds)
+        res = build(net, n, a.rounds, a.logs)
         results[n] = res
         md.append(to_markdown(n, res))
         for key in ("trump", "no_trump"):
