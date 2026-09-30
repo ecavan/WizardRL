@@ -679,7 +679,21 @@ nothing, so the bot stops caring and its play gets sloppy.
 2 × 100 × the change in win chance, so +10% win chance is worth 20 points. The bot keeps playing
 for points in every situation and tilts towards what helps it win.
 
-<!-- GAME3 -->
+**Result: a small real gain.** 200M decisions, starting from `simul1`, then a separate league run
+(1,200 duplicate games per cell, 3–6 players pooled):
+
+| player \ table of | simul1 | simul1 (soft4) | counting |
+| --- | --- | --- | --- |
+| **game2** (points + win bonus) | 25% ± 2%, +4 ± 4 | 49% ± 2%, +92 ± 8 | 70% ± 2%, +212 ± 27 |
+| **simul1** (points only) | 22% ± 1%, −0 ± 0 | 46% ± 3%, +86 ± 7 | 71% ± 3%, +214 ± 30 |
+
+Against tables of `simul1` it wins 25% of games where a fair share is 22.2%, and it gives up no
+points doing it (+4 ± 4 a game). Against the sloppier `@soft4` tables it's 49% vs 46%. Against
+the counting bot there's no difference: it wins most games there either way. So the win bonus
+teaches something points alone don't (when to gamble, when to protect a lead), but the effect is
+a few percent of games, not a new level of play. It's saved as `models/game2.pt` /
+`models/game2.wznet`; the charts still come from `simul1`, since they're about points.
+
 
 ## How beatable is it?
 
