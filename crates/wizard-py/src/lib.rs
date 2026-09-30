@@ -5,7 +5,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use wizard::encode::{self, ACTIONS, FEATURES};
-use wizard::env::{EnvConfig, SeatMix, VecEnv};
+use wizard::env::{EnvConfig, SeatMix, VecEnv, CONTEXT};
 use wizard::net::Mlp;
 use wizard::rng::Rng;
 use wizard::view::View;
@@ -37,6 +37,7 @@ struct WizardEnv {
     obs: Vec<f32>,
     mask: Vec<bool>,
     owner: Vec<u16>,
+    last_ctx: Vec<f32>,
 }
 
 fn mix_from(obj: &Bound<'_, PyAny>) -> PyResult<SeatMix> {
@@ -108,6 +109,7 @@ impl WizardEnv {
             obs: vec![0.0; num_tables * FEATURES],
             mask: vec![false; num_tables * ACTIONS],
             owner: vec![0; num_tables],
+            last_ctx: Vec::new(),
             inner,
         })
     }
@@ -218,6 +220,7 @@ impl WizardEnv {
     )> {
         let s = self.inner.drain();
         let n = s.len();
+        self.last_ctx = s.ctx;
         let obs = PyArray1::from_vec(py, s.obs).reshape([n, FEATURES])?;
         let acts = PyArray1::from_vec(py, s.actions.into_iter().map(|a| a as i64).collect());
         let rets = PyArray1::from_vec(py, s.returns);
@@ -225,6 +228,14 @@ impl WizardEnv {
         let aux = PyArray1::from_vec(py, s.aux);
         let legal = PyArray1::from_vec(py, s.legal).reshape([n, ACTIONS])?;
         Ok((obs, acts, rets, made, aux, legal))
+    }
+
+    /// The game context of the samples from the last `drain()` (`[N x 6]`: players, rounds left
+    /// after the round, margin over the best and second-best other player before the round,
+    /// and after it; zeros outside full games).
+    fn last_context<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray2<f32>>> {
+        let n = self.last_ctx.len() / CONTEXT;
+        PyArray1::from_vec(py, self.last_ctx.clone()).reshape([n, CONTEXT])
     }
 
     fn stats<'py>(&mut self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
@@ -285,6 +296,57 @@ fn rust_forward<'py>(
     PyArray1::from_vec(py, out).reshape([x.nrows(), width])
 }
 
+/// The observation and legal moves for a first-trick card-play situation (see
+/// `wizard::scenario::play_scenario`): `bids` for every seat from the left of the dealer to the
+/// dealer, `trick` the cards already played to this trick by positions 1, 2, ...
+#[pyfunction]
+#[pyo3(signature = (players, hand, trump, position, bids, trick, seed = 0, simultaneous = true))]
+#[allow(clippy::too_many_arguments)]
+fn play_scenario<'py>(
+    py: Python<'py>,
+    players: u8,
+    hand: Vec<String>,
+    trump: Option<String>,
+    position: u8,
+    bids: Vec<u8>,
+    trick: Vec<String>,
+    seed: u64,
+    simultaneous: bool,
+) -> PyResult<(Vec1<'py, f32>, Vec1<'py, bool>)> {
+    let parse_all = |v: &[String]| {
+        v.iter()
+            .map(|s| wizard::card::parse(s).ok_or_else(|| PyValueError::new_err(format!("bad card '{s}'"))))
+            .collect::<PyResult<Vec<_>>>()
+    };
+    let (cards, played) = (parse_all(&hand)?, parse_all(&trick)?);
+    let trump = match trump.as_deref() {
+        None | Some("none") | Some("") => None,
+        Some(t) => Some(
+            t.chars()
+                .next()
+                .and_then(wizard::card::Suit::from_char)
+                .ok_or_else(|| PyValueError::new_err("trump must be c, d, h, s or None"))?,
+        ),
+    };
+    let (round, me) = wizard::scenario::play_scenario(
+        simultaneous,
+        players,
+        &cards,
+        trump,
+        position,
+        &bids,
+        &played,
+        &mut Rng::new(seed),
+    )
+    .map_err(PyValueError::new_err)?;
+    let v = View::new(&round, me, &[]);
+    let mut obs = vec![0.0; FEATURES];
+    let mut mask = vec![false; ACTIONS];
+    encode::observe(&v, &mut obs);
+    encode::legal_mask(&v, &mut mask);
+    Ok((PyArray1::from_vec(py, obs), PyArray1::from_vec(py, mask)))
+}
+
 /// The observation and legal bids for a bidding situation: `players`, the bidder's `hand`
 /// (e.g. `["7h", "10h", "wiz"]`), `trump` (`"h"`, ..., or `None` for no trump), `position` in the
 /// seat order (1 = left of the dealer, `players` = the dealer) and, when bidding in turn
@@ -341,6 +403,7 @@ fn _engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(action_name, m)?)?;
     m.add_function(wrap_pyfunction!(rust_forward, m)?)?;
     m.add_function(wrap_pyfunction!(bid_scenario, m)?)?;
+    m.add_function(wrap_pyfunction!(play_scenario, m)?)?;
     m.add("FEATURES", FEATURES)?;
     m.add("ACTIONS", ACTIONS)?;
     m.add("ACT_TRUMP", encode::ACT_TRUMP)?;

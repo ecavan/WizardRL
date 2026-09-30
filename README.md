@@ -293,6 +293,15 @@ python -m wizard_rl.bidchart runs/first/best.pt --out charts --logs runs/chartda
 
 See [Bid charts](#bid-charts) below.
 
+### Play charts ("post-flop")
+
+```sh
+python -m wizard_rl.playchart models/simul1.pt --players 3,4,5,6 --out charts   # how the bot plays its cards
+python -m wizard_rl.playexplore models/simul1.pt --out charts/play_situations.md  # ask about specific decisions
+```
+
+See [Play charts](#play-charts-how-to-play-after-bidding) below.
+
 ### The PPO learner
 
 ```sh
@@ -466,6 +475,41 @@ seconds after a change to the fitting.
 
 ---
 
+## Play charts: how to play after bidding
+
+Bidding is the pre-flop; card play is the post-flop. `playchart` records 300,000 of the bot's own
+card plays per table size, counting only real choices (more than one legal card). It describes each
+one the way a player would:
+
+- a Wizard or a Jester;
+- *win cheaply* (the lowest card that takes the trick) or *win big*, plus *trump in* when you
+  can't follow;
+- *duck high* (the highest card that still loses, getting rid of danger) or *duck low*;
+- when leading: trump or off-suit, high or low.
+
+Each play is tagged with the situation: where you stand against your bid (you need every trick
+left, still need tricks, have made it exactly, or are over), your seat in the trick (lead, middle,
+last), what's winning the trick, and whether you can follow suit. `play_chart.md` (and the
+**Card play** view of the chart page) shows, for each situation, how often the bot makes each
+kind of play. Some patterns (4 players):
+
+| Situation | What the bot does |
+| --- | --- |
+| Leading, you still need tricks | lead a low off-suit card 52%, a high off-suit 21%, low trump 11%, a Wizard 10% |
+| Leading, you need every trick left | lead a Wizard 45%, high trump 26% |
+| Following, you need tricks and can win | win as cheaply as possible (44–62%); trump in cheaply when you can't follow (47–64%) |
+| A Wizard is winning, you need tricks | throw your lowest card (72–89%), sometimes a Jester |
+| You've made your bid exactly | when nothing you hold can win, dump your highest card (51–72%); when you could win, play a Jester (40%) or duck high (30%) |
+
+`playexplore` answers specific first-trick questions with the bot's expected points and chance of
+making your bid for every card you could play (`charts/play_situations.md`). For example:
+
+- **Clubs led on your right, you have no clubs, hearts trump, you hold A♥ J♥ 9♠ 4♦ and bid 1:**
+  throw off the 9♠ (+14.6). Trumping in with the A♥ (+10.3) or the J♥ (+9.8) is worse, because
+  two players after you can still over-trump or play a Wizard, while the A♥ is nearly a sure trick
+  later.
+- **A Wizard is led:** throw your worst card. Wasting the trump ace under it costs 20 points.
+
 ## A learner that outputs probabilities (PPO)
 
 The DMC bot always plays its single best-scoring move. A **policy** learner instead outputs a
@@ -499,6 +543,21 @@ against a table of `simul1` (per round, ± two standard errors):
   weight on one move, which is the sign that mixing isn't wanted.
 - **PPO's most likely move is slightly better** than the DMC bot (+0.3 a round, about +5 a game
   at 4 players). That's extra fine-tuning, not mixing.
+**DMC decides, PPO fine-tunes (anchored PPO).** The same 30M decisions, but with a penalty
+towards the DMC bot's choices (`--anchor models/simul1.pt --kl 0.1`: KL towards
+softmax(DMC points / 5)). Against a table of `simul1`, per round:
+
+| Anchored PPO playing... | 3 players | 4 | 5 | 6 | all |
+| --- | --- | --- | --- | --- | --- |
+| its most likely move | +1.19 | +0.72 | +0.25 | +0.18 | **+0.58 ± 0.11** |
+| by sampling | −4.27 | −2.76 | −1.91 | −1.36 | −2.57 ± 0.15 |
+
+The anchor nearly doubles the fine-tuning gain (+0.58 vs +0.33 without it), about +11 points a
+game at 4 players. The anchor distribution is deliberately soft, so sampling from it costs more,
+but the move the bot actually plays (its most likely one) is clearly better than the DMC bot's.
+The exploiter test found a similar +0.5, which suggests `simul1` still has about half a point a
+round of headroom that more training can capture.
+
 - **We keep the DMC bot.** Its outputs are expected points, which the advisor, the charts and
   the look-ahead search rely on, and the PPO gain is small. If an adapting opponent (like the
   exploiter below) can take a lot off a predictable bot, mixing may earn its keep. That's worth
@@ -516,13 +575,43 @@ play safe. With `--game`:
   up.
 - **More to see.** The network also sees the game so far: everyone's score, its margin over the
   best other player, how many players are ahead of it, and the rounds left.
-- **The reward** for every decision is how the game ended for that seat: 100 for a win (shared on
-  a tie), 0 otherwise.
+- **The reward**: see the two attempts below.
 
 A game-trained network starts from the round-score network: the new inputs start at zero weight,
 so it begins by playing the same way.
 
-<!-- GAME -->
+**First attempt: reward = win (0 or 100).** It made the bot *worse*. After 70M decisions,
+against the round-score bot it averaged **−206 points a game** (it started level) and its bid
+accuracy fell from 73% to 67%. The reason is the noise. One decision barely changes who wins a
+15-round game, so every decision is labelled with a result dominated by the luck of all the
+other rounds. The learner can no longer tell good moves from bad ones and slowly forgets what it
+knew. Stopped.
+
+**Second attempt: win probability added (WPA)**, the same idea as a live win-probability chart in
+sports.
+
+1. Fit a small model of the chance of winning from the score situation:
+   W(players, rounds left, my margin over the leader, over the second-best player). It's fitted on
+   the round-score bot's self-play games (`python -m wizard_rl.winprob`).
+2. Reward each round by how much it moved that chance: reward = 100 × (W after − W before).
+
+Over a game these rewards add up to (result − starting chance). So maximizing them *is*
+maximizing the chance of winning, but each round's reward only carries that round's luck. It
+rewards what a round-score bot can't see:
+
+- A safe +30 when you're 80 behind with two rounds left earns almost nothing.
+- A gamble that catches the leader earns a lot.
+- Protecting a lead is worth more than padding it.
+
+```sh
+python -m wizard_rl.winprob models/simul1.pt --out models/winprob.pt
+python -m wizard_rl.train --game --game-reward wpa --winprob models/winprob.pt --init models/simul1.pt \
+    --reference models/simul1.pt --out runs/game2 --lr 1e-4 --lr-final 2e-5 --until 2e8
+```
+
+(`--game-reward margin` rewards the final margin over the best other player instead.)
+
+<!-- GAME2 -->
 
 ## How beatable is it?
 
@@ -610,6 +699,9 @@ rl/
     ppo.py                 the policy (probabilities) learner, for comparison
     league.py, players.py  league tables; player specs like PATH@soft4
     family.py              place real players (from a score sheet) on the strength curve
+    playchart.py           play charts: how the bot plays its cards, by situation
+    playexplore.py         the bot's view of specific card-play decisions
+    winprob.py             win probability from the score situation; the WPA reward
     distill.py             copy a network into a smaller one
     styles.py              habits for opponent seats (overbid, underbid, early Wizards, wild)
     kuhn.py                learner check on Kuhn poker
@@ -626,7 +718,7 @@ The engine side (`crates/wizard/src`):
 - `env.rs`: many tables at once for training; frozen-network seats; duplicate deals; stats.
 - `bots.rs`, `chart.rs`, `net.rs`: the random and counting bots, the chart bot, a trained network.
 - `search.rs`: the look-ahead bidder.
-- `scenario.rs`: builds a bidding situation to ask a network about.
+- `scenario.rs`: builds a bidding situation, or a first-trick card-play situation, to ask a network about.
 
 ---
 

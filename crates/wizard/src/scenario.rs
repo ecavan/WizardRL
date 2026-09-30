@@ -4,7 +4,7 @@
 //! Only what the bidder can see matters (their hand, trump, their seat, and the bids before them
 //! when bidding in turn); the other hands are dealt at random from the rest of the deck.
 
-use crate::card::{bit, cards, is_jester, suit_of, Card, CardSet, Suit, ALL_CARDS};
+use crate::card::{self, bit, cards, is_jester, suit_of, Card, CardSet, Suit, ALL_CARDS};
 use crate::rng::Rng;
 use crate::round::{Action, Phase, Round};
 use crate::rules::Rules;
@@ -107,6 +107,130 @@ pub fn bid_scenario(
     Ok((round, me))
 }
 
+/// A first-trick card-play situation: "4 players, hearts trump, bids 1/0/2/1, the player on my
+/// right led the 5 of clubs; I hold A♥ J♥ 9♠, which card?". `bids` are everyone's bids in seat
+/// order from the left of the dealer (position 1) to the dealer; `trick` is the cards already
+/// played to this first trick, by positions 1, 2, ... (the leader is position 1). Returns the
+/// round waiting for `me` (at `position`) to play.
+///
+/// The hidden hands are random, but consistent with what was seen: a player who didn't follow
+/// the suit led holds none of it.
+#[allow(clippy::too_many_arguments)]
+pub fn play_scenario(
+    simultaneous: bool,
+    players: u8,
+    hand: &[Card],
+    trump: Option<Suit>,
+    position: u8,
+    bids: &[u8],
+    trick: &[Card],
+    rng: &mut Rng,
+) -> Result<(Round, u8), String> {
+    let rules = if simultaneous {
+        Rules::simultaneous(players)
+    } else {
+        Rules::official(players)
+    };
+    rules.validate()?;
+    let n = players as usize;
+    let size = hand.len() as u8;
+    if size == 0 || size > rules.rounds() {
+        return Err(format!(
+            "{size} cards: a {players}-player round has 1 to {}",
+            rules.rounds()
+        ));
+    }
+    if bids.len() != n {
+        return Err(format!(
+            "give all {n} bids, from the left of the dealer to the dealer"
+        ));
+    }
+    if !(1..=players).contains(&position) || trick.len() != position as usize - 1 {
+        return Err(format!(
+            "position {position} plays after {} card(s) in the trick",
+            position.max(1) - 1
+        ));
+    }
+    let seat_of = |pos: u8| pos % players; // position 1 = seat 1 (left of dealer 0) ... n = seat 0
+    let me = seat_of(position);
+    let mut used: CardSet = 0;
+    for &c in hand.iter().chain(trick) {
+        if used & bit(c) != 0 {
+            return Err("a card appears twice".into());
+        }
+        used |= bit(c);
+    }
+    // The suit that must be followed, from the first standard card played.
+    let led = match trick.first() {
+        Some(&c) if crate::card::is_wizard(c) => None, // a Wizard led: no suit to follow
+        _ => trick.iter().find_map(|&c| suit_of(c)),
+    };
+    let mut rest: Vec<Card> = cards(ALL_CARDS & !used).collect();
+    rng.shuffle(&mut rest);
+    let last_round = size == rules.rounds();
+    let turned = match trump {
+        Some(s) if !last_round => {
+            let i = rest
+                .iter()
+                .position(|&c| suit_of(c) == Some(s))
+                .ok_or("no card of that suit left to turn up")?;
+            Some(rest.remove(i))
+        }
+        Some(_) => return Err("the last round has no trump".into()),
+        None if last_round => None,
+        None => {
+            let i = rest
+                .iter()
+                .position(|&c| is_jester(c))
+                .ok_or("no Jester left")?;
+            Some(rest.remove(i))
+        }
+    };
+    let mut hands = vec![Vec::new(); n];
+    hands[me as usize] = hand.to_vec();
+    // Earlier players in the trick: their played card, plus random cards (none of the led suit
+    // if they didn't follow it).
+    for (k, &c) in trick.iter().enumerate() {
+        let seat = seat_of(k as u8 + 1) as usize;
+        hands[seat].push(c);
+        let followed = led.is_none() || suit_of(c) == led || suit_of(c).is_none() && k == 0;
+        let void = led.is_some() && !followed && suit_of(c).is_some();
+        while hands[seat].len() < size as usize {
+            let i = rest
+                .iter()
+                .position(|&x| !(void && suit_of(x) == led))
+                .ok_or("not enough cards")?;
+            hands[seat].push(rest.remove(i));
+        }
+    }
+    for (s, h) in hands.iter_mut().enumerate() {
+        while h.len() < size as usize && s as u8 != me {
+            h.push(rest.pop().ok_or("not enough cards")?);
+        }
+    }
+    let mut round = Round::from_hands(rules, size, 0, &hands, turned);
+    if let Phase::PickTrump { .. } = round.phase() {
+        round
+            .apply(Action::PickTrump(
+                trump.ok_or("a Wizard was turned: name the trump")?,
+            ))
+            .map_err(|e| e.to_string())?;
+    }
+    for &b in bids {
+        if b > size {
+            return Err(format!("a bid of {b} with {size} cards"));
+        }
+        round.apply(Action::Bid(b)).map_err(|e| e.to_string())?;
+    }
+    for &c in trick {
+        round
+            .apply(Action::Play(c))
+            .map_err(|e| format!("{}: {e}", card::name(c)))?;
+    }
+    debug_assert_eq!(round.to_act(), Some(me));
+    Ok((round, me))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -151,5 +275,43 @@ mod tests {
             "the engine has them"
         );
         assert!(bid_scenario(true, 4, &hand, Some(Suit::Clubs), 3, &[1, 0], &mut rng).is_err());
+    }
+
+    #[test]
+    fn builds_a_first_trick_play_situation() {
+        let c = |s: &str| parse(s).unwrap();
+        let hand = vec![c("Ah"), c("Jh"), c("9s")];
+        let mut rng = Rng::new(3);
+        for _ in 0..50 {
+            // hearts trump, the leader (position 1) played 5 of clubs, I'm next
+            let (r, me) = play_scenario(
+                true,
+                4,
+                &hand,
+                Some(Suit::Hearts),
+                2,
+                &[1, 0, 2, 1],
+                &[c("5c")],
+                &mut rng,
+            )
+            .unwrap();
+            assert_eq!(r.to_act(), Some(me));
+            assert_eq!(r.current_trick().len(), 1);
+            assert_eq!(r.bid(me), Some(0));
+            // someone who didn't follow clubs holds no clubs
+            let (r, _) = play_scenario(
+                true,
+                4,
+                &hand,
+                Some(Suit::Hearts),
+                3,
+                &[1, 0, 2, 1],
+                &[c("5c"), c("Kd")],
+                &mut rng,
+            )
+            .unwrap();
+            assert_eq!(r.hand(2) & Suit::Clubs.mask(), 0);
+        }
+        assert!(play_scenario(true, 4, &hand, None, 2, &[1, 0, 2], &[c("5c")], &mut rng).is_err());
     }
 }

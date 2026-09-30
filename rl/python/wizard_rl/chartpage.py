@@ -18,6 +18,13 @@ def render(json_path: str, full: bool = True) -> str:
     """The page with the chart data inlined. `full=False` leaves out the document skeleton."""
     with open(json_path) as f:
         data = json.load(f)
+    # The play chart and the play situations, if they sit next to the bid chart.
+    here = os.path.dirname(json_path)
+    for key, name in (("play", "play_chart.json"), ("situations", "play_situations.json")):
+        path = os.path.join(here, name)
+        if os.path.exists(path):
+            with open(path) as f:
+                data[key] = json.load(f)
     with open(TEMPLATE) as f:
         page = f.read()
     page = page.replace("/*DATA*/null", json.dumps(data, separators=(",", ":")))

@@ -150,6 +150,8 @@ pub struct EnvConfig {
     /// *game* went for its seat (see `win_weight`), and the network sees the game scores.
     pub game: bool,
     /// Game reward = 100 x (win_weight x win + (1 - win_weight) x share of opponents beaten),
+    /// ties split; or, with `win_weight` = -1, the seat's final margin over the best other
+    /// player, in points (a dense signal that still points at winning).
     /// ties split. 1.0 = only winning counts.
     pub win_weight: f32,
 }
@@ -212,6 +214,27 @@ pub struct Samples {
     pub aux: Vec<f32>,
     /// The legal-action mask at each decision, `len * ACTIONS` long.
     pub legal: Vec<bool>,
+    /// Full games only: the game situation around each decision's round, `CONTEXT` numbers per
+    /// sample (zeros for lone rounds): players, rounds left after this round, then the seat's
+    /// margin over the best and the second-best other player before the round, and after it.
+    /// Enough to reward a round by how much it changed the seat's chance of winning.
+    pub ctx: Vec<f32>,
+}
+
+/// Numbers per sample in `Samples::ctx`.
+pub const CONTEXT: usize = 6;
+
+/// A seat's margins over the best and second-best other player (0 when there is no second).
+fn margins(totals: &[i32], seat: usize) -> (f32, f32) {
+    let mut others: Vec<i32> = (0..totals.len())
+        .filter(|&o| o != seat)
+        .map(|o| totals[o])
+        .collect();
+    others.sort_unstable_by(|a, b| b.cmp(a));
+    let me = totals[seat];
+    let d1 = (me - others[0]) as f32;
+    let d2 = others.get(1).map_or(0.0, |&o| (me - o) as f32);
+    (d1, d2)
 }
 
 impl Samples {
@@ -248,7 +271,7 @@ struct Table {
     totals: [i32; SEATS],
     history: [SeatHistory; SEATS],
     deal_rng: Rng,
-    game_traj: Vec<(u8, u32, f32, f32)>,
+    game_traj: Vec<(u8, u32, f32, f32, [f32; CONTEXT])>,
     game_obs: Vec<f32>,
     game_mask: Vec<bool>,
     /// The deal in progress when the quota was set: not counted (it's more likely to be a long
@@ -283,8 +306,8 @@ impl VecEnv {
             ));
         }
         cfg.mix.validate()?;
-        if !(0.0..=1.0).contains(&cfg.win_weight) {
-            return Err("win_weight must be between 0 and 1".into());
+        if !(0.0..=1.0).contains(&cfg.win_weight) && cfg.win_weight != -1.0 {
+            return Err("win_weight must be between 0 and 1 (or -1 for the margin reward)".into());
         }
         if cfg.duplicate && !cfg.mix.is_single_kind() {
             return Err(
@@ -532,9 +555,23 @@ impl VecEnv {
                         .collect();
                     if self.cfg.game {
                         // Held until the game ends, when the reward is known.
+                        let np = n as usize;
+                        let before = t.totals;
+                        let mut after = t.totals;
+                        for s in 0..np {
+                            after[s] += scores[s];
+                        }
+                        let left = (t.round.rules().rounds() - t.round.size()) as f32;
                         for &(seat, action, aux) in &t.traj {
-                            t.game_traj
-                                .push((seat, action, aux, made[seat as usize] as u8 as f32));
+                            let (b1, b2) = margins(&before[..np], seat as usize);
+                            let (a1, a2) = margins(&after[..np], seat as usize);
+                            t.game_traj.push((
+                                seat,
+                                action,
+                                aux,
+                                made[seat as usize] as u8 as f32,
+                                [n as f32, left, b1, b2, a1, a2],
+                            ));
                         }
                         t.game_obs.extend_from_slice(&t.traj_obs);
                         t.game_mask.extend_from_slice(&t.traj_mask);
@@ -550,6 +587,7 @@ impl VecEnv {
                             self.out
                                 .legal
                                 .extend_from_slice(&t.traj_mask[k * ACTIONS..(k + 1) * ACTIONS]);
+                            self.out.ctx.extend_from_slice(&[0.0; CONTEXT]);
                         }
                     }
                     if self.cfg.log_rounds {
@@ -611,7 +649,8 @@ impl VecEnv {
                         }
                         // Game over: reward every decision of the game, and count the result.
                         let reward = game_rewards(&t.totals[..n as usize], self.cfg.win_weight);
-                        for (k, &(seat, action, aux, made)) in t.game_traj.iter().enumerate() {
+                        for (k, &(seat, action, aux, made, ctx)) in t.game_traj.iter().enumerate() {
+                            self.out.ctx.extend_from_slice(&ctx);
                             self.out
                                 .obs
                                 .extend_from_slice(&t.game_obs[k * FEATURES..(k + 1) * FEATURES]);
@@ -724,6 +763,19 @@ fn win_shares(totals: &[i32]) -> Vec<f64> {
 /// share of opponents finished ahead of (ties count half).
 fn game_rewards(totals: &[i32], win_weight: f32) -> Vec<f32> {
     let n = totals.len();
+    if win_weight == -1.0 {
+        // margin over the best other player
+        return (0..n)
+            .map(|s| {
+                let best_other = (0..n)
+                    .filter(|&o| o != s)
+                    .map(|o| totals[o])
+                    .max()
+                    .unwrap_or(0);
+                (totals[s] - best_other) as f32
+            })
+            .collect();
+    }
     let wins = win_shares(totals);
     (0..n)
         .map(|s| {
@@ -1119,6 +1171,7 @@ mod tests {
         assert!((r[1] - 100.0 * 0.5 * (1.0 / 3.0) as f32).abs() < 1e-3);
         assert_eq!(r[3], 0.0);
         assert_eq!(game_rewards(&[10, 20, 30], 1.0), vec![0.0, 0.0, 100.0]);
+        assert_eq!(game_rewards(&[10, 20, 30], -1.0), vec![-20.0, -10.0, 10.0]);
     }
 
     #[test]

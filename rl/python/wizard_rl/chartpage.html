@@ -79,6 +79,27 @@ tr.first-acc th, tr.first-acc td { border-top: 1px solid var(--line); padding-to
 .chip.trump { border-color: color-mix(in oklab, var(--heat) 45%, var(--line)); }
 .chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .chip:disabled { opacity: .35; cursor: default; }
+.playview { display: grid; gap: 22px; }
+#need { margin: 4px 0 12px; flex-wrap: wrap; }
+.playtable td, .playtable th { text-align: left; vertical-align: middle; font-size: 13px; }
+.playtable td.num { text-align: right; font-family: var(--mono); color: var(--muted); }
+.bar { display: flex; height: 10px; border-radius: 3px; overflow: hidden; min-width: 160px; background: var(--line); margin-top: 4px; }
+.bar span { display: block; height: 100%; }
+.p-win { background: var(--heat); } .p-winbig { background: color-mix(in oklab, var(--heat) 55%, var(--surface)); }
+.p-duck { background: color-mix(in oklab, var(--muted) 70%, var(--surface)); } .p-ducklow { background: color-mix(in oklab, var(--muted) 35%, var(--surface)); }
+.p-wiz { background: var(--gold); } .p-jes { background: color-mix(in oklab, var(--cool) 60%, var(--surface)); }
+.p-leadhigh { background: color-mix(in oklab, var(--heat) 80%, var(--ink)); } .p-leadlow { background: color-mix(in oklab, var(--heat) 30%, var(--surface)); }
+.plays { font-size: 12px; color: var(--muted); }
+.plays b { color: var(--ink); }
+.situations { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.sit { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 6px; min-width: 0; }
+.sit h3 { font-size: 14px; margin: 0; font-weight: 700; text-wrap: balance; }
+.sit .meta { font-size: 12px; color: var(--muted); }
+.sit table { font-size: 13px; }
+.sit td { padding: 3px 4px; text-align: right; font-family: var(--mono); }
+.sit td:first-child { text-align: left; }
+.sit tr.best td { font-weight: 700; color: var(--ink); }
+.red { color: var(--cool); }
 .result { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; }
 .bid { display: flex; align-items: baseline; gap: 10px; }
 .bid .n { font-family: var(--display); font-size: 48px; line-height: 1; }
@@ -101,14 +122,15 @@ footer p { margin: 0; }
   </header>
 
   <div class="controls" role="group" aria-label="Chart settings">
+    <div class="control"><span class="label" id="lbl-view">Show</span><div class="seg" id="view" aria-labelledby="lbl-view"></div></div>
     <div class="control"><span class="label" id="lbl-players">Players</span><div class="seg" id="players" aria-labelledby="lbl-players"></div></div>
-    <div class="control"><span class="label" id="lbl-trump">Trump</span><div class="seg" id="trump" aria-labelledby="lbl-trump">
+    <div class="control bidonly"><span class="label" id="lbl-trump">Trump</span><div class="seg" id="trump" aria-labelledby="lbl-trump">
       <button type="button" id="trump-yes" data-v="trump">Trump suit</button><button type="button" id="trump-no" data-v="no_trump">No trump</button></div></div>
-    <div class="control"><span class="label" id="lbl-prec">Values</span><div class="seg" id="prec" aria-labelledby="lbl-prec">
+    <div class="control bidonly"><span class="label" id="lbl-prec">Values</span><div class="seg" id="prec" aria-labelledby="lbl-prec">
       <button type="button" id="prec-q" data-v="q">Simple</button><button type="button" id="prec-x" data-v="x">Exact</button></div></div>
   </div>
 
-  <div class="main">
+  <div class="main" id="bidview">
     <section class="panel" aria-labelledby="chart-h">
       <h2 id="chart-h">Tricks per card</h2>
       <p class="sub" id="chart-sub"></p>
@@ -136,6 +158,21 @@ footer p { margin: 0; }
     </section>
   </div>
 
+  <div id="playview" class="playview" hidden>
+    <section class="panel" aria-labelledby="play-h">
+      <h2 id="play-h">How the bot plays its cards</h2>
+      <p class="sub" id="play-sub"></p>
+      <div class="seg" id="need" role="group" aria-label="Where you stand against your bid"></div>
+      <div class="tablewrap"><table id="playtable" class="playtable"></table></div>
+      <p class="note"><b>win cheaply</b>: the lowest card that takes the trick · <b>win big</b>: a stronger winner than needed · <b>duck high</b>: the highest card that still loses (getting rid of danger) · <b>duck low</b>: a lower losing card · <b>trump in</b>: winning with trump when you can't follow · "nothing but a Wizard wins": none of your other cards could take the trick.</p>
+    </section>
+    <section class="panel" aria-labelledby="sit-h">
+      <h2 id="sit-h">Example decisions</h2>
+      <p class="sub">The bot's expected points for the round, and your chance of making your bid, for each card you could play (first trick of a round, 4 players).</p>
+      <div id="situations" class="situations"></div>
+    </section>
+  </div>
+
   <footer>
     <p id="how"></p>
     <p><b>Reading the accuracy rows.</b> <i>Chart bid made</i>: how often the rounded chart total was exactly the tricks the bot went on to take. <i>Bot's own bid made</i>: the same for the bot's real bids, which also weigh everything else it can see. <i>Average miss</i>: how far the chart total lands from the tricks taken, in tricks.</p>
@@ -160,6 +197,8 @@ const DATA = /*DATA*/null;
   const state = {
     players: load("players", playerCounts.includes(4) ? 4 : playerCounts[0]),
     suit: load("suit", 1), // trump suit index into SUITS, or -1 for no trump
+    view: load("view", "bid"),
+    need: "need more",
     prec: load("prec", "q"),
     size: 5,
     // cards held: "s:R" for suit index s and rank R, plus how many Wizards and Jesters
@@ -340,7 +379,44 @@ const DATA = /*DATA*/null;
     }
   }
 
+  const PLAYCLASS = (k) => k.startsWith("win big") ? "p-winbig" : k.startsWith("win") ? "p-win" : k === "duck high" ? "p-duck"
+    : k === "duck low" ? "p-ducklow" : k === "Wizard" ? "p-wiz" : k === "Jester" ? "p-jes" : k.includes("high") ? "p-leadhigh" : "p-leadlow";
+  const NEEDS = [["need all", "Need every trick left"], ["need more", "Still need tricks"], ["made it", "Made my bid exactly"], ["over", "Already over"]];
+  const suitHtml = (c) => c.replace(/([♥♦])/g, '<span class="red">$1</span>');
+
+  function renderPlay() {
+    const play = DATA.play && DATA.play.tables[String(state.players)];
+    seg($("need"), NEEDS, state.need, (v) => { state.need = v; render(); });
+    if (!play) { $("playtable").innerHTML = "<tr><td>No play chart for this table size yet.</td></tr>"; return; }
+    const rows = play.filter((r) => r.situation.need === state.need);
+    const total = play.reduce((a, r) => a + r.n, 0);
+    $("play-sub").textContent = `${state.players} players · from ${total.toLocaleString()} of the bot's own card plays where it had a real choice · each bar shows how often it makes each kind of play`;
+    let h = "<thead><tr><th>Seat</th><th>Trick so far</th><th>Your cards</th><th>What the bot does</th><th class=\"num\">Seen</th></tr></thead><tbody>";
+    for (const r of rows) {
+      const s = r.situation, entries = Object.entries(r.plays);
+      const bar = entries.map(([k, v]) => `<span class="${PLAYCLASS(k)}" style="width:${(v * 100).toFixed(1)}%" title="${k} ${Math.round(v * 100)}%"></span>`).join("");
+      const text = entries.filter(([, v]) => v >= 0.05).map(([k, v], i) => i === 0 ? `<b>${k} ${Math.round(v * 100)}%</b>` : `${k} ${Math.round(v * 100)}%`).join(" · ");
+      h += `<tr><td>${s.seat}</td><td>${s.trick}</td><td>${s.follow}</td><td><div class="plays">${text}</div><div class="bar">${bar}</div></td><td class="num">${r.n.toLocaleString()}</td></tr>`;
+    }
+    $("playtable").innerHTML = h + "</tbody>";
+    const sits = (DATA.situations && DATA.situations.situations) || [];
+    $("situations").innerHTML = sits.map((x) => {
+      const best = x.plays[0].points;
+      const trs = x.plays.map((p, i) => `<tr class="${i === 0 ? "best" : ""}"><td>${suitHtml(p.card)}</td><td>${p.points >= 0 ? "+" : "−"}${Math.abs(p.points).toFixed(1)}</td><td>${i === 0 ? "best" : (p.points - best).toFixed(1)}</td><td>${p.make == null ? "" : Math.round(p.make * 100) + "%"}</td></tr>`).join("");
+      return `<div class="sit"><h3>${x.title}</h3><div class="meta">Trump: ${x.trump ? SUITS[["s", "h", "d", "c"].indexOf(x.trump)][1] : "none"} · your hand: ${x.hand.join(" ")} · trick so far: ${x.trick.join(" ") || "you lead"}</div>
+        <table><thead><tr><td>Play</td><td>Points</td><td>vs best</td><td>Make bid</td></tr></thead><tbody>${trs}</tbody></table></div>`;
+    }).join("");
+  }
+
   function render() {
+    seg($("view"), [["bid", "Bidding"], ["play", "Card play"]], state.view, (v) => { state.view = v; save("view", v); render(); });
+    $("bidview").hidden = state.view !== "bid";
+    $("playview").hidden = state.view !== "play";
+    document.querySelectorAll(".bidonly").forEach((el) => { el.hidden = state.view !== "bid"; });
+    $("lede").innerHTML = state.view === "play"
+      ? "Bidding is the pre-flop; this is the post-flop: how the bot plays its cards once the bids are in, by where you stand against your bid, your seat in the trick and what's winning it. <b>Find your situation, see what the bot does.</b>"
+      : bidLede;
+    if (state.view === "play") { renderControls(); renderPlay(); return; }
     renderControls();
     trimHand();
     renderChart();
@@ -352,7 +428,7 @@ const DATA = /*DATA*/null;
   $("clear").addEventListener("click", () => { state.cards = new Set(); state.wizards = 0; state.jesters = 0; state.example = false; render(); });
 
   const total = playerCounts.map((n) => tables[String(n)].rounds).reduce((a, b) => a + b, 0);
-  $("lede").innerHTML = `How many tricks each card is worth, learned by a bot that played itself ${Number(DATA.rounds).toLocaleString()} rounds at each table size. <b>Add up your cards, round to the nearest whole number, and bid that.</b>`;
+  const bidLede = `How many tricks each card is worth, learned by a bot that played itself ${Number(DATA.rounds).toLocaleString()} rounds at each table size. <b>Add up your cards, round to the nearest whole number, and bid that.</b>`;
   $("how").innerHTML = `<b>How this was made.</b> The trained bot (<code>${DATA.model}</code>) played ${total.toLocaleString()} rounds against itself at ${playerCounts.join(", ")} players, everyone bidding at once. For each table size, trump or no trump, and range of hand sizes, a least-squares fit found the value of each kind of card that best predicts the tricks it went on to take.`;
   render();
 })();

@@ -69,6 +69,11 @@ def main(argv=None) -> None:
     p.add_argument("--game", action="store_true", help="play full games and reward winning the game, not round scores")
     p.add_argument("--win-weight", type=float, default=1.0,
                    help="with --game: reward = win_weight x winning + the rest x share of opponents beaten")
+    p.add_argument("--game-reward", choices=["win", "margin", "wpa"], default="win",
+                   help="with --game: 'win' (see --win-weight); 'margin' = final score minus the best other "
+                        "player's; 'wpa' = each round rewarded by how much it changed the chance of winning "
+                        "(needs --winprob, see winprob.py)")
+    p.add_argument("--winprob", default=None, help="win-probability model for --game-reward wpa")
     p.add_argument("--eval-games", type=int, default=2000, help="with --game: learner games per evaluation")
     p.add_argument("--device", default="auto", help="auto, cpu, mps or cuda")
     p.add_argument("--threads", type=int, default=0, help="CPU threads for torch (0 = default)")
@@ -97,8 +102,15 @@ def main(argv=None) -> None:
     cfg = LoopConfig(batch=a.batch, lr=a.lr, lr_final=a.lr_final, lr_decay=int(a.lr_decay), eps_start=a.eps_start,
                      eps_end=a.eps_end, eps_decay=int(a.eps_decay))
     sim = not a.in_turn
-    env = WizardEnv(a.tables, players, dict(learner=wl, nets=wn, counting=wc), a.seed, False, sim, False, a.game, a.win_weight)
+    env = WizardEnv(a.tables, players, dict(learner=wl, nets=wn, counting=wc), a.seed, False, sim, False, a.game,
+                    -1.0 if a.game_reward == "margin" else a.win_weight)
     learner = Learner(env, net, cfg, device, a.seed)
+    if a.game and a.game_reward == "wpa":
+        from .winprob import load_winprob, wpa_returns
+        if not a.winprob:
+            p.error("--game-reward wpa needs --winprob")
+        wp = load_winprob(a.winprob)
+        learner.reward_fn = lambda d, ctx: wpa_returns(wp, ctx)
     reference = load_qnet(a.reference) if a.reference else None
     if styles:
         from .styles import STYLES
@@ -197,7 +209,7 @@ def main(argv=None) -> None:
         save("latest.pt", score)
         last["t"], last["d"] = time.time(), lr.state.decisions
 
-    print(f"training on {device}; {'full games, reward: win' + (f' {a.win_weight:g} + placement' if a.win_weight < 1 else '') if a.game else 'lone rounds, reward: round score'}; "
+    print(f"training on {device}; {('full games, reward: win probability added per round' if a.game_reward == 'wpa' else 'full games, reward: margin over the best other player' if a.game_reward == 'margin' else 'full games, reward: win' + (f' {a.win_weight:g} + placement' if a.win_weight < 1 else '')) if a.game else 'lone rounds, reward: round score'}; "
           f"bids {'all at once' if sim else 'in turn'}; tables {a.tables}; players {players}; "
           f"{'exploiting ' + a.opponent + ' (every other seat)' if a.opponent else ('styled opponents ' + ','.join(styles) + f' ({wn:.0%} of seats)') if styles else 'seats learner/frozen/counting ' + a.mix}; "
           f"network {net.config()}; out {a.out}", flush=True)

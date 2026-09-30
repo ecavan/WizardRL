@@ -56,6 +56,8 @@ class Learner:
         self.frozen: list[QNet] = []
         # Optional habit per frozen network (see styles.py); None = plays normally.
         self.styles: list[str | None] = []
+        # Optional: turn (drained samples, their game context) into the returns to learn from.
+        self.reward_fn = None
         self.freezes = 0
         self.gen = torch.Generator(device="cpu")
         self.gen.manual_seed(seed)
@@ -116,7 +118,8 @@ class Learner:
         d = self.env.drain()
         if len(d[1]):
             made = d[3] if len(d) > 3 else np.zeros(len(d[1]), dtype=np.float32)
-            self.state.buf.append((d[0], d[1], d[2], made))
+            ret = d[2] if self.reward_fn is None else self.reward_fn(d, self.env.last_context())
+            self.state.buf.append((d[0], d[1], ret, made))
             self.state.buffered += len(d[1])
 
     # ------------------------------------------------------------------ learning

@@ -21,5 +21,6 @@ from ._engine import (  # noqa: F401
     WizardEnv,
     action_name,
     bid_scenario,
+    play_scenario,
     rust_forward,
 )
