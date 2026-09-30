@@ -270,13 +270,22 @@ fn action_name(i: usize) -> PyResult<String> {
 
 /// Run an exported network file (`wizard_rl.export`) in Rust on a batch of observations.
 /// Returns the raw outputs `[B, outputs]`; used to check the export matches PyTorch.
+/// `policy=True` runs the policy network of a two-brain file (its logits) instead of the points
+/// network.
 #[pyfunction]
+#[pyo3(signature = (path, obs, policy=false))]
 fn rust_forward<'py>(
     py: Python<'py>,
     path: &str,
     obs: numpy::PyReadonlyArray2<'py, f32>,
+    policy: bool,
 ) -> PyResult<Bound<'py, PyArray2<f32>>> {
-    let net = Mlp::load(path).map_err(PyValueError::new_err)?;
+    let (pol, eval) = Mlp::load_pair(path).map_err(PyValueError::new_err)?;
+    let net = if policy {
+        pol.ok_or_else(|| PyValueError::new_err("not a two-brain file: no policy network"))?
+    } else {
+        eval
+    };
     let x = obs.as_array();
     if x.ncols() != FEATURES {
         return Err(PyValueError::new_err(format!(

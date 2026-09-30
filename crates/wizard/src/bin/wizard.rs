@@ -24,13 +24,15 @@ const USAGE: &str = "usage:
 
   --players  3 to 6                                        default 4
   --bots     one name per seat (sim) or per opponent (play):
-             random | counting | net:FILE (a trained network, from python -m wizard_rl.export)
+             random | counting | net:FILE (a trained network, from python -m wizard_rl.export;
+               a two-brain file like rl/models/ppo5.wznet plays its policy's moves)
              | chart:FILE (bids from a bid chart CSV, plays like counting)
              | search:FILE[:samples[:width]] (a network that looks ahead before bidding:
                plays out `samples` imagined deals for each of its top `width` bids; 32, 3)
              | style:NAME:BOT (BOT with a habit: overbid, underbid, early-wizard, wild),
                e.g. style:early-wizard:net:FILE
   --advisor  FILE: a trained network that shows you its predicted score for each option
+             (a two-brain file also says which move it plays)
              (watch: shows its view of every bid; play: also what your choice cost)
   --winprob  FILE: win-chance model (python -m wizard_rl.winprob export); shows everyone's
              chance of winning the game after each round. Default rl/models/winprob.wzwp
@@ -364,8 +366,14 @@ impl Human {
                     None => format!("{a} {x:+.0}"),
                 })
                 .collect();
+            // A two-brain advisor chooses with its policy, which can differ from the top score.
+            let plays = if adv.has_policy() {
+                format!("  -> it plays {}", adv.pick(v))
+            } else {
+                String::new()
+            };
             println!(
-                "  advisor, expected points this round: {}",
+                "  advisor, expected points this round: {}{plays}",
                 line.join(" | ")
             );
         }
@@ -375,11 +383,19 @@ impl Human {
     fn review(&mut self, v: &View, chosen: Action) {
         if let Some(adv) = self.advisor.as_mut() {
             let vals = adv.values(v);
-            if let (Some(best), Some(mine)) =
-                (vals.first(), vals.iter().find(|(a, _, _)| *a == chosen))
-            {
+            // Its choice: the policy's move for a two-brain advisor, else the best score.
+            let pick = adv.pick(v);
+            if let (Some(best), Some(mine)) = (
+                vals.iter().find(|(a, _, _)| *a == pick),
+                vals.iter().find(|(a, _, _)| *a == chosen),
+            ) {
                 if best.0 == chosen {
                     println!("  advisor: {chosen} is its choice too");
+                } else if best.1 < mine.1 {
+                    println!(
+                        "  advisor: it would play {} ({:+.0}), but scores yours about as well or better ({:+.0})",
+                        best.0, best.1, mine.1
+                    );
                 } else {
                     // What the lost points are worth in chance of winning the game: your
                     // margins after the round with each option's expected points (the other
@@ -730,12 +746,14 @@ fn sort_cards(set: card::CardSet, trump: Option<Suit>) -> Vec<Card> {
 fn watch(a: &Args) -> Result<(), String> {
     let rules = rules_for(a)?;
     let n = rules.players as usize;
-    let default_net = "rl/models/simul1.wznet";
+    // the strongest bot we have (ppo5, a two-brain file), else the round-score network
+    let default_net = ["rl/models/ppo5.wznet", "rl/models/simul1.wznet"]
+        .into_iter()
+        .find(|p| std::path::Path::new(p).exists());
     let names: Vec<String> = if a.bots.is_empty() {
-        if std::path::Path::new(default_net).exists() {
-            vec![format!("net:{default_net}"); n]
-        } else {
-            vec!["counting".into(); n]
+        match default_net {
+            Some(p) => vec![format!("net:{p}"); n],
+            None => vec!["counting".into(); n],
         }
     } else {
         a.bots.clone()
@@ -831,7 +849,12 @@ fn watch(a: &Args) -> Result<(), String> {
                         None => format!("{act} {x:+.0}"),
                     })
                     .collect();
-                println!("  advisor for {}: {}", who(seat), opts.join(" | "));
+                let plays = if adv.has_policy() {
+                    format!("  -> it plays {}", adv.pick(&v))
+                } else {
+                    String::new()
+                };
+                println!("  advisor for {}: {}{plays}", who(seat), opts.join(" | "));
             }
             let act = seats[seat as usize].act(&v, &mut rng);
             round.apply(act).map_err(|e| e.to_string())?;

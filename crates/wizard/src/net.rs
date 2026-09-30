@@ -21,6 +21,10 @@ use std::io::Read;
 use std::path::Path;
 
 const MAGIC: &[u8; 8] = b"WZNET001";
+/// A "two-brain" file: a policy network (it chooses the moves) followed by the points network
+/// it was trained next to (it values them, for the advisor and search). Written by
+/// `python -m wizard_rl.export POLICY.pt OUT.wznet --evaluator DMC.pt`.
+const DUO: &[u8; 8] = b"WZDUO001";
 
 struct Layer {
     input: usize,
@@ -53,45 +57,74 @@ fn read_f32s(r: &mut impl Read, n: usize) -> std::io::Result<Vec<f32>> {
 }
 
 impl Mlp {
+    /// The points network in a file (for a two-brain file, its evaluator).
     pub fn load(path: impl AsRef<Path>) -> Result<Mlp, String> {
+        Mlp::load_pair(path).map(|(_, eval)| eval)
+    }
+
+    /// (the policy network, if the file has one; the points network).
+    pub fn load_pair(path: impl AsRef<Path>) -> Result<(Option<Mlp>, Mlp), String> {
         let path = path.as_ref();
         let bytes = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
-        Mlp::from_bytes(&bytes).map_err(|e| format!("{}: {e}", path.display()))
+        Mlp::pair_from_bytes(&bytes).map_err(|e| format!("{}: {e}", path.display()))
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Mlp, String> {
+        Mlp::pair_from_bytes(bytes).map(|(_, eval)| eval)
+    }
+
+    pub fn pair_from_bytes(bytes: &[u8]) -> Result<(Option<Mlp>, Mlp), String> {
         let mut r = bytes;
+        let pair = if r.starts_with(DUO) {
+            r = &r[DUO.len()..];
+            let policy = Mlp::parse(&mut r).map_err(|e| format!("policy network: {e}"))?;
+            if policy.make_head {
+                return Err("policy network: expected one output per action".into());
+            }
+            let eval = Mlp::parse(&mut r).map_err(|e| format!("points network: {e}"))?;
+            (Some(policy), eval)
+        } else {
+            (None, Mlp::parse(&mut r)?)
+        };
+        if !r.is_empty() {
+            return Err(format!("{} unexpected bytes at the end", r.len()));
+        }
+        Ok(pair)
+    }
+
+    /// One network block (header included), advancing `r` past it.
+    fn parse(r: &mut &[u8]) -> Result<Mlp, String> {
         let mut magic = [0u8; 8];
         r.read_exact(&mut magic).map_err(|_| "too short")?;
         if &magic != MAGIC {
             return Err("not a Wizard network file (wrong header)".into());
         }
         let io = |e: std::io::Error| format!("truncated file: {e}");
-        let features = read_u32(&mut r).map_err(io)? as usize;
-        let actions = read_u32(&mut r).map_err(io)? as usize;
+        let features = read_u32(r).map_err(io)? as usize;
+        let actions = read_u32(r).map_err(io)? as usize;
         // Networks from before the game features read only the round features (a prefix).
         if !(ROUND_FEATURES..=FEATURES).contains(&features) || actions != ACTIONS {
             return Err(format!(
                 "network is for {features} features / {actions} actions, this engine uses {FEATURES} / {ACTIONS}"
             ));
         }
-        let scale = f32::from_bits(read_u32(&mut r).map_err(io)?);
+        let scale = f32::from_bits(read_u32(r).map_err(io)?);
         if !(scale.is_finite() && scale > 0.0) {
             return Err(format!("bad scale {scale}"));
         }
-        let n = read_u32(&mut r).map_err(io)? as usize;
+        let n = read_u32(r).map_err(io)? as usize;
         let mut layers = Vec::with_capacity(n);
         let mut width = features;
         for i in 0..n {
-            let input = read_u32(&mut r).map_err(io)? as usize;
-            let output = read_u32(&mut r).map_err(io)? as usize;
+            let input = read_u32(r).map_err(io)? as usize;
+            let output = read_u32(r).map_err(io)? as usize;
             if input != width {
                 return Err(format!(
                     "layer {i} expects {input} inputs, previous layer gives {width}"
                 ));
             }
-            let w = read_f32s(&mut r, input * output).map_err(io)?;
-            let b = read_f32s(&mut r, output).map_err(io)?;
+            let w = read_f32s(r, input * output).map_err(io)?;
+            let b = read_f32s(r, output).map_err(io)?;
             layers.push(Layer {
                 input,
                 output,
@@ -105,9 +138,6 @@ impl Mlp {
                 "last layer gives {width} outputs, expected {actions} or {}",
                 2 * actions
             ));
-        }
-        if !r.is_empty() {
-            return Err(format!("{} unexpected bytes at the end", r.len()));
         }
         Ok(Mlp {
             layers,
@@ -200,9 +230,11 @@ impl Mlp {
     }
 }
 
-/// Plays the legal action with the highest predicted score.
+/// Plays the legal action with the highest predicted score, or, with a two-brain file, the
+/// policy network's most likely action (the points network still values every option).
 pub struct NetBot {
     net: Mlp,
+    policy: Option<Mlp>,
     name: String,
     obs: Vec<f32>,
     mask: Vec<bool>,
@@ -212,6 +244,7 @@ impl NetBot {
     pub fn new(net: Mlp, name: impl Into<String>) -> NetBot {
         NetBot {
             net,
+            policy: None,
             name: name.into(),
             obs: vec![0.0; FEATURES],
             mask: vec![false; ACTIONS],
@@ -224,7 +257,33 @@ impl NetBot {
             .file_stem()
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_else(|| "net".into());
-        Ok(NetBot::new(Mlp::load(path)?, name))
+        let (policy, net) = Mlp::load_pair(path)?;
+        Ok(NetBot {
+            policy,
+            ..NetBot::new(net, name)
+        })
+    }
+
+    /// Whether moves come from a policy network (a two-brain file) rather than the points.
+    pub fn has_policy(&self) -> bool {
+        self.policy.is_some()
+    }
+
+    /// The move this bot plays: the policy's most likely legal move, or the best-scoring one.
+    pub fn pick(&mut self, v: &View) -> Action {
+        match &self.policy {
+            Some(pol) => {
+                encode::observe(v, &mut self.obs);
+                encode::legal_mask(v, &mut self.mask);
+                let logits = pol.forward(&self.obs);
+                let best = (0..ACTIONS)
+                    .filter(|&i| self.mask[i])
+                    .max_by(|&a, &b| logits[a].total_cmp(&logits[b]))
+                    .expect("a legal action");
+                encode::action_from_index(best).unwrap()
+            }
+            None => self.values(v).first().expect("a legal action").0,
+        }
     }
 
     /// Every legal action with its predicted round score (points) and, if the network has
@@ -255,7 +314,7 @@ impl Bot for NetBot {
         self.name.clone()
     }
     fn act(&mut self, v: &View, _rng: &mut Rng) -> Action {
-        self.values(v).first().expect("a legal action").0
+        self.pick(v)
     }
 }
 
@@ -306,6 +365,23 @@ mod tests {
         let two = Mlp::from_bytes(&tiny_out(FEATURES, ACTIONS, 2 * ACTIONS)).unwrap();
         assert!(two.make_head);
         assert_eq!(two.forward(&vec![0.0; FEATURES]).len(), 2 * ACTIONS);
+    }
+
+    #[test]
+    fn two_brain_files() {
+        let mut b = DUO.to_vec();
+        b.extend(tiny(FEATURES, ACTIONS));
+        b.extend(tiny_out(FEATURES, ACTIONS, 2 * ACTIONS));
+        let (pol, eval) = Mlp::pair_from_bytes(&b).unwrap();
+        assert!(pol.is_some() && eval.make_head);
+        assert!(Mlp::from_bytes(&b).unwrap().make_head); // plain loaders get the points network
+        let mut bad = DUO.to_vec();
+        bad.extend(tiny_out(FEATURES, ACTIONS, 2 * ACTIONS)); // a policy can't have a make head
+        bad.extend(tiny(FEATURES, ACTIONS));
+        assert!(Mlp::pair_from_bytes(&bad).is_err());
+        let mut short = DUO.to_vec();
+        short.extend(tiny(FEATURES, ACTIONS));
+        assert!(Mlp::pair_from_bytes(&short).is_err());
     }
 
     #[test]

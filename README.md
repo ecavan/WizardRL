@@ -27,11 +27,11 @@ in Rust with no Python needed.
 You need Rust (install with [rustup](https://rustup.rs)) and Python 3.9 or newer. From the repo root:
 
 ```sh
-# 1. Play against the trained bot right away (Rust only, no Python needed)
-cargo run --release -p wizard -- play --bots net:rl/models/simul1.wznet,net:rl/models/simul1.wznet,net:rl/models/simul1.wznet
+# 1. Play against the best bot right away (Rust only, no Python needed)
+cargo run --release -p wizard -- play --bots net:rl/models/ppo5.wznet,net:rl/models/ppo5.wznet,net:rl/models/ppo5.wznet
 
-# 2. Play against simple bots, with the trained bot advising you on every decision
-cargo run --release -p wizard -- play --advisor rl/models/simul1.wznet
+# 2. Play against simple bots, with the best bot advising you on every decision
+cargo run --release -p wizard -- play --advisor rl/models/ppo5.wznet
 ```
 
 For training, evaluation and charts, set up Python once:
@@ -237,27 +237,37 @@ sheet grows.
 ```sh
 python -m wizard_rl.export runs/first/best.pt models/first.wznet   # for Rust
 python -m wizard_rl.export runs/first/best.pt models/first.pt      # slim checkpoint for Python
+python -m wizard_rl.export models/ppo5.pt models/ppo5.wznet --evaluator models/arche2.pt   # a PPO bot
 ```
 
 The `.wznet` file is the weights plus a small header (3.5 MB). The Rust engine runs it directly,
 so it can go into an app later without Python. A `.pt` output drops the optimizer and frozen
 pool from a training checkpoint (38 MB → 3.5 MB); every Python command accepts either.
 
+A PPO bot exports as a **two-brain file** (7 MB): the policy, which chooses the moves (its most
+likely move), plus the DMC points network it was anchored to (`--evaluator`), which puts a
+score on every option. As a bot (`net:rl/models/ppo5.wznet`) it plays the policy's moves. As an
+advisor it shows the points network's scores and says which move it would play; your move's cost
+is measured against that move. Look-ahead search and anything else that needs points read the
+points network. In Rust, `ppo5.wznet` plays exactly the moves the Python `ppo5` plays (checked
+on 10,240 decisions), and against three `simul1` bots it scores +10 ± 8 a game with 27.9% wins
+(4 players, 400 duplicate games; fair share 25%).
+
 ### Play, watch, and simulate (Rust)
 
 ```sh
-cargo run --release -p wizard -- watch --advisor rl/models/simul1.wznet --delay 800   # watch 4 bots play
+cargo run --release -p wizard -- watch --advisor rl/models/ppo5.wznet --delay 800   # watch 4 bots play
 cargo run --release -p wizard -- play                                   # you vs 3 counting bots
-cargo run --release -p wizard -- play --players 5 --advisor rl/models/simul1.wznet
-cargo run --release -p wizard -- play --bots net:rl/models/simul1.wznet,counting,counting
-cargo run --release -p wizard -- sim --games 2000 --bots net:rl/models/simul1.wznet,counting,counting,counting
+cargo run --release -p wizard -- play --players 5 --advisor rl/models/ppo5.wznet
+cargo run --release -p wizard -- play --bots net:rl/models/ppo5.wznet,counting,counting
+cargo run --release -p wizard -- sim --games 2000 --bots net:rl/models/ppo5.wznet,net:rl/models/simul1.wznet,counting,counting
 cargo run --release -p wizard -- sim --games 2000 --bots chart:rl/charts/bid_chart.csv,counting,counting,counting
 ```
 
 - `watch`: bots play a full game with every hand face up. You see trump, each bid (with
   `--advisor FILE`, the network's expected points and chance of making it for every bid), every
   trick card by card, and the scores. `--delay 800` pauses between tricks; `--seed` replays a
-  game. By default all seats are `rl/models/simul1.wznet`.
+  game. By default all seats are the best bot, `rl/models/ppo5.wznet`.
 - `play`: you play a full game in the terminal. `--bots` lists your opponents; `--advisor` shows
   the bot's expected points (and chance of making the bid) for each of your options, and after
   you choose, what your choice cost next to its favourite, in points and in chance of winning
@@ -394,7 +404,8 @@ Against habit players, 4 players, 1,000 duplicate games per cell (fair share 25%
   `simul1` wins 43%.
 - **Longer training helped, mostly through PPO.** The longer DMC run alone (`arche2`) is level
   with `ppo4` (+1 ± 2 against it); the extra PPO on top is what moved it ahead.
-- It's still Python-only, like the other PPO bots.
+- It's in Rust too: `rl/models/ppo5.wznet` is what `play`, `watch` and the advisor use (see
+  [Export a network for Rust](#export-a-network-for-rust)).
 
 ### Every bot we trained, side by side
 
@@ -420,8 +431,9 @@ those columns as ± 5%. The `simul1` column is exact replay and the most reliabl
 - **Every gain is a few percent.** Against strong, careful opponents, `simul1` was already close
   to as good as these methods get. The extra training pays most against players with habits,
   which is what real tables have.
-- The PPO bots (`ppo3`, `ppo4`) are Python-only for now: the Rust `play`/`watch`, the advisor
-  and the charts use DMC networks, whose outputs are points.
+- The best bot, `ppo5`, runs in Rust as a two-brain file
+  ([export](#export-a-network-for-rust)); the charts still come from `simul1`, whose outputs
+  are round points.
 
 ### The current network: `models/simul1` (bids all at once)
 
@@ -922,7 +934,8 @@ The engine side (`crates/wizard/src`):
   18 about each player's habits) and its 85 actions.
 - `style.rs`: players with habits.
 - `env.rs`: many tables at once for training; frozen-network seats; duplicate deals; stats.
-- `bots.rs`, `chart.rs`, `net.rs`: the random and counting bots, the chart bot, a trained network.
+- `bots.rs`, `chart.rs`, `net.rs`: the random and counting bots, the chart bot, a trained network
+  (or a two-brain file: a policy that chooses, a points network that scores).
 - `search.rs`: the look-ahead bidder.
 - `winprob.rs`: the chance of winning the game from the scores (for `watch` and `play`).
 - `scenario.rs`: builds a bidding situation, or a first-trick card-play situation, to ask a network about.
@@ -932,7 +945,6 @@ The engine side (`crates/wizard/src`):
 ## What's next
 
 - An app to play against it and get advice at the table.
-- Export the PPO bots to Rust (play by their most likely move), so `play` and `watch` can use `ppo5`.
 - Even longer runs: `ppo5` was still improving at 60M decisions of PPO (+14 → +18 a game against
   `simul1` over the last 30M).
 - A bigger network, if the results keep improving with more training.

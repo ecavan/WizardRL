@@ -75,6 +75,25 @@ def test_export_matches_pytorch():
         assert np.abs(got - want).max() < 1e-4, np.abs(got - want).max()
 
 
+def test_two_brain_export_matches_pytorch():
+    """A PPO policy exports with its points network; Rust runs both like PyTorch."""
+    from wizard_rl.ppo import PolicyNet
+    torch.manual_seed(1)
+    pol = PolicyNet(FEATURES, ACTIONS, hidden=48, layers=2)
+    dmc = QNet(FEATURES, ACTIONS, 64, 2, make_head=True)
+    with tempfile.TemporaryDirectory() as d:
+        pp, dp, out = (os.path.join(d, x) for x in ("pol.pt", "dmc.pt", "duo.wznet"))
+        torch.save(dict(model=pol.state_dict(), net=pol.config()), pp)
+        torch.save(dict(model=dmc.state_dict(), net=dmc.config()), dp)
+        export(pp, out, evaluator=dp)
+        obs, _, _ = WizardEnv(32, [3, 4, 5, 6], "selfplay", 5).observe()
+        with torch.no_grad():
+            logits, _ = pol(torch.from_numpy(obs))
+            points = dmc.body(torch.from_numpy(obs))
+        assert np.abs(rust_forward(out, obs, policy=True) - logits.numpy()).max() < 1e-4
+        assert np.abs(rust_forward(out, obs) - points.numpy()).max() < 1e-4
+
+
 def test_frozen_nets_and_duplicate():
     env = WizardEnv(16, [4], dict(learner=0.5, nets=0.5), 4)
     env.set_nets(2)
