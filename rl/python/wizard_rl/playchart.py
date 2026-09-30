@@ -25,7 +25,7 @@ import numpy as np
 import torch
 
 from . import ACT_CARD, HAND, PHASE, WizardEnv
-from .net import load_qnet
+from .net import load_brain
 
 # Observation layout (see crates/wizard/src/encode.rs)
 SEATS, DECK = 6, 60
@@ -209,8 +209,9 @@ def main(argv=None) -> None:
     p.add_argument("--players", default="4")
     p.add_argument("--decisions", type=int, default=300_000, help="card plays to record per table size")
     p.add_argument("--out", default="charts")
+    p.add_argument("--evaluator", default=None, help="for a PPO model: the DMC points network it was anchored to")
     a = p.parse_args(argv)
-    net = load_qnet(a.model).eval()
+    net = load_brain(a.model, a.evaluator).eval()
     os.makedirs(a.out, exist_ok=True)
     md = ["# Wizard play chart", "",
           f"How `{os.path.basename(a.model)}` plays its cards after bidding, from self-play with everyone "

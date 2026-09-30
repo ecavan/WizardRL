@@ -19,7 +19,7 @@ import numpy as np
 import torch
 
 from . import ACT_CARD, action_name, play_scenario
-from .net import load_qnet
+from .net import load_brain
 
 # (title, players, trump, my hand, my position, everyone's bids by position, cards already in the trick)
 SITUATIONS = [
@@ -46,11 +46,14 @@ SITUATIONS = [
 @torch.no_grad()
 def advise(net, players, trump, hand, position, bids, trick):
     obs, legal = play_scenario(players, hand, trump, position, bids, trick)
-    q, make = net.both(torch.from_numpy(obs).unsqueeze(0))
+    x = torch.from_numpy(obs).unsqueeze(0)
+    q, make = net.both(x)
     pts = q[0].numpy() * 100.0
     p = torch.sigmoid(make[0]).numpy() if make is not None else None
-    rows = [(action_name(int(a)), float(pts[a]), float(p[a]) if p is not None else None)
-            for a in np.flatnonzero(legal) if a >= ACT_CARD]
+    choice = net(x)[0].numpy()  # the move the bot plays: the best score, or a policy's favourite
+    cards = [int(a) for a in np.flatnonzero(legal) if a >= ACT_CARD]
+    pick = max(cards, key=lambda a: choice[a])
+    rows = [(action_name(a), float(pts[a]), float(p[a]) if p is not None else None, a == pick) for a in cards]
     return sorted(rows, key=lambda r: -r[1])
 
 
@@ -58,27 +61,31 @@ def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("model")
     ap.add_argument("--out", default=None, help="also write the answers to this markdown file")
+    ap.add_argument("--evaluator", default=None, help="for a PPO model: the DMC points network it was anchored to")
     a = ap.parse_args(argv)
-    net = load_qnet(a.model).eval()
+    net = load_brain(a.model, a.evaluator).eval()
+    who = f"`{os.path.basename(a.model)}`" + (f" (points from `{os.path.basename(a.evaluator)}`)" if a.evaluator else "")
     md = ["# Play situations", "",
-          f"`{os.path.basename(a.model)}`'s view of some first-trick decisions: expected points for the round "
-          "and the chance of making your bid, for each card you could play (best first).", ""]
+          f"{who}: its view of some first-trick decisions: expected points for the round "
+          "and the chance of making your bid, for each card you could play (best first). "
+          "**Plays** marks the card the bot actually plays.", ""]
     js = []
     for title, n, trump, hand, pos, bids, trick in SITUATIONS:
         rows = advise(net, n, trump, hand, pos, bids, trick)
         js.append(dict(title=title, players=n, trump=trump, hand=hand, position=pos, bids=bids, trick=trick,
-                       plays=[dict(card=c, points=round(x, 1), make=None if pr is None else round(pr, 3)) for c, x, pr in rows]))
+                       plays=[dict(card=c, points=round(x, 1), make=None if pr is None else round(pr, 3), pick=pk)
+                              for c, x, pr, pk in rows]))
         best = rows[0][1]
         print(f"\n{title}\n  {n} players, trump {trump or 'none'}, your hand {' '.join(hand)}, "
               f"trick so far: {' '.join(trick) or '(you lead)'}")
         md += [f"### {title}", "",
                f"{n} players, trump: {trump or 'none'}. Your hand: {' '.join(hand)}. "
                f"Trick so far: {' '.join(trick) or '(you lead)'}. Bids: {bids}.", "",
-               "| Play | Expected points | vs best | Chance to make your bid |", "| --- | ---: | ---: | ---: |"]
-        for name, x, pr in rows:
+               "| Play | Expected points | vs best | Chance to make your bid | |", "| --- | ---: | ---: | ---: | --- |"]
+        for name, x, pr, pk in rows:
             pr_s = f"{pr:.0%}" if pr is not None else ""
-            print(f"    {name:<6} {x:+6.1f}  ({x - best:+5.1f})  {pr_s}")
-            md.append(f"| {name} | {x:+.1f} | {x - best:+.1f} | {pr_s} |")
+            print(f"    {name:<6} {x:+6.1f}  ({x - best:+5.1f})  {pr_s}{'  <- plays' if pk else ''}")
+            md.append(f"| {name} | {x:+.1f} | {x - best:+.1f} | {pr_s} | {'**plays**' if pk else ''} |")
         md.append("")
     if a.out:
         with open(a.out, "w") as f:

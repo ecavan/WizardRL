@@ -1,5 +1,5 @@
 {
- "model": "simul1.pt",
+ "model": "ppo5.pt",
  "tables": {
   "4": [
    {
@@ -9,14 +9,14 @@
      "trick": "\u2014",
      "follow": "\u2014"
     },
-    "n": 1392,
+    "n": 1416,
     "plays": {
-     "Wizard": 0.4547413793103448,
-     "lead trump high (J+)": 0.2550287356321839,
-     "lead off-suit high (K+)": 0.11206896551724138,
-     "lead off-suit low": 0.10560344827586207,
-     "lead trump low": 0.0668103448275862,
-     "Jester": 0.005747126436781609
+     "Wizard": 0.3446327683615819,
+     "lead off-suit low": 0.2309322033898305,
+     "lead trump high (J+)": 0.2252824858757062,
+     "lead off-suit high (K+)": 0.10805084745762712,
+     "lead trump low": 0.0847457627118644,
+     "Jester": 0.006355932203389831
     }
    },
    {
@@ -26,14 +26,13 @@
      "trick": "off-suit is winning",
      "follow": "can't follow"
     },
-    "n": 1146,
+    "n": 1222,
     "plays": {
-     "win cheaply (trump in)": 0.8054101221640488,
-     "Wizard": 0.10907504363001745,
-     "win big (trump in)": 0.08202443280977312,
-     "duck high": 0.0017452006980802793,
-     "duck low": 0.0008726003490401396,
-     "Jester": 0.0008726003490401396
+     "win cheaply (trump in)": 0.8968903436988543,
+     "win big (trump in)": 0.05646481178396072,
+     "Wizard": 0.040098199672667756,
+     "Jester": 0.004909983633387889,
+     "duck high": 0.0016366612111292963
     }
    },
    {
@@ -43,27 +42,12 @@
      "trick": "off-suit is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 524,
+    "n": 633,
     "plays": {
-     "Wizard": 0.8854961832061069,
-     "duck low": 0.07442748091603053,
-     "duck high": 0.04007633587786259
-    }
-   },
-   {
-    "situation": {
-     "need": "need all",
-     "seat": "middle",
-     "trick": "trump is winning",
-     "follow": "can follow"
-    },
-    "n": 460,
-    "plays": {
-     "win cheaply": 0.4326086956521739,
-     "Wizard": 0.391304347826087,
-     "win big": 0.17173913043478262,
-     "duck high": 0.002173913043478261,
-     "Jester": 0.002173913043478261
+     "Wizard": 0.8072669826224329,
+     "duck low": 0.1358609794628752,
+     "duck high": 0.045813586097946286,
+     "Jester": 0.011058451816745656
     }
    },
    {
@@ -73,12 +57,56 @@
      "trick": "a Wizard is winning",
      "follow": "no suit to follow"
     },
-    "n": 411,
+    "n": 493,
     "plays": {
-     "duck low": 0.8004866180048662,
-     "Wizard": 0.09002433090024331,
-     "duck high": 0.08029197080291971,
-     "Jester": 0.029197080291970802
+     "duck low": 0.8336713995943205,
+     "duck high": 0.07302231237322515,
+     "Wizard": 0.05476673427991886,
+     "Jester": 0.038539553752535496
+    }
+   },
+   {
+    "situation": {
+     "need": "need all",
+     "seat": "middle",
+     "trick": "only Jesters so far",
+     "follow": "no suit to follow"
+    },
+    "n": 392,
+    "plays": {
+     "win cheaply": 0.5994897959183674,
+     "win big": 0.30357142857142855,
+     "Wizard": 0.09693877551020408
+    }
+   },
+   {
+    "situation": {
+     "need": "need all",
+     "seat": "middle",
+     "trick": "trump is winning",
+     "follow": "can follow"
+    },
+    "n": 383,
+    "plays": {
+     "win cheaply": 0.5143603133159269,
+     "Wizard": 0.3028720626631854,
+     "win big": 0.17754569190600522,
+     "Jester": 0.005221932114882507
+    }
+   },
+   {
+    "situation": {
+     "need": "need all",
+     "seat": "middle",
+     "trick": "trump is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 363,
+    "plays": {
+     "Wizard": 0.8484848484848485,
+     "duck low": 0.07713498622589532,
+     "duck high": 0.05509641873278237,
+     "Jester": 0.01928374655647383
     }
    },
    {
@@ -88,13 +116,42 @@
      "trick": "off-suit is winning",
      "follow": "can't follow"
     },
-    "n": 523,
+    "n": 494,
     "plays": {
-     "win cheaply (trump in)": 0.8814531548757171,
-     "win big (trump in)": 0.05927342256214149,
-     "Wizard": 0.05353728489483748,
-     "duck high": 0.0038240917782026767,
-     "Jester": 0.0019120458891013384
+     "win cheaply (trump in)": 0.9251012145748988,
+     "win big (trump in)": 0.0465587044534413,
+     "Wizard": 0.02631578947368421,
+     "duck high": 0.0020242914979757085
+    }
+   },
+   {
+    "situation": {
+     "need": "need all",
+     "seat": "last",
+     "trick": "a Wizard is winning",
+     "follow": "no suit to follow"
+    },
+    "n": 365,
+    "plays": {
+     "duck low": 0.8876712328767123,
+     "Wizard": 0.06027397260273973,
+     "duck high": 0.03287671232876712,
+     "Jester": 0.019178082191780823
+    }
+   },
+   {
+    "situation": {
+     "need": "need all",
+     "seat": "last",
+     "trick": "trump is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 300,
+    "plays": {
+     "Wizard": 0.7833333333333333,
+     "duck low": 0.11,
+     "duck high": 0.07666666666666666,
+     "Jester": 0.03
     }
    },
    {
@@ -104,14 +161,14 @@
      "trick": "\u2014",
      "follow": "\u2014"
     },
-    "n": 56097,
+    "n": 57897,
     "plays": {
-     "lead off-suit low": 0.5200634615041803,
-     "lead off-suit high (K+)": 0.21455692817797742,
-     "lead trump low": 0.10991675134142646,
-     "Wizard": 0.10062926716223684,
-     "lead trump high (J+)": 0.03809472877337469,
-     "Jester": 0.01673886304080432
+     "lead off-suit low": 0.5607889873395858,
+     "lead off-suit high (K+)": 0.2115826381332366,
+     "lead trump low": 0.10599858369172842,
+     "Wizard": 0.0629566298771957,
+     "lead trump high (J+)": 0.04250652019966492,
+     "Jester": 0.01616664075858853
     }
    },
    {
@@ -121,12 +178,12 @@
      "trick": "off-suit is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 29246,
+    "n": 30429,
     "plays": {
-     "duck high": 0.500170963550571,
-     "duck low": 0.4239212199958969,
-     "Wizard": 0.03942419476167681,
-     "Jester": 0.036483621691855296
+     "duck high": 0.47635479312497947,
+     "duck low": 0.44865095796772814,
+     "Wizard": 0.04591015150021361,
+     "Jester": 0.029084097407078773
     }
    },
    {
@@ -136,14 +193,14 @@
      "trick": "off-suit is winning",
      "follow": "can follow"
     },
-    "n": 29116,
+    "n": 29232,
     "plays": {
-     "win cheaply": 0.4771603242203599,
-     "win big": 0.26126528369281493,
-     "duck high": 0.1275243852177497,
-     "Wizard": 0.0583184503365847,
-     "duck low": 0.04272564912762742,
-     "Jester": 0.033005907404863304
+     "win cheaply": 0.5227832512315271,
+     "win big": 0.2802750410509031,
+     "duck high": 0.11124794745484401,
+     "Wizard": 0.04433497536945813,
+     "Jester": 0.02223590585659551,
+     "duck low": 0.01912287903667214
     }
    },
    {
@@ -153,14 +210,14 @@
      "trick": "off-suit is winning",
      "follow": "can't follow"
     },
-    "n": 13621,
+    "n": 13937,
     "plays": {
-     "win cheaply (trump in)": 0.4741208428162396,
-     "win big (trump in)": 0.2214228030247412,
-     "duck high": 0.1349386975992952,
-     "duck low": 0.11313413112106306,
-     "Jester": 0.03193598120549152,
-     "Wizard": 0.02444754423316937
+     "win cheaply (trump in)": 0.5713568199756045,
+     "win big (trump in)": 0.22960464949415227,
+     "duck high": 0.11035373466312692,
+     "duck low": 0.056540144937934994,
+     "Jester": 0.01922938939513525,
+     "Wizard": 0.012915261534046065
     }
    },
    {
@@ -170,44 +227,12 @@
      "trick": "off-suit is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 8959,
+    "n": 10598,
     "plays": {
-     "duck low": 0.5647951780332626,
-     "duck high": 0.2250251144100904,
-     "Wizard": 0.1618484205826543,
-     "Jester": 0.04833128697399263
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "middle",
-     "trick": "a Wizard is winning",
-     "follow": "no suit to follow"
-    },
-    "n": 8055,
-    "plays": {
-     "duck low": 0.8936064556176287,
-     "Jester": 0.091495965238982,
-     "duck high": 0.013656114214773432,
-     "Wizard": 0.0012414649286157666
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "middle",
-     "trick": "trump is winning",
-     "follow": "can follow"
-    },
-    "n": 7742,
-    "plays": {
-     "win cheaply": 0.4438129682252648,
-     "win big": 0.18354430379746836,
-     "duck high": 0.1373030224748127,
-     "Jester": 0.12955308705760785,
-     "Wizard": 0.0650994575045208,
-     "duck low": 0.0406871609403255
+     "duck low": 0.5657671258728062,
+     "duck high": 0.2441026608794112,
+     "Wizard": 0.14521607850537838,
+     "Jester": 0.04491413474240423
     }
    },
    {
@@ -217,12 +242,29 @@
      "trick": "trump is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 6914,
+    "n": 7504,
     "plays": {
-     "duck high": 0.3918137113103847,
-     "duck low": 0.3462539774370842,
-     "Jester": 0.15490309516922188,
-     "Wizard": 0.10702921608330923
+     "duck high": 0.3572761194029851,
+     "duck low": 0.33955223880597013,
+     "Wizard": 0.15551705756929637,
+     "Jester": 0.1476545842217484
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "middle",
+     "trick": "trump is winning",
+     "follow": "can follow"
+    },
+    "n": 7412,
+    "plays": {
+     "win cheaply": 0.4784133837021047,
+     "win big": 0.19913653534808418,
+     "Jester": 0.14355099838100377,
+     "duck high": 0.10226659471127901,
+     "Wizard": 0.05302212628170534,
+     "duck low": 0.02361036157582299
     }
    },
    {
@@ -232,12 +274,27 @@
      "trick": "trump is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 4823,
+    "n": 5771,
     "plays": {
-     "duck low": 0.5428156748911466,
-     "duck high": 0.2898610823139125,
-     "Wizard": 0.1177690234294008,
-     "Jester": 0.04955421936554012
+     "duck low": 0.5219199445503379,
+     "duck high": 0.3162363541847167,
+     "Wizard": 0.1128054063420551,
+     "Jester": 0.049038294922890316
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "middle",
+     "trick": "a Wizard is winning",
+     "follow": "no suit to follow"
+    },
+    "n": 5005,
+    "plays": {
+     "duck low": 0.8563436563436564,
+     "Jester": 0.12267732267732268,
+     "duck high": 0.01978021978021978,
+     "Wizard": 0.0011988011988011988
     }
    },
    {
@@ -247,12 +304,12 @@
      "trick": "only Jesters so far",
      "follow": "no suit to follow"
     },
-    "n": 3569,
+    "n": 3015,
     "plays": {
-     "win big": 0.505463715326422,
-     "win cheaply": 0.24796861866068926,
-     "Wizard": 0.17539927150462314,
-     "Jester": 0.07116839450826562
+     "win big": 0.4633499170812604,
+     "win cheaply": 0.2855721393034826,
+     "Wizard": 0.19137645107794363,
+     "Jester": 0.05970149253731343
     }
    },
    {
@@ -262,12 +319,29 @@
      "trick": "a Wizard is winning",
      "follow": "can follow"
     },
-    "n": 1417,
+    "n": 1263,
     "plays": {
-     "duck low": 0.7240649258997883,
-     "Jester": 0.16372618207480594,
-     "duck high": 0.10797459421312633,
-     "Wizard": 0.004234297812279464
+     "duck low": 0.6975455265241488,
+     "Jester": 0.19002375296912113,
+     "duck high": 0.10926365795724466,
+     "Wizard": 0.003167062549485352
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "middle",
+     "trick": "trump is winning",
+     "follow": "can't follow"
+    },
+    "n": 931,
+    "plays": {
+     "win cheaply (trump in)": 0.6090225563909775,
+     "win big (trump in)": 0.23093447905477982,
+     "duck low": 0.07626208378088077,
+     "duck high": 0.05907626208378088,
+     "Jester": 0.01611170784103115,
+     "Wizard": 0.008592910848549946
     }
    },
    {
@@ -277,29 +351,12 @@
      "trick": "a Wizard is winning",
      "follow": "can't follow"
     },
-    "n": 937,
+    "n": 855,
     "plays": {
-     "duck low": 0.8580576307363927,
-     "Jester": 0.12700106723585913,
-     "duck high": 0.011739594450373533,
-     "Wizard": 0.0032017075773745998
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "middle",
-     "trick": "trump is winning",
-     "follow": "can't follow"
-    },
-    "n": 751,
-    "plays": {
-     "win cheaply (trump in)": 0.5699067909454061,
-     "win big (trump in)": 0.15978695073235685,
-     "duck low": 0.1278295605858855,
-     "duck high": 0.0985352862849534,
-     "Jester": 0.022636484687083888,
-     "Wizard": 0.02130492676431425
+     "duck low": 0.8152046783625732,
+     "Jester": 0.16374269005847952,
+     "duck high": 0.0152046783625731,
+     "Wizard": 0.005847953216374269
     }
    },
    {
@@ -309,12 +366,12 @@
      "trick": "off-suit is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 16470,
+    "n": 16436,
     "plays": {
-     "duck high": 0.46593806921675773,
-     "duck low": 0.45136612021857925,
-     "Wizard": 0.045719489981785065,
-     "Jester": 0.03697632058287796
+     "duck low": 0.4693964468240448,
+     "duck high": 0.4263811146264298,
+     "Wizard": 0.07848624969578973,
+     "Jester": 0.025736188853735704
     }
    },
    {
@@ -324,14 +381,14 @@
      "trick": "off-suit is winning",
      "follow": "can follow"
     },
-    "n": 8598,
+    "n": 8479,
     "plays": {
-     "win cheaply": 0.5682716910909514,
-     "win big": 0.15131425913003024,
-     "duck high": 0.14596417771574785,
-     "Wizard": 0.06501511979530124,
-     "duck low": 0.04012561060711793,
-     "Jester": 0.02930914166085136
+     "win cheaply": 0.6570350277155325,
+     "win big": 0.14718716829814837,
+     "duck high": 0.11121594527656563,
+     "Wizard": 0.045288359476353346,
+     "duck low": 0.02205448755749499,
+     "Jester": 0.01721901167590518
     }
    },
    {
@@ -341,12 +398,12 @@
      "trick": "trump is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 7326,
+    "n": 8188,
     "plays": {
-     "duck high": 0.41782691782691783,
-     "duck low": 0.3714168714168714,
-     "Wizard": 0.12353262353262354,
-     "Jester": 0.08722358722358722
+     "duck low": 0.38214460185637517,
+     "duck high": 0.34929164631167564,
+     "Wizard": 0.199438202247191,
+     "Jester": 0.06912554958475818
     }
    },
    {
@@ -356,14 +413,59 @@
      "trick": "off-suit is winning",
      "follow": "can't follow"
     },
-    "n": 5075,
+    "n": 4989,
     "plays": {
-     "win cheaply (trump in)": 0.4849261083743842,
-     "win big (trump in)": 0.24374384236453203,
-     "duck high": 0.15073891625615762,
-     "duck low": 0.09241379310344827,
-     "Jester": 0.016157635467980297,
-     "Wizard": 0.012019704433497537
+     "win cheaply (trump in)": 0.5706554419723392,
+     "win big (trump in)": 0.25375826819001807,
+     "duck high": 0.11565443976748847,
+     "duck low": 0.046101423130887956,
+     "Wizard": 0.008218079775506114,
+     "Jester": 0.005612347163760273
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "off-suit is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 4352,
+    "plays": {
+     "duck low": 0.5721507352941176,
+     "duck high": 0.2270220588235294,
+     "Wizard": 0.16337316176470587,
+     "Jester": 0.03745404411764706
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "trump is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 3802,
+    "plays": {
+     "duck low": 0.4852709100473435,
+     "duck high": 0.25433982114676484,
+     "Wizard": 0.2175170962651236,
+     "Jester": 0.042872172540768014
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "a Wizard is winning",
+     "follow": "can follow"
+    },
+    "n": 2727,
+    "plays": {
+     "duck low": 0.7011367803447012,
+     "Jester": 0.1782178217821782,
+     "duck high": 0.11697836450311698,
+     "Wizard": 0.003667033370003667
     }
    },
    {
@@ -373,57 +475,12 @@
      "trick": "a Wizard is winning",
      "follow": "no suit to follow"
     },
-    "n": 4252,
+    "n": 2714,
     "plays": {
-     "duck low": 0.8946378174976481,
-     "Jester": 0.08654750705550329,
-     "duck high": 0.017873941674506115,
-     "Wizard": 0.0009407337723424271
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "off-suit is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 3635,
-    "plays": {
-     "duck low": 0.6162310866574966,
-     "duck high": 0.22090784044016507,
-     "Wizard": 0.12407152682255845,
-     "Jester": 0.03878954607977992
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "trump is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 3061,
-    "plays": {
-     "duck low": 0.5436131983012088,
-     "duck high": 0.2711532179026462,
-     "Wizard": 0.13688337144723947,
-     "Jester": 0.04835021234890559
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "a Wizard is winning",
-     "follow": "can follow"
-    },
-    "n": 2754,
-    "plays": {
-     "duck low": 0.7258533042846769,
-     "Jester": 0.16775599128540306,
-     "duck high": 0.10421205519244735,
-     "Wizard": 0.002178649237472767
+     "duck low": 0.8603537214443626,
+     "Jester": 0.11459100957995579,
+     "duck high": 0.023581429624170966,
+     "Wizard": 0.0014738393515106854
     }
    },
    {
@@ -433,14 +490,14 @@
      "trick": "trump is winning",
      "follow": "can follow"
     },
-    "n": 2728,
+    "n": 2563,
     "plays": {
-     "win cheaply": 0.6191348973607038,
-     "win big": 0.15139296187683285,
-     "duck high": 0.14516129032258066,
-     "duck low": 0.03812316715542522,
-     "Wizard": 0.027126099706744868,
-     "Jester": 0.01906158357771261
+     "win cheaply": 0.684354272337105,
+     "win big": 0.14943425673039407,
+     "duck high": 0.1166601638704643,
+     "duck low": 0.027311744049941473,
+     "Wizard": 0.015996878657822865,
+     "Jester": 0.006242684354272337
     }
    },
    {
@@ -450,12 +507,12 @@
      "trick": "a Wizard is winning",
      "follow": "can't follow"
     },
-    "n": 1607,
+    "n": 1901,
     "plays": {
-     "duck low": 0.8686994399502178,
-     "Jester": 0.10392034847542003,
-     "duck high": 0.0224019912881145,
-     "Wizard": 0.004978220286247666
+     "duck low": 0.8421883219358233,
+     "Jester": 0.13256180957390848,
+     "duck high": 0.022093634928984744,
+     "Wizard": 0.003156233561283535
     }
    },
    {
@@ -465,14 +522,14 @@
      "trick": "trump is winning",
      "follow": "can't follow"
     },
-    "n": 1462,
+    "n": 1627,
     "plays": {
-     "win cheaply (trump in)": 0.6374829001367989,
-     "win big (trump in)": 0.1662106703146375,
-     "duck high": 0.09370725034199727,
-     "duck low": 0.07455540355677155,
-     "Wizard": 0.014363885088919288,
-     "Jester": 0.013679890560875513
+     "win cheaply (trump in)": 0.6834665027658267,
+     "win big (trump in)": 0.215119852489244,
+     "duck high": 0.05162876459741856,
+     "duck low": 0.03196066379840197,
+     "Wizard": 0.011677934849416103,
+     "Jester": 0.006146281499692686
     }
    },
    {
@@ -482,14 +539,14 @@
      "trick": "\u2014",
      "follow": "\u2014"
     },
-    "n": 19662,
+    "n": 17889,
     "plays": {
-     "lead off-suit low": 0.5954124707557725,
-     "Jester": 0.20155630149527007,
-     "lead trump low": 0.17083714779778253,
-     "lead trump high (J+)": 0.02385311768894314,
-     "lead off-suit high (K+)": 0.0042722001830942935,
-     "Wizard": 0.004068762079137422
+     "lead off-suit low": 0.5998658393426127,
+     "Jester": 0.19637766225054504,
+     "lead trump low": 0.17999888199452177,
+     "lead trump high (J+)": 0.018167589021186203,
+     "lead off-suit high (K+)": 0.0035776175303258986,
+     "Wizard": 0.002012409860808318
     }
    },
    {
@@ -499,12 +556,12 @@
      "trick": "off-suit is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 5812,
+    "n": 6202,
     "plays": {
-     "duck high": 0.5246042670337233,
-     "duck low": 0.41242257398485893,
-     "Jester": 0.06280110116999311,
-     "Wizard": 0.00017205781142463867
+     "duck high": 0.671718800386972,
+     "duck low": 0.27571751048049015,
+     "Jester": 0.05240245082231538,
+     "Wizard": 0.00016123831022250886
     }
    },
    {
@@ -514,42 +571,11 @@
      "trick": "trump is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 5175,
+    "n": 4794,
     "plays": {
-     "duck high": 0.5466666666666666,
-     "duck low": 0.40193236714975844,
-     "Jester": 0.050821256038647344,
-     "Wizard": 0.0005797101449275362
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "a Wizard is winning",
-     "follow": "no suit to follow"
-    },
-    "n": 4708,
-    "plays": {
-     "duck high": 0.6514443500424809,
-     "duck low": 0.29949022939677145,
-     "Jester": 0.0316482582837723,
-     "Wizard": 0.017417162276975363
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "off-suit is winning",
-     "follow": "can follow, nothing but a Wizard wins"
-    },
-    "n": 3494,
-    "plays": {
-     "duck high": 0.6588437321121924,
-     "duck low": 0.2750429307384087,
-     "Jester": 0.06554092730394963,
-     "Wizard": 0.0005724098454493417
+     "duck high": 0.6996245306633292,
+     "duck low": 0.2736754276178556,
+     "Jester": 0.026700041718815185
     }
    },
    {
@@ -559,14 +585,44 @@
      "trick": "off-suit is winning",
      "follow": "can follow"
     },
-    "n": 3480,
+    "n": 3637,
     "plays": {
-     "Jester": 0.40057471264367817,
-     "duck high": 0.29798850574712643,
-     "win cheaply": 0.20689655172413793,
-     "duck low": 0.0617816091954023,
-     "win big": 0.028735632183908046,
-     "Wizard": 0.004022988505747126
+     "Jester": 0.37420951333516633,
+     "duck high": 0.33461644212262853,
+     "win cheaply": 0.20236458619741546,
+     "duck low": 0.0761616717074512,
+     "win big": 0.01154797910365686,
+     "Wizard": 0.0010998075336816058
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "off-suit is winning",
+     "follow": "can follow, nothing but a Wizard wins"
+    },
+    "n": 3578,
+    "plays": {
+     "duck high": 0.7747344885410844,
+     "duck low": 0.19005030743432086,
+     "Jester": 0.034935718278367806,
+     "Wizard": 0.00027948574622694243
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "a Wizard is winning",
+     "follow": "no suit to follow"
+    },
+    "n": 3274,
+    "plays": {
+     "duck high": 0.739156994502138,
+     "duck low": 0.22052535125229078,
+     "Jester": 0.020769700671960906,
+     "Wizard": 0.019547953573610263
     }
    },
    {
@@ -576,12 +632,12 @@
      "trick": "only Jesters so far",
      "follow": "no suit to follow"
     },
-    "n": 1693,
+    "n": 1589,
     "plays": {
-     "win cheaply": 0.44300059066745423,
-     "Jester": 0.3136444181925576,
-     "win big": 0.23744831659775548,
-     "Wizard": 0.005906674542232723
+     "win cheaply": 0.5110132158590308,
+     "Jester": 0.3234738829452486,
+     "win big": 0.16362492133417245,
+     "Wizard": 0.0018879798615481435
     }
    },
    {
@@ -591,14 +647,13 @@
      "trick": "off-suit is winning",
      "follow": "can't follow"
     },
-    "n": 952,
+    "n": 966,
     "plays": {
-     "duck high": 0.5168067226890757,
-     "duck low": 0.27205882352941174,
-     "Jester": 0.14180672268907563,
-     "win cheaply (trump in)": 0.05777310924369748,
-     "win big (trump in)": 0.01050420168067227,
-     "Wizard": 0.0010504201680672268
+     "duck high": 0.5507246376811594,
+     "duck low": 0.2815734989648033,
+     "Jester": 0.11801242236024845,
+     "win cheaply (trump in)": 0.040372670807453416,
+     "win big (trump in)": 0.009316770186335404
     }
    },
    {
@@ -608,11 +663,11 @@
      "trick": "trump is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 805,
+    "n": 860,
     "plays": {
-     "duck high": 0.7105590062111802,
-     "duck low": 0.23229813664596274,
-     "Jester": 0.05714285714285714
+     "duck high": 0.772093023255814,
+     "duck low": 0.19534883720930232,
+     "Jester": 0.03255813953488372
     }
    },
    {
@@ -622,27 +677,12 @@
      "trick": "a Wizard is winning",
      "follow": "can't follow"
     },
-    "n": 769,
+    "n": 671,
     "plays": {
-     "duck high": 0.6514954486345904,
-     "duck low": 0.2925877763328999,
-     "Jester": 0.032509752925877766,
-     "Wizard": 0.02340702210663199
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "a Wizard is winning",
-     "follow": "can follow"
-    },
-    "n": 335,
-    "plays": {
-     "duck high": 0.7223880597014926,
-     "duck low": 0.23880597014925373,
-     "Jester": 0.029850746268656716,
-     "Wizard": 0.008955223880597015
+     "duck high": 0.7868852459016393,
+     "duck low": 0.16095380029806258,
+     "Wizard": 0.03427719821162444,
+     "Jester": 0.01788375558867362
     }
    },
    {
@@ -652,12 +692,27 @@
      "trick": "trump is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 2952,
+    "n": 2807,
     "plays": {
-     "duck high": 0.55420054200542,
-     "duck low": 0.3838075880758808,
-     "Jester": 0.06131436314363144,
-     "Wizard": 0.0006775067750677507
+     "duck high": 0.7000356252226576,
+     "duck low": 0.27752048450302813,
+     "Jester": 0.0220876380477378,
+     "Wizard": 0.0003562522265764161
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "off-suit is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 2113,
+    "plays": {
+     "duck high": 0.6630383341221012,
+     "duck low": 0.29200189304306673,
+     "Jester": 0.04353999053478467,
+     "Wizard": 0.001419782300047326
     }
    },
    {
@@ -667,26 +722,12 @@
      "trick": "a Wizard is winning",
      "follow": "no suit to follow"
     },
-    "n": 2436,
+    "n": 1735,
     "plays": {
-     "duck high": 0.6502463054187192,
-     "duck low": 0.2959770114942529,
-     "Jester": 0.029556650246305417,
-     "Wizard": 0.024220032840722498
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "off-suit is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 2020,
-    "plays": {
-     "duck high": 0.5074257425742574,
-     "duck low": 0.4262376237623762,
-     "Jester": 0.06633663366336634
+     "duck high": 0.7602305475504323,
+     "duck low": 0.1936599423631124,
+     "Wizard": 0.02824207492795389,
+     "Jester": 0.017867435158501442
     }
    },
    {
@@ -696,11 +737,11 @@
      "trick": "off-suit is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 1603,
+    "n": 1621,
     "plays": {
-     "duck high": 0.6718652526512788,
-     "duck low": 0.2551466001247661,
-     "Jester": 0.07298814722395508
+     "duck high": 0.7803824799506478,
+     "duck low": 0.19679210363972857,
+     "Jester": 0.02282541640962369
     }
    },
    {
@@ -710,12 +751,12 @@
      "trick": "a Wizard is winning",
      "follow": "can't follow"
     },
-    "n": 1538,
+    "n": 1507,
     "plays": {
-     "duck high": 0.6456436931079323,
-     "duck low": 0.2925877763328999,
-     "Wizard": 0.033810143042912875,
-     "Jester": 0.027958387516254877
+     "duck high": 0.7491705374917054,
+     "duck low": 0.18779031187790313,
+     "Wizard": 0.038487060384870604,
+     "Jester": 0.0245520902455209
     }
    },
    {
@@ -725,12 +766,11 @@
      "trick": "trump is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 1067,
+    "n": 1021,
     "plays": {
-     "duck high": 0.6551077788191191,
-     "duck low": 0.274601686972821,
-     "Jester": 0.06935332708528585,
-     "Wizard": 0.0009372071227741331
+     "duck high": 0.7140058765915769,
+     "duck low": 0.23898139079333985,
+     "Jester": 0.04701273261508325
     }
    },
    {
@@ -740,14 +780,14 @@
      "trick": "off-suit is winning",
      "follow": "can follow"
     },
-    "n": 893,
+    "n": 862,
     "plays": {
-     "Jester": 0.4176931690929451,
-     "duck high": 0.3303471444568869,
-     "win cheaply": 0.08734602463605823,
-     "duck low": 0.0851063829787234,
-     "win big": 0.06159014557670773,
-     "Wizard": 0.01791713325867861
+     "Jester": 0.3805104408352668,
+     "duck high": 0.3723897911832947,
+     "duck low": 0.10208816705336426,
+     "win cheaply": 0.07192575406032482,
+     "win big": 0.060324825986078884,
+     "Wizard": 0.012761020881670533
     }
    },
    {
@@ -757,12 +797,12 @@
      "trick": "a Wizard is winning",
      "follow": "can follow"
     },
-    "n": 658,
+    "n": 604,
     "plays": {
-     "duck high": 0.723404255319149,
-     "duck low": 0.19300911854103345,
-     "Jester": 0.04559270516717325,
-     "Wizard": 0.037993920972644375
+     "duck high": 0.8162251655629139,
+     "duck low": 0.15066225165562913,
+     "Wizard": 0.019867549668874173,
+     "Jester": 0.013245033112582781
     }
    },
    {
@@ -772,14 +812,14 @@
      "trick": "\u2014",
      "follow": "\u2014"
     },
-    "n": 2258,
+    "n": 2145,
     "plays": {
-     "lead off-suit low": 0.8144375553587245,
-     "lead trump low": 0.058015943312666074,
-     "Jester": 0.04738706820194863,
-     "lead off-suit high (K+)": 0.04738706820194863,
-     "lead trump high (J+)": 0.030115146147032774,
-     "Wizard": 0.002657218777679362
+     "lead off-suit low": 0.793939393939394,
+     "lead trump low": 0.057342657342657345,
+     "lead off-suit high (K+)": 0.05407925407925408,
+     "Jester": 0.05314685314685315,
+     "lead trump high (J+)": 0.03682983682983683,
+     "Wizard": 0.004662004662004662
     }
    }
   ],
@@ -791,14 +831,14 @@
      "trick": "\u2014",
      "follow": "\u2014"
     },
-    "n": 2803,
+    "n": 2848,
     "plays": {
-     "Wizard": 0.40956118444523726,
-     "lead trump high (J+)": 0.2097752408134142,
-     "lead off-suit low": 0.17731002497324294,
-     "lead off-suit high (K+)": 0.10667142347484837,
-     "lead trump low": 0.09347128077060292,
-     "Jester": 0.003210845522654299
+     "Wizard": 0.29740168539325845,
+     "lead off-suit low": 0.26825842696629215,
+     "lead trump high (J+)": 0.20962078651685392,
+     "lead off-suit high (K+)": 0.11551966292134831,
+     "lead trump low": 0.10393258426966293,
+     "Jester": 0.0052668539325842695
     }
    },
    {
@@ -808,14 +848,14 @@
      "trick": "off-suit is winning",
      "follow": "can't follow"
     },
-    "n": 914,
+    "n": 919,
     "plays": {
-     "win cheaply (trump in)": 0.7680525164113785,
-     "win big (trump in)": 0.11706783369803063,
-     "Wizard": 0.09846827133479212,
-     "duck high": 0.010940919037199124,
-     "duck low": 0.0032822757111597373,
-     "Jester": 0.002188183807439825
+     "win cheaply (trump in)": 0.8628944504896626,
+     "win big (trump in)": 0.0750816104461371,
+     "Wizard": 0.04352557127312296,
+     "duck high": 0.011969532100108813,
+     "Jester": 0.00544069640914037,
+     "duck low": 0.001088139281828074
     }
    },
    {
@@ -825,27 +865,11 @@
      "trick": "only Jesters so far",
      "follow": "no suit to follow"
     },
-    "n": 556,
+    "n": 865,
     "plays": {
-     "win cheaply": 0.45863309352517984,
-     "win big": 0.2931654676258993,
-     "Wizard": 0.24640287769784172,
-     "Jester": 0.0017985611510791368
-    }
-   },
-   {
-    "situation": {
-     "need": "need all",
-     "seat": "middle",
-     "trick": "off-suit is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 426,
-    "plays": {
-     "Wizard": 0.8215962441314554,
-     "duck low": 0.10093896713615023,
-     "duck high": 0.06572769953051644,
-     "Jester": 0.011737089201877934
+     "win cheaply": 0.6,
+     "win big": 0.33641618497109826,
+     "Wizard": 0.06358381502890173
     }
    },
    {
@@ -855,12 +879,27 @@
      "trick": "a Wizard is winning",
      "follow": "no suit to follow"
     },
-    "n": 419,
+    "n": 598,
     "plays": {
-     "duck low": 0.8090692124105012,
-     "duck high": 0.12410501193317422,
-     "Wizard": 0.045346062052505964,
-     "Jester": 0.021479713603818614
+     "duck low": 0.8561872909698997,
+     "duck high": 0.08528428093645485,
+     "Wizard": 0.03177257525083612,
+     "Jester": 0.026755852842809364
+    }
+   },
+   {
+    "situation": {
+     "need": "need all",
+     "seat": "middle",
+     "trick": "off-suit is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 482,
+    "plays": {
+     "Wizard": 0.7365145228215768,
+     "duck low": 0.18672199170124482,
+     "duck high": 0.058091286307053944,
+     "Jester": 0.01867219917012448
     }
    },
    {
@@ -870,13 +909,13 @@
      "trick": "trump is winning",
      "follow": "can follow"
     },
-    "n": 350,
+    "n": 352,
     "plays": {
-     "win cheaply": 0.44571428571428573,
-     "Wizard": 0.4142857142857143,
-     "win big": 0.13428571428571429,
-     "duck high": 0.002857142857142857,
-     "Jester": 0.002857142857142857
+     "win cheaply": 0.4971590909090909,
+     "Wizard": 0.3039772727272727,
+     "win big": 0.17613636363636365,
+     "Jester": 0.014204545454545454,
+     "duck high": 0.008522727272727272
     }
    },
    {
@@ -886,13 +925,13 @@
      "trick": "off-suit is winning",
      "follow": "can't follow"
     },
-    "n": 1054,
+    "n": 1107,
     "plays": {
-     "win cheaply (trump in)": 0.8330170777988615,
-     "win big (trump in)": 0.09013282732447818,
-     "Wizard": 0.0730550284629981,
-     "duck high": 0.0028462998102466793,
-     "Jester": 0.0009487666034155598
+     "win cheaply (trump in)": 0.9141824751580849,
+     "win big (trump in)": 0.052393857271906055,
+     "Wizard": 0.022583559168925023,
+     "duck high": 0.009033423667570008,
+     "Jester": 0.0018066847335140017
     }
    },
    {
@@ -902,12 +941,12 @@
      "trick": "a Wizard is winning",
      "follow": "no suit to follow"
     },
-    "n": 626,
+    "n": 812,
     "plays": {
-     "duck low": 0.8258785942492013,
-     "duck high": 0.12140575079872204,
-     "Wizard": 0.03035143769968051,
-     "Jester": 0.022364217252396165
+     "duck low": 0.8706896551724138,
+     "duck high": 0.0603448275862069,
+     "Wizard": 0.034482758620689655,
+     "Jester": 0.034482758620689655
     }
    },
    {
@@ -917,28 +956,12 @@
      "trick": "off-suit is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 415,
+    "n": 550,
     "plays": {
-     "Wizard": 0.8144578313253013,
-     "duck low": 0.11566265060240964,
-     "duck high": 0.060240963855421686,
-     "Jester": 0.00963855421686747
-    }
-   },
-   {
-    "situation": {
-     "need": "need all",
-     "seat": "last",
-     "trick": "trump is winning",
-     "follow": "can follow"
-    },
-    "n": 412,
-    "plays": {
-     "win cheaply": 0.7888349514563107,
-     "Wizard": 0.10679611650485436,
-     "win big": 0.09466019417475728,
-     "duck high": 0.007281553398058253,
-     "Jester": 0.0024271844660194173
+     "Wizard": 0.7018181818181818,
+     "duck low": 0.18,
+     "duck high": 0.09454545454545454,
+     "Jester": 0.023636363636363636
     }
    },
    {
@@ -948,12 +971,28 @@
      "trick": "trump is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 340,
+    "n": 395,
     "plays": {
-     "Wizard": 0.7764705882352941,
-     "duck low": 0.1264705882352941,
-     "duck high": 0.09117647058823529,
-     "Jester": 0.0058823529411764705
+     "Wizard": 0.7468354430379747,
+     "duck high": 0.11645569620253164,
+     "duck low": 0.10886075949367088,
+     "Jester": 0.027848101265822784
+    }
+   },
+   {
+    "situation": {
+     "need": "need all",
+     "seat": "last",
+     "trick": "trump is winning",
+     "follow": "can follow"
+    },
+    "n": 382,
+    "plays": {
+     "win cheaply": 0.8586387434554974,
+     "win big": 0.08900523560209424,
+     "Wizard": 0.04450261780104712,
+     "duck high": 0.005235602094240838,
+     "Jester": 0.002617801047120419
     }
    },
    {
@@ -963,14 +1002,14 @@
      "trick": "\u2014",
      "follow": "\u2014"
     },
-    "n": 85421,
+    "n": 87434,
     "plays": {
-     "lead off-suit low": 0.5791901288910221,
-     "lead off-suit high (K+)": 0.1884197094391309,
-     "lead trump low": 0.10470493204247198,
-     "Wizard": 0.0661898128094965,
-     "lead trump high (J+)": 0.04014235375376078,
-     "Jester": 0.021353063064117724
+     "lead off-suit low": 0.6211656792552096,
+     "lead off-suit high (K+)": 0.18217169522153853,
+     "lead trump low": 0.08804355285129355,
+     "Wizard": 0.044685133929592606,
+     "lead trump high (J+)": 0.04275224740947457,
+     "Jester": 0.021181691332891096
     }
    },
    {
@@ -980,14 +1019,14 @@
      "trick": "off-suit is winning",
      "follow": "can follow"
     },
-    "n": 26414,
+    "n": 27172,
     "plays": {
-     "win cheaply": 0.4512001211478761,
-     "win big": 0.2833345952903763,
-     "duck high": 0.14257590671613538,
-     "duck low": 0.06034678579541152,
-     "Wizard": 0.03244491557507383,
-     "Jester": 0.030097675475126828
+     "win cheaply": 0.5012144854997792,
+     "win big": 0.3094729868982776,
+     "duck high": 0.11349919034300014,
+     "duck low": 0.03341675253937877,
+     "Wizard": 0.021639923450610922,
+     "Jester": 0.020756661268953334
     }
    },
    {
@@ -997,12 +1036,12 @@
      "trick": "off-suit is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 20881,
+    "n": 21342,
     "plays": {
-     "duck high": 0.46798524974857525,
-     "duck low": 0.457257794166946,
-     "Jester": 0.04108998611177626,
-     "Wizard": 0.03366696997270246
+     "duck low": 0.4850060912754194,
+     "duck high": 0.4166900946490488,
+     "Wizard": 0.056883141223877796,
+     "Jester": 0.04142067285165402
     }
    },
    {
@@ -1012,31 +1051,14 @@
      "trick": "off-suit is winning",
      "follow": "can't follow"
     },
-    "n": 10434,
+    "n": 11837,
     "plays": {
-     "win cheaply (trump in)": 0.42591527697910675,
-     "win big (trump in)": 0.21171171171171171,
-     "duck low": 0.1894767107533065,
-     "duck high": 0.11673375503162738,
-     "Jester": 0.04207398888249952,
-     "Wizard": 0.01408855664174813
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "middle",
-     "trick": "trump is winning",
-     "follow": "can follow"
-    },
-    "n": 6032,
-    "plays": {
-     "win cheaply": 0.41959549071618035,
-     "win big": 0.23076923076923078,
-     "duck high": 0.1225132625994695,
-     "Jester": 0.1165450928381963,
-     "Wizard": 0.0615053050397878,
-     "duck low": 0.04907161803713528
+     "win cheaply (trump in)": 0.5492101039114641,
+     "win big (trump in)": 0.2057953873447664,
+     "duck low": 0.12013179014953113,
+     "duck high": 0.0872687336318324,
+     "Jester": 0.02923037931908423,
+     "Wizard": 0.008363605643321788
     }
    },
    {
@@ -1046,27 +1068,29 @@
      "trick": "off-suit is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 5611,
+    "n": 7023,
     "plays": {
-     "duck low": 0.5993584031366957,
-     "duck high": 0.21350917839957226,
-     "Wizard": 0.12029941186954198,
-     "Jester": 0.06683300659418999
+     "duck low": 0.5839384878257156,
+     "duck high": 0.20674925245621528,
+     "Wizard": 0.1304285917698989,
+     "Jester": 0.0788836679481703
     }
    },
    {
     "situation": {
      "need": "need more",
      "seat": "middle",
-     "trick": "a Wizard is winning",
-     "follow": "no suit to follow"
+     "trick": "trump is winning",
+     "follow": "can follow"
     },
-    "n": 4165,
+    "n": 4991,
     "plays": {
-     "duck low": 0.8384153661464586,
-     "Jester": 0.1469387755102041,
-     "duck high": 0.013205282112845138,
-     "Wizard": 0.0014405762304921968
+     "win cheaply": 0.4425966740132238,
+     "win big": 0.22119815668202766,
+     "Jester": 0.1572831095972751,
+     "duck high": 0.09136445602083751,
+     "Wizard": 0.06030855539971949,
+     "duck low": 0.02724904828691645
     }
    },
    {
@@ -1076,27 +1100,12 @@
      "trick": "only Jesters so far",
      "follow": "no suit to follow"
     },
-    "n": 4042,
+    "n": 3478,
     "plays": {
-     "win big": 0.5054428500742206,
-     "win cheaply": 0.23552696684809502,
-     "Wizard": 0.1462147451756556,
-     "Jester": 0.11281543790202869
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "middle",
-     "trick": "trump is winning",
-     "follow": "can follow, nothing but a Wizard wins"
-    },
-    "n": 3170,
-    "plays": {
-     "duck high": 0.3384858044164038,
-     "duck low": 0.30157728706624604,
-     "Jester": 0.22271293375394322,
-     "Wizard": 0.13722397476340695
+     "win big": 0.5324899367452559,
+     "win cheaply": 0.23317998849913743,
+     "Wizard": 0.14606095457159288,
+     "Jester": 0.0882691201840138
     }
    },
    {
@@ -1106,12 +1115,42 @@
      "trick": "trump is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 3052,
+    "n": 3177,
     "plays": {
-     "duck low": 0.5973132372214941,
-     "duck high": 0.2611402359108781,
-     "Wizard": 0.08387942332896461,
-     "Jester": 0.057667103538663174
+     "duck low": 0.5495750708215298,
+     "duck high": 0.26849228832231664,
+     "Wizard": 0.11142587346553352,
+     "Jester": 0.07050676739062008
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "middle",
+     "trick": "trump is winning",
+     "follow": "can follow, nothing but a Wizard wins"
+    },
+    "n": 3009,
+    "plays": {
+     "duck high": 0.2931206380857428,
+     "duck low": 0.2761714855433699,
+     "Jester": 0.23462944499833832,
+     "Wizard": 0.19607843137254902
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "middle",
+     "trick": "a Wizard is winning",
+     "follow": "no suit to follow"
+    },
+    "n": 2814,
+    "plays": {
+     "duck low": 0.763681592039801,
+     "Jester": 0.21179815209665956,
+     "duck high": 0.0216773276474769,
+     "Wizard": 0.0028429282160625444
     }
    },
    {
@@ -1121,12 +1160,12 @@
      "trick": "off-suit is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 24086,
+    "n": 23667,
     "plays": {
-     "duck low": 0.47185086772398904,
-     "duck high": 0.43236735032799134,
-     "Wizard": 0.05235406460184339,
-     "Jester": 0.0434277173461762
+     "duck low": 0.4974014450500697,
+     "duck high": 0.3885156547090886,
+     "Wizard": 0.08251996450754215,
+     "Jester": 0.03156293573329953
     }
    },
    {
@@ -1136,14 +1175,14 @@
      "trick": "off-suit is winning",
      "follow": "can follow"
     },
-    "n": 19465,
+    "n": 19386,
     "plays": {
-     "win cheaply": 0.5294117647058824,
-     "win big": 0.18330336501412792,
-     "duck high": 0.1525815566401233,
-     "duck low": 0.06406370408425378,
-     "Wizard": 0.04073978936552787,
-     "Jester": 0.029899820190084768
+     "win cheaply": 0.6380893428247189,
+     "win big": 0.174920045393583,
+     "duck high": 0.11559888579387187,
+     "duck low": 0.03193025894975756,
+     "Wizard": 0.021768286392241824,
+     "Jester": 0.017693180645826884
     }
    },
    {
@@ -1153,14 +1192,14 @@
      "trick": "off-suit is winning",
      "follow": "can't follow"
     },
-    "n": 9133,
+    "n": 9616,
     "plays": {
-     "win cheaply (trump in)": 0.49041935837074346,
-     "win big (trump in)": 0.21887660133581519,
-     "duck low": 0.1440928501040184,
-     "duck high": 0.1178145187780576,
-     "Jester": 0.018504324975364063,
-     "Wizard": 0.010292346436001314
+     "win cheaply (trump in)": 0.6116888519134775,
+     "win big (trump in)": 0.22129783693843594,
+     "duck high": 0.08236272878535773,
+     "duck low": 0.0733153078202995,
+     "Jester": 0.006135607321131447,
+     "Wizard": 0.005199667221297837
     }
    },
    {
@@ -1170,12 +1209,12 @@
      "trick": "trump is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 7619,
+    "n": 8358,
     "plays": {
-     "duck high": 0.362777267357921,
-     "duck low": 0.3534584591153695,
-     "Wizard": 0.1547447171544822,
-     "Jester": 0.12901955637222734
+     "duck low": 0.3519980856664274,
+     "duck high": 0.31873653984206746,
+     "Wizard": 0.22373773630055038,
+     "Jester": 0.10552763819095477
     }
    },
    {
@@ -1185,12 +1224,27 @@
      "trick": "off-suit is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 5282,
+    "n": 6065,
     "plays": {
-     "duck low": 0.6035592578568724,
-     "duck high": 0.2201817493373722,
-     "Wizard": 0.12040893600908746,
-     "Jester": 0.05585005679666793
+     "duck low": 0.5945589447650453,
+     "duck high": 0.20610057708161583,
+     "Wizard": 0.13833470733718053,
+     "Jester": 0.06100577081615829
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "trump is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 4459,
+    "plays": {
+     "duck low": 0.5290423861852434,
+     "duck high": 0.2357030724377663,
+     "Wizard": 0.18457053150930702,
+     "Jester": 0.05068400986768334
     }
    },
    {
@@ -1200,14 +1254,14 @@
      "trick": "trump is winning",
      "follow": "can follow"
     },
-    "n": 4729,
+    "n": 3809,
     "plays": {
-     "win cheaply": 0.5923028124339184,
-     "win big": 0.1776274053711144,
-     "duck high": 0.1192641150348911,
-     "duck low": 0.05307676041446394,
-     "Wizard": 0.029816028758722773,
-     "Jester": 0.027912877986889406
+     "win cheaply": 0.6516145970070885,
+     "win big": 0.17248621685481755,
+     "duck high": 0.10816487266999213,
+     "duck low": 0.03045418745077448,
+     "Jester": 0.01916513520609084,
+     "Wizard": 0.018114990811236544
     }
    },
    {
@@ -1217,27 +1271,12 @@
      "trick": "a Wizard is winning",
      "follow": "no suit to follow"
     },
-    "n": 4487,
+    "n": 3025,
     "plays": {
-     "duck low": 0.8531312681078672,
-     "Jester": 0.1259193224871852,
-     "duck high": 0.018275016714954313,
-     "Wizard": 0.002674392689993314
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "trump is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 3756,
-    "plays": {
-     "duck low": 0.5734824281150159,
-     "duck high": 0.22763578274760382,
-     "Wizard": 0.14084132055378062,
-     "Jester": 0.058040468583599576
+     "duck low": 0.7854545454545454,
+     "Jester": 0.18115702479338844,
+     "duck high": 0.030413223140495868,
+     "Wizard": 0.0029752066115702478
     }
    },
    {
@@ -1247,12 +1286,12 @@
      "trick": "a Wizard is winning",
      "follow": "can follow"
     },
-    "n": 1874,
+    "n": 2122,
     "plays": {
-     "duck low": 0.7219850586979722,
-     "Jester": 0.1910352187833511,
-     "duck high": 0.08110992529348986,
-     "Wizard": 0.005869797225186766
+     "duck low": 0.6701225259189444,
+     "Jester": 0.24175306314797362,
+     "duck high": 0.08011310084825636,
+     "Wizard": 0.008011310084825637
     }
    },
    {
@@ -1262,14 +1301,14 @@
      "trick": "trump is winning",
      "follow": "can't follow"
     },
-    "n": 1293,
+    "n": 2071,
     "plays": {
-     "win cheaply (trump in)": 0.5877803557617943,
-     "win big (trump in)": 0.21345707656612528,
-     "duck high": 0.09435421500386698,
-     "duck low": 0.08352668213457076,
-     "Jester": 0.01237432327919567,
-     "Wizard": 0.008507347254447023
+     "win cheaply (trump in)": 0.6185417672621922,
+     "win big (trump in)": 0.2790922259777885,
+     "duck low": 0.046837276677933366,
+     "duck high": 0.04104297440849831,
+     "Wizard": 0.00772573635924674,
+     "Jester": 0.006760019314340898
     }
    },
    {
@@ -1279,12 +1318,12 @@
      "trick": "a Wizard is winning",
      "follow": "can't follow"
     },
-    "n": 1013,
+    "n": 1243,
     "plays": {
-     "duck low": 0.7897334649555775,
-     "Jester": 0.1727541954590326,
-     "duck high": 0.0315893385982231,
-     "Wizard": 0.005923000987166831
+     "duck low": 0.7658889782783588,
+     "Jester": 0.21078037007240547,
+     "duck high": 0.014481094127111826,
+     "Wizard": 0.008849557522123894
     }
    },
    {
@@ -1294,12 +1333,12 @@
      "trick": "only Jesters so far",
      "follow": "no suit to follow"
     },
-    "n": 684,
+    "n": 499,
     "plays": {
-     "win big": 0.49853801169590645,
-     "Wizard": 0.2324561403508772,
-     "win cheaply": 0.14181286549707603,
-     "Jester": 0.12719298245614036
+     "win big": 0.56312625250501,
+     "Wizard": 0.20040080160320642,
+     "win cheaply": 0.15430861723446893,
+     "Jester": 0.08216432865731463
     }
    },
    {
@@ -1309,14 +1348,14 @@
      "trick": "\u2014",
      "follow": "\u2014"
     },
-    "n": 13278,
+    "n": 11492,
     "plays": {
-     "lead off-suit low": 0.5024853140533213,
-     "Jester": 0.2895014309383943,
-     "lead trump low": 0.15680072300045186,
-     "lead trump high (J+)": 0.034794396746497966,
-     "lead off-suit high (K+)": 0.008886880554300347,
-     "Wizard": 0.007531254707034192
+     "lead off-suit low": 0.4996519317786286,
+     "Jester": 0.3066481030281935,
+     "lead trump low": 0.15436825617821093,
+     "lead trump high (J+)": 0.027584406543682563,
+     "lead off-suit high (K+)": 0.006961364427427776,
+     "Wizard": 0.004785938043856596
     }
    },
    {
@@ -1326,27 +1365,12 @@
      "trick": "off-suit is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 2680,
+    "n": 2600,
     "plays": {
-     "duck high": 0.5686567164179105,
-     "duck low": 0.373134328358209,
-     "Jester": 0.05708955223880597,
-     "Wizard": 0.001119402985074627
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "a Wizard is winning",
-     "follow": "no suit to follow"
-    },
-    "n": 2185,
-    "plays": {
-     "duck high": 0.6933638443935927,
-     "duck low": 0.24851258581235697,
-     "Wizard": 0.035240274599542334,
-     "Jester": 0.02288329519450801
+     "duck high": 0.6584615384615384,
+     "duck low": 0.2553846153846154,
+     "Jester": 0.08576923076923076,
+     "Wizard": 0.0003846153846153846
     }
    },
    {
@@ -1356,12 +1380,27 @@
      "trick": "trump is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 1765,
+    "n": 1482,
     "plays": {
-     "duck high": 0.635127478753541,
-     "duck low": 0.32237960339943345,
-     "Jester": 0.041359773371104816,
-     "Wizard": 0.0011331444759206798
+     "duck high": 0.699055330634278,
+     "duck low": 0.2550607287449393,
+     "Jester": 0.04520917678812416,
+     "Wizard": 0.0006747638326585695
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "a Wizard is winning",
+     "follow": "no suit to follow"
+    },
+    "n": 1303,
+    "plays": {
+     "duck high": 0.7544128933231006,
+     "duck low": 0.17574827321565617,
+     "Wizard": 0.03683806600153492,
+     "Jester": 0.03300076745970836
     }
    },
    {
@@ -1371,12 +1410,11 @@
      "trick": "off-suit is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 1247,
+    "n": 1185,
     "plays": {
-     "duck high": 0.7305533279871692,
-     "duck low": 0.2309542902967121,
-     "Jester": 0.03769045709703288,
-     "Wizard": 0.0008019246190858059
+     "duck high": 0.8067510548523207,
+     "duck low": 0.15358649789029535,
+     "Jester": 0.039662447257383965
     }
    },
    {
@@ -1386,14 +1424,14 @@
      "trick": "off-suit is winning",
      "follow": "can follow"
     },
-    "n": 1213,
+    "n": 1167,
     "plays": {
-     "Jester": 0.47980214344600164,
-     "duck high": 0.2786479802143446,
-     "win cheaply": 0.12943116240725475,
-     "duck low": 0.07996702390766694,
-     "win big": 0.028854080791426217,
-     "Wizard": 0.0032976092333058533
+     "Jester": 0.4824335904027421,
+     "duck high": 0.2879177377892031,
+     "win cheaply": 0.1353898886032562,
+     "duck low": 0.0702656383890317,
+     "win big": 0.018851756640959727,
+     "Wizard": 0.005141388174807198
     }
    },
    {
@@ -1402,90 +1440,89 @@
      "seat": "middle",
      "trick": "only Jesters so far",
      "follow": "no suit to follow"
+    },
+    "n": 936,
+    "plays": {
+     "Jester": 0.4594017094017094,
+     "win cheaply": 0.37393162393162394,
+     "win big": 0.1581196581196581,
+     "Wizard": 0.008547008547008548
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "off-suit is winning",
+     "follow": "can't follow"
+    },
+    "n": 331,
+    "plays": {
+     "duck high": 0.4561933534743202,
+     "duck low": 0.29003021148036257,
+     "Jester": 0.1540785498489426,
+     "win cheaply (trump in)": 0.08157099697885196,
+     "win big (trump in)": 0.01812688821752266
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "off-suit is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 1969,
+    "plays": {
+     "duck high": 0.7166074149314373,
+     "duck low": 0.2249873031995937,
+     "Jester": 0.05485017775520569,
+     "Wizard": 0.0035551041137633316
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "trump is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 1894,
+    "plays": {
+     "duck high": 0.708025343189018,
+     "duck low": 0.2555438225976769,
+     "Jester": 0.03537486800422387,
+     "Wizard": 0.0010559662090813093
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "a Wizard is winning",
+     "follow": "no suit to follow"
+    },
+    "n": 1592,
+    "plays": {
+     "duck high": 0.7675879396984925,
+     "duck low": 0.16331658291457288,
+     "Wizard": 0.05402010050251256,
+     "Jester": 0.01507537688442211
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "off-suit is winning",
+     "follow": "can follow, nothing but a Wizard wins"
     },
     "n": 1018,
     "plays": {
-     "Jester": 0.43418467583497056,
-     "win cheaply": 0.293713163064833,
-     "win big": 0.26129666011787817,
-     "Wizard": 0.010805500982318271
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "off-suit is winning",
-     "follow": "can't follow"
-    },
-    "n": 452,
-    "plays": {
-     "duck high": 0.4557522123893805,
-     "duck low": 0.3075221238938053,
-     "Jester": 0.14823008849557523,
-     "win cheaply (trump in)": 0.07079646017699115,
-     "win big (trump in)": 0.01327433628318584,
-     "Wizard": 0.004424778761061947
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "a Wizard is winning",
-     "follow": "no suit to follow"
-    },
-    "n": 2365,
-    "plays": {
-     "duck high": 0.6845665961945032,
-     "duck low": 0.24778012684989428,
-     "Wizard": 0.052854122621564484,
-     "Jester": 0.014799154334038054
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "trump is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 2240,
-    "plays": {
-     "duck high": 0.6299107142857143,
-     "duck low": 0.3111607142857143,
-     "Jester": 0.05714285714285714,
-     "Wizard": 0.0017857142857142857
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "off-suit is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 2009,
-    "plays": {
-     "duck high": 0.5863613738178198,
-     "duck low": 0.3653558984569438,
-     "Jester": 0.047784967645594825,
-     "Wizard": 0.0004977600796416127
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "off-suit is winning",
-     "follow": "can follow, nothing but a Wizard wins"
-    },
-    "n": 1177,
-    "plays": {
-     "duck high": 0.7442650807136788,
-     "duck low": 0.21240441801189464,
-     "Jester": 0.041631265930331354,
-     "Wizard": 0.0016992353440951572
+     "duck high": 0.8428290766208252,
+     "duck low": 0.13654223968565815,
+     "Jester": 0.019646365422396856,
+     "Wizard": 0.0009823182711198428
     }
    },
    {
@@ -1495,14 +1532,14 @@
      "trick": "off-suit is winning",
      "follow": "can follow"
     },
-    "n": 722,
+    "n": 739,
     "plays": {
-     "Jester": 0.46814404432132967,
-     "duck high": 0.30055401662049863,
-     "duck low": 0.09556786703601108,
-     "win cheaply": 0.08310249307479224,
-     "Wizard": 0.0332409972299169,
-     "win big": 0.019390581717451522
+     "Jester": 0.4479025710419486,
+     "duck high": 0.3166441136671177,
+     "duck low": 0.10013531799729364,
+     "win cheaply": 0.06495263870094722,
+     "win big": 0.05953991880920163,
+     "Wizard": 0.010825439783491205
     }
    },
    {
@@ -1512,12 +1549,12 @@
      "trick": "a Wizard is winning",
      "follow": "can't follow"
     },
-    "n": 715,
+    "n": 693,
     "plays": {
-     "duck high": 0.6811188811188811,
-     "duck low": 0.24335664335664337,
-     "Wizard": 0.06013986013986014,
-     "Jester": 0.015384615384615385
+     "duck high": 0.7518037518037518,
+     "duck low": 0.1471861471861472,
+     "Wizard": 0.05483405483405483,
+     "Jester": 0.046176046176046176
     }
    },
    {
@@ -1527,11 +1564,11 @@
      "trick": "trump is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 502,
+    "n": 418,
     "plays": {
-     "duck high": 0.7689243027888446,
-     "duck low": 0.21314741035856574,
-     "Jester": 0.017928286852589643
+     "duck high": 0.7368421052631579,
+     "duck low": 0.22009569377990432,
+     "Jester": 0.0430622009569378
     }
    },
    {
@@ -1541,14 +1578,14 @@
      "trick": "\u2014",
      "follow": "\u2014"
     },
-    "n": 1759,
+    "n": 1487,
     "plays": {
-     "lead off-suit low": 0.7379192723138147,
-     "Jester": 0.09323479249573621,
-     "lead off-suit high (K+)": 0.0778851620238772,
-     "lead trump low": 0.047754405912450254,
-     "lead trump high (J+)": 0.03922683342808414,
-     "Wizard": 0.003979533826037522
+     "lead off-suit low": 0.7572293207800942,
+     "Jester": 0.09078681909885676,
+     "lead off-suit high (K+)": 0.06455951580363148,
+     "lead trump low": 0.04169468728984533,
+     "lead trump high (J+)": 0.028917283120376596,
+     "Wizard": 0.016812373907195696
     }
    }
   ],
@@ -1560,14 +1597,14 @@
      "trick": "\u2014",
      "follow": "\u2014"
     },
-    "n": 901,
+    "n": 823,
     "plays": {
-     "Wizard": 0.48612652608213097,
-     "lead trump high (J+)": 0.2563817980022198,
-     "lead off-suit high (K+)": 0.12430632630410655,
-     "lead off-suit low": 0.07547169811320754,
-     "lead trump low": 0.05438401775804662,
-     "Jester": 0.003329633740288568
+     "Wizard": 0.42770352369380316,
+     "lead trump high (J+)": 0.21385176184690158,
+     "lead off-suit low": 0.16889428918590524,
+     "lead off-suit high (K+)": 0.12879708383961117,
+     "lead trump low": 0.05103280680437424,
+     "Jester": 0.009720534629404616
     }
    },
    {
@@ -1577,14 +1614,13 @@
      "trick": "off-suit is winning",
      "follow": "can't follow"
     },
-    "n": 1108,
+    "n": 1066,
     "plays": {
-     "win cheaply (trump in)": 0.8086642599277978,
-     "Wizard": 0.10649819494584838,
-     "win big (trump in)": 0.08032490974729242,
-     "Jester": 0.0018050541516245488,
-     "duck high": 0.0018050541516245488,
-     "duck low": 0.0009025270758122744
+     "win cheaply (trump in)": 0.8986866791744841,
+     "Wizard": 0.05065666041275797,
+     "win big (trump in)": 0.04127579737335835,
+     "duck high": 0.005628517823639775,
+     "Jester": 0.00375234521575985
     }
    },
    {
@@ -1594,12 +1630,42 @@
      "trick": "off-suit is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 623,
+    "n": 693,
     "plays": {
-     "Wizard": 0.8908507223113965,
-     "duck low": 0.05457463884430177,
-     "duck high": 0.04333868378812199,
-     "Jester": 0.011235955056179775
+     "Wizard": 0.8701298701298701,
+     "duck low": 0.07936507936507936,
+     "duck high": 0.046176046176046176,
+     "Jester": 0.004329004329004329
+    }
+   },
+   {
+    "situation": {
+     "need": "need all",
+     "seat": "middle",
+     "trick": "a Wizard is winning",
+     "follow": "no suit to follow"
+    },
+    "n": 380,
+    "plays": {
+     "duck low": 0.881578947368421,
+     "Wizard": 0.06842105263157895,
+     "duck high": 0.02894736842105263,
+     "Jester": 0.021052631578947368
+    }
+   },
+   {
+    "situation": {
+     "need": "need all",
+     "seat": "middle",
+     "trick": "trump is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 352,
+    "plays": {
+     "Wizard": 0.8835227272727273,
+     "duck low": 0.07954545454545454,
+     "duck high": 0.03409090909090909,
+     "Jester": 0.002840909090909091
     }
    },
    {
@@ -1609,13 +1675,12 @@
      "trick": "trump is winning",
      "follow": "can follow"
     },
-    "n": 479,
+    "n": 332,
     "plays": {
-     "win cheaply": 0.5177453027139874,
-     "Wizard": 0.3444676409185804,
-     "win big": 0.1336116910229645,
-     "Jester": 0.0020876826722338203,
-     "duck high": 0.0020876826722338203
+     "Wizard": 0.45481927710843373,
+     "win cheaply": 0.39759036144578314,
+     "win big": 0.14156626506024098,
+     "Jester": 0.006024096385542169
     }
    },
    {
@@ -1625,14 +1690,14 @@
      "trick": "\u2014",
      "follow": "\u2014"
     },
-    "n": 37302,
+    "n": 39757,
     "plays": {
-     "lead off-suit low": 0.486542276553536,
-     "lead off-suit high (K+)": 0.2022411666934749,
-     "Wizard": 0.14527371186531554,
-     "lead trump low": 0.11688381320036459,
-     "lead trump high (J+)": 0.035252801458366845,
-     "Jester": 0.013806230228942147
+     "lead off-suit low": 0.5230776970093317,
+     "lead off-suit high (K+)": 0.21815026284679429,
+     "lead trump low": 0.1213874286289207,
+     "Wizard": 0.08320547324999371,
+     "lead trump high (J+)": 0.04205548708403552,
+     "Jester": 0.012123651180924113
     }
    },
    {
@@ -1642,12 +1707,12 @@
      "trick": "off-suit is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 27141,
+    "n": 29544,
     "plays": {
-     "duck high": 0.5364209130098375,
-     "duck low": 0.3640249069673188,
-     "Wizard": 0.06127261338933716,
-     "Jester": 0.0382815666335065
+     "duck high": 0.5315800162469537,
+     "duck low": 0.37036284863254804,
+     "Wizard": 0.0697942052531817,
+     "Jester": 0.028262929867316544
     }
    },
    {
@@ -1657,14 +1722,14 @@
      "trick": "off-suit is winning",
      "follow": "can follow"
     },
-    "n": 26601,
+    "n": 26458,
     "plays": {
-     "win cheaply": 0.49486861396188114,
-     "win big": 0.23032968685387767,
-     "duck high": 0.12119845118604564,
-     "Wizard": 0.09330476297883539,
-     "Jester": 0.034246832825833615,
-     "duck low": 0.026051652193526557
+     "win cheaply": 0.5337894020712072,
+     "win big": 0.25553707763247413,
+     "duck high": 0.09804218005896137,
+     "Wizard": 0.07774586136518255,
+     "Jester": 0.021467986998261395,
+     "duck low": 0.013417491873913372
     }
    },
    {
@@ -1674,14 +1739,14 @@
      "trick": "off-suit is winning",
      "follow": "can't follow"
     },
-    "n": 13049,
+    "n": 13161,
     "plays": {
-     "win cheaply (trump in)": 0.4515288527856541,
-     "win big (trump in)": 0.23595677829718753,
-     "duck high": 0.15702352670702735,
-     "duck low": 0.08912560349452066,
-     "Wizard": 0.03509847497892559,
-     "Jester": 0.031266763736684806
+     "win cheaply (trump in)": 0.5305068003951068,
+     "win big (trump in)": 0.26654509535749565,
+     "duck high": 0.12445862776384774,
+     "duck low": 0.04254995820986247,
+     "Wizard": 0.019071499126206214,
+     "Jester": 0.016868019147481195
     }
    },
    {
@@ -1691,44 +1756,12 @@
      "trick": "off-suit is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 11000,
+    "n": 13068,
     "plays": {
-     "duck low": 0.5461818181818182,
-     "duck high": 0.23263636363636364,
-     "Wizard": 0.18609090909090908,
-     "Jester": 0.03509090909090909
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "middle",
-     "trick": "a Wizard is winning",
-     "follow": "no suit to follow"
-    },
-    "n": 10535,
-    "plays": {
-     "duck low": 0.9300427147603227,
-     "Jester": 0.05799715234931182,
-     "duck high": 0.011675367821547223,
-     "Wizard": 0.00028476506881822496
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "middle",
-     "trick": "trump is winning",
-     "follow": "can follow"
-    },
-    "n": 8572,
-    "plays": {
-     "win cheaply": 0.46453569762015867,
-     "duck high": 0.16133924405039665,
-     "win big": 0.15935604293047131,
-     "Jester": 0.12062529164722352,
-     "Wizard": 0.06276248250116659,
-     "duck low": 0.031381241250583294
+     "duck low": 0.546985001530456,
+     "duck high": 0.2583409856137129,
+     "Wizard": 0.16153963881236608,
+     "Jester": 0.033134374043464955
     }
    },
    {
@@ -1738,12 +1771,29 @@
      "trick": "trump is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 8236,
+    "n": 9977,
     "plays": {
-     "duck high": 0.44900437105390967,
-     "duck low": 0.35138416707139386,
-     "Jester": 0.10806216610004857,
-     "Wizard": 0.09154929577464789
+     "duck high": 0.3833817780896061,
+     "duck low": 0.35321238849353515,
+     "Wizard": 0.14733887942267215,
+     "Jester": 0.11606695399418662
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "middle",
+     "trick": "trump is winning",
+     "follow": "can follow"
+    },
+    "n": 8479,
+    "plays": {
+     "win cheaply": 0.4744663285764831,
+     "win big": 0.1825686991390494,
+     "Jester": 0.14754098360655737,
+     "duck high": 0.12194834296497228,
+     "Wizard": 0.05778983370680505,
+     "duck low": 0.0156858120061328
     }
    },
    {
@@ -1753,12 +1803,27 @@
      "trick": "trump is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 5666,
+    "n": 7339,
     "plays": {
-     "duck low": 0.49346981997882106,
-     "duck high": 0.34186374867631486,
-     "Wizard": 0.1291916696081892,
-     "Jester": 0.0354747617366749
+     "duck low": 0.459326883771631,
+     "duck high": 0.36667120861152747,
+     "Wizard": 0.13462324567379752,
+     "Jester": 0.03937866194304401
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "middle",
+     "trick": "a Wizard is winning",
+     "follow": "no suit to follow"
+    },
+    "n": 6060,
+    "plays": {
+     "duck low": 0.8892739273927392,
+     "Jester": 0.0891089108910891,
+     "duck high": 0.020627062706270627,
+     "Wizard": 0.0009900990099009901
     }
    },
    {
@@ -1768,12 +1833,27 @@
      "trick": "a Wizard is winning",
      "follow": "can follow"
     },
-    "n": 3206,
+    "n": 3257,
     "plays": {
-     "duck low": 0.7489082969432315,
-     "duck high": 0.14285714285714285,
-     "Jester": 0.10729881472239551,
-     "Wizard": 0.0009357454772301934
+     "duck low": 0.7190666257291987,
+     "duck high": 0.1473748848633712,
+     "Jester": 0.13079521031624194,
+     "Wizard": 0.00276327909118821
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "middle",
+     "trick": "a Wizard is winning",
+     "follow": "can't follow"
+    },
+    "n": 2193,
+    "plays": {
+     "duck low": 0.8823529411764706,
+     "Jester": 0.09849521203830369,
+     "duck high": 0.0168718650250798,
+     "Wizard": 0.002279981760145919
     }
    },
    {
@@ -1783,27 +1863,12 @@
      "trick": "only Jesters so far",
      "follow": "no suit to follow"
     },
-    "n": 2558,
+    "n": 2137,
     "plays": {
-     "win big": 0.4628616106333073,
-     "win cheaply": 0.2928068803752932,
-     "Wizard": 0.19859265050820954,
-     "Jester": 0.045738858483189995
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "middle",
-     "trick": "a Wizard is winning",
-     "follow": "can't follow"
-    },
-    "n": 2065,
-    "plays": {
-     "duck low": 0.8707021791767554,
-     "Jester": 0.10750605326876514,
-     "duck high": 0.018886198547215495,
-     "Wizard": 0.0029055690072639223
+     "win big": 0.45156761815629387,
+     "win cheaply": 0.3308376228357511,
+     "Wizard": 0.1731399157697707,
+     "Jester": 0.04445484323818437
     }
    },
    {
@@ -1813,14 +1878,14 @@
      "trick": "trump is winning",
      "follow": "can't follow"
     },
-    "n": 1161,
+    "n": 1324,
     "plays": {
-     "win cheaply (trump in)": 0.5529715762273901,
-     "win big (trump in)": 0.16623600344530576,
-     "duck high": 0.12489233419465978,
-     "duck low": 0.11541774332472007,
-     "Jester": 0.02239448751076658,
-     "Wizard": 0.01808785529715762
+     "win cheaply (trump in)": 0.6593655589123867,
+     "win big (trump in)": 0.18353474320241692,
+     "duck high": 0.07628398791540786,
+     "duck low": 0.0581570996978852,
+     "Jester": 0.014350453172205438,
+     "Wizard": 0.008308157099697885
     }
    },
    {
@@ -1830,12 +1895,12 @@
      "trick": "off-suit is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 9983,
+    "n": 10475,
     "plays": {
-     "duck high": 0.48822999098467396,
-     "duck low": 0.3962736652308925,
-     "Wizard": 0.06591205048582591,
-     "Jester": 0.04958429329860763
+     "duck high": 0.4647255369928401,
+     "duck low": 0.39541766109785204,
+     "Wizard": 0.11007159904534607,
+     "Jester": 0.029785202863961815
     }
    },
    {
@@ -1845,12 +1910,12 @@
      "trick": "trump is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 5493,
+    "n": 6288,
     "plays": {
-     "duck high": 0.4533042053522665,
-     "duck low": 0.3475332241034043,
-     "Wizard": 0.12980156562898235,
-     "Jester": 0.0693610049153468
+     "duck high": 0.37404580152671757,
+     "duck low": 0.36036895674300257,
+     "Wizard": 0.20944656488549618,
+     "Jester": 0.056138676844783714
     }
    },
    {
@@ -1860,44 +1925,14 @@
      "trick": "off-suit is winning",
      "follow": "can follow"
     },
-    "n": 4395,
+    "n": 4240,
     "plays": {
-     "win cheaply": 0.5635949943117179,
-     "duck high": 0.14584755403868033,
-     "win big": 0.13037542662116042,
-     "Wizard": 0.09647326507394767,
-     "Jester": 0.03549488054607509,
-     "duck low": 0.028213879408418657
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "a Wizard is winning",
-     "follow": "no suit to follow"
-    },
-    "n": 3722,
-    "plays": {
-     "duck low": 0.930413756045137,
-     "Jester": 0.05373455131649651,
-     "duck high": 0.014239656098871574,
-     "Wizard": 0.0016120365394948952
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "a Wizard is winning",
-     "follow": "can follow"
-    },
-    "n": 3078,
-    "plays": {
-     "duck low": 0.7446393762183235,
-     "duck high": 0.14002599090318388,
-     "Jester": 0.11371020142949967,
-     "Wizard": 0.0016244314489928524
+     "win cheaply": 0.6462264150943396,
+     "win big": 0.15,
+     "duck high": 0.09174528301886792,
+     "Wizard": 0.07476415094339622,
+     "Jester": 0.019339622641509433,
+     "duck low": 0.017924528301886792
     }
    },
    {
@@ -1907,12 +1942,42 @@
      "trick": "off-suit is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 2936,
+    "n": 3454,
     "plays": {
-     "duck low": 0.6001362397820164,
-     "duck high": 0.20844686648501362,
-     "Wizard": 0.15565395095367848,
-     "Jester": 0.035762942779291554
+     "duck low": 0.5613781123335263,
+     "duck high": 0.2174290677475391,
+     "Wizard": 0.19079328314997104,
+     "Jester": 0.03039953676896352
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "a Wizard is winning",
+     "follow": "can follow"
+    },
+    "n": 3398,
+    "plays": {
+     "duck low": 0.7204237786933491,
+     "duck high": 0.14626250735726898,
+     "Jester": 0.12948793407886994,
+     "Wizard": 0.0038257798705120657
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "trump is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 3048,
+    "plays": {
+     "duck low": 0.4573490813648294,
+     "duck high": 0.2903543307086614,
+     "Wizard": 0.21751968503937008,
+     "Jester": 0.03477690288713911
     }
    },
    {
@@ -1922,459 +1987,412 @@
      "trick": "off-suit is winning",
      "follow": "can't follow"
     },
-    "n": 2886,
+    "n": 2704,
     "plays": {
-     "win cheaply (trump in)": 0.4643104643104643,
-     "win big (trump in)": 0.2515592515592516,
-     "duck high": 0.1690921690921691,
-     "duck low": 0.07172557172557173,
-     "Wizard": 0.029106029106029108,
-     "Jester": 0.014206514206514207
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "trump is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 2398,
-    "plays": {
-     "duck low": 0.5229357798165137,
-     "duck high": 0.292743953294412,
-     "Wizard": 0.13886572143452877,
-     "Jester": 0.045454545454545456
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "a Wizard is winning",
-     "follow": "can't follow"
-    },
-    "n": 1871,
-    "plays": {
-     "duck low": 0.8882950293960449,
-     "Jester": 0.09192944949225014,
-     "duck high": 0.018172100481026188,
-     "Wizard": 0.0016034206306787815
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "trump is winning",
-     "follow": "can follow"
-    },
-    "n": 1775,
-    "plays": {
-     "win cheaply": 0.6185915492957746,
-     "duck high": 0.1791549295774648,
-     "win big": 0.12112676056338029,
-     "Wizard": 0.030985915492957747,
-     "duck low": 0.029295774647887324,
-     "Jester": 0.020845070422535212
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "trump is winning",
-     "follow": "can't follow"
-    },
-    "n": 1020,
-    "plays": {
-     "win cheaply (trump in)": 0.6774509803921569,
-     "win big (trump in)": 0.1392156862745098,
-     "duck high": 0.09607843137254903,
-     "duck low": 0.059803921568627454,
-     "Wizard": 0.01568627450980392,
-     "Jester": 0.011764705882352941
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "lead",
-     "trick": "\u2014",
-     "follow": "\u2014"
-    },
-    "n": 24302,
-    "plays": {
-     "lead off-suit low": 0.6417990288865114,
-     "lead trump low": 0.1819603324829232,
-     "Jester": 0.15105752612953666,
-     "lead trump high (J+)": 0.017652868076701505,
-     "lead off-suit high (K+)": 0.005267056209365484,
-     "Wizard": 0.0022631882149617318
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "off-suit is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 10299,
-    "plays": {
-     "duck high": 0.4844159627148267,
-     "duck low": 0.44625691814739293,
-     "Jester": 0.06874453830468978,
-     "Wizard": 0.0005825808330905913
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "trump is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 9509,
-    "plays": {
-     "duck high": 0.5218214323272689,
-     "duck low": 0.4233883689136607,
-     "Jester": 0.05426438111263014,
-     "Wizard": 0.0005258176464402145
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "a Wizard is winning",
-     "follow": "no suit to follow"
-    },
-    "n": 7660,
-    "plays": {
-     "duck high": 0.5891644908616188,
-     "duck low": 0.3627937336814621,
-     "Jester": 0.0381201044386423,
-     "Wizard": 0.009921671018276762
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "off-suit is winning",
-     "follow": "can follow"
-    },
-    "n": 6970,
-    "plays": {
-     "Jester": 0.35193687230989956,
-     "duck high": 0.3189383070301291,
-     "win cheaply": 0.23457675753228122,
-     "duck low": 0.0642754662840746,
-     "win big": 0.028263988522238163,
-     "Wizard": 0.0020086083213773313
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "off-suit is winning",
-     "follow": "can follow, nothing but a Wizard wins"
-    },
-    "n": 6750,
-    "plays": {
-     "duck high": 0.6229629629629629,
-     "duck low": 0.2988148148148148,
-     "Jester": 0.07792592592592593,
-     "Wizard": 0.0002962962962962963
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "a Wizard is winning",
-     "follow": "can't follow"
-    },
-    "n": 2312,
-    "plays": {
-     "duck high": 0.5860726643598616,
-     "duck low": 0.3391003460207612,
-     "Jester": 0.05103806228373702,
-     "Wizard": 0.02378892733564014
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "trump is winning",
-     "follow": "can follow, nothing but a Wizard wins"
-    },
-    "n": 2279,
-    "plays": {
-     "duck high": 0.6788064940763493,
-     "duck low": 0.2702939885914875,
-     "Jester": 0.050460728389644584,
-     "Wizard": 0.00043878894251864854
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "only Jesters so far",
-     "follow": "no suit to follow"
-    },
-    "n": 2002,
-    "plays": {
-     "win cheaply": 0.514985014985015,
-     "win big": 0.2562437562437562,
-     "Jester": 0.22727272727272727,
-     "Wizard": 0.0014985014985014985
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "off-suit is winning",
-     "follow": "can't follow"
-    },
-    "n": 1868,
-    "plays": {
-     "duck high": 0.5262312633832976,
-     "duck low": 0.28533190578158457,
-     "Jester": 0.14721627408993576,
-     "win cheaply (trump in)": 0.029978586723768737,
-     "win big (trump in)": 0.011241970021413276
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "a Wizard is winning",
-     "follow": "can follow"
-    },
-    "n": 1275,
-    "plays": {
-     "duck high": 0.6823529411764706,
-     "duck low": 0.2407843137254902,
-     "Jester": 0.06274509803921569,
-     "Wizard": 0.01411764705882353
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "trump is winning",
-     "follow": "can follow"
-    },
-    "n": 427,
-    "plays": {
-     "Jester": 0.5620608899297423,
-     "win cheaply": 0.30679156908665106,
-     "duck high": 0.11241217798594848,
-     "win big": 0.0117096018735363,
-     "duck low": 0.00468384074941452,
-     "Wizard": 0.00234192037470726
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "trump is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 3519,
-    "plays": {
-     "duck high": 0.5311167945439045,
-     "duck low": 0.4003978402955385,
-     "Jester": 0.06848536516055698
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "a Wizard is winning",
-     "follow": "no suit to follow"
-    },
-    "n": 2505,
-    "plays": {
-     "duck high": 0.5836327345309381,
-     "duck low": 0.3596806387225549,
-     "Jester": 0.03952095808383234,
-     "Wizard": 0.01716566866267465
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "off-suit is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 2275,
-    "plays": {
-     "duck high": 0.47164835164835167,
-     "duck low": 0.447032967032967,
-     "Jester": 0.08131868131868132
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "a Wizard is winning",
-     "follow": "can't follow"
-    },
-    "n": 2254,
-    "plays": {
-     "duck high": 0.5993788819875776,
-     "duck low": 0.336734693877551,
-     "Jester": 0.043478260869565216,
-     "Wizard": 0.02040816326530612
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "off-suit is winning",
-     "follow": "can follow, nothing but a Wizard wins"
-    },
-    "n": 2217,
-    "plays": {
-     "duck high": 0.5990076680198466,
-     "duck low": 0.3071718538565629,
-     "Jester": 0.09382047812359044
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "trump is winning",
-     "follow": "can follow, nothing but a Wizard wins"
-    },
-    "n": 1566,
-    "plays": {
-     "duck high": 0.6181353767560664,
-     "duck low": 0.3186462324393359,
-     "Jester": 0.06321839080459771
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "a Wizard is winning",
-     "follow": "can follow"
-    },
-    "n": 1143,
-    "plays": {
-     "duck high": 0.657917760279965,
-     "duck low": 0.24496937882764655,
-     "Jester": 0.07611548556430446,
-     "Wizard": 0.02099737532808399
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "off-suit is winning",
-     "follow": "can follow"
-    },
-    "n": 989,
-    "plays": {
-     "duck high": 0.41759352881698686,
-     "Jester": 0.3316481294236603,
-     "win cheaply": 0.09302325581395349,
-     "duck low": 0.08897876643073811,
-     "win big": 0.055611729019211326,
-     "Wizard": 0.01314459049544995
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "off-suit is winning",
-     "follow": "can't follow"
-    },
-    "n": 349,
-    "plays": {
-     "duck high": 0.6045845272206304,
-     "duck low": 0.2664756446991404,
-     "Jester": 0.12607449856733524,
-     "win big (trump in)": 0.0028653295128939827
-    }
-   },
-   {
-    "situation": {
-     "need": "over",
-     "seat": "lead",
-     "trick": "\u2014",
-     "follow": "\u2014"
-    },
-    "n": 2932,
-    "plays": {
-     "lead off-suit low": 0.8212824010914052,
-     "lead trump low": 0.08151432469304229,
-     "lead off-suit high (K+)": 0.041268758526603,
-     "Jester": 0.02796725784447476,
-     "lead trump high (J+)": 0.02694406548431105,
-     "Wizard": 0.0010231923601637107
-    }
-   },
-   {
-    "situation": {
-     "need": "over",
-     "seat": "middle",
-     "trick": "trump is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 357,
-    "plays": {
-     "duck low": 0.5182072829131653,
-     "duck high": 0.47619047619047616,
-     "Jester": 0.0056022408963585435
-    }
-   },
-   {
-    "situation": {
-     "need": "over",
-     "seat": "middle",
-     "trick": "a Wizard is winning",
-     "follow": "no suit to follow"
-    },
-    "n": 312,
-    "plays": {
-     "duck high": 0.5192307692307693,
-     "duck low": 0.44871794871794873,
+     "win cheaply (trump in)": 0.536612426035503,
+     "win big (trump in)": 0.28772189349112426,
+     "duck high": 0.1264792899408284,
+     "duck low": 0.026627218934911243,
      "Wizard": 0.019230769230769232,
-     "Jester": 0.01282051282051282
+     "Jester": 0.0033284023668639054
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "a Wizard is winning",
+     "follow": "can't follow"
+    },
+    "n": 2262,
+    "plays": {
+     "duck low": 0.874447391688771,
+     "Jester": 0.10831122900088418,
+     "duck high": 0.016799292661361626,
+     "Wizard": 0.0004420866489832007
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "a Wizard is winning",
+     "follow": "no suit to follow"
+    },
+    "n": 2059,
+    "plays": {
+     "duck low": 0.9014084507042254,
+     "Jester": 0.08207867897037396,
+     "duck high": 0.014570179698882952,
+     "Wizard": 0.001942690626517727
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "trump is winning",
+     "follow": "can follow"
+    },
+    "n": 1746,
+    "plays": {
+     "win cheaply": 0.697594501718213,
+     "win big": 0.1311569301260023,
+     "duck high": 0.1254295532646048,
+     "Wizard": 0.019473081328751432,
+     "duck low": 0.018327605956471937,
+     "Jester": 0.008018327605956471
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "trump is winning",
+     "follow": "can't follow"
+    },
+    "n": 1097,
+    "plays": {
+     "win cheaply (trump in)": 0.723792160437557,
+     "win big (trump in)": 0.17684594348222424,
+     "duck high": 0.06289881494986327,
+     "duck low": 0.03099361896080219,
+     "Wizard": 0.004557885141294439,
+     "Jester": 0.0009115770282588879
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "lead",
+     "trick": "\u2014",
+     "follow": "\u2014"
+    },
+    "n": 22397,
+    "plays": {
+     "lead off-suit low": 0.6433897396972809,
+     "lead trump low": 0.19658882886100817,
+     "Jester": 0.143144171094343,
+     "lead trump high (J+)": 0.011519399919632094,
+     "lead off-suit high (K+)": 0.0041969906683930885,
+     "Wizard": 0.0011608697593427691
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "off-suit is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 10799,
+    "plays": {
+     "duck high": 0.6766367256227428,
+     "duck low": 0.2729882396518196,
+     "Jester": 0.049912028891564035,
+     "Wizard": 0.0004630058338735068
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "trump is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 8991,
+    "plays": {
+     "duck high": 0.7137137137137137,
+     "duck low": 0.26626626626626626,
+     "Jester": 0.02002002002002002
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "off-suit is winning",
+     "follow": "can follow, nothing but a Wizard wins"
+    },
+    "n": 7071,
+    "plays": {
+     "duck high": 0.7738650827322868,
+     "duck low": 0.18936501202093056,
+     "Jester": 0.036769905246782635
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "off-suit is winning",
+     "follow": "can follow"
+    },
+    "n": 6394,
+    "plays": {
+     "duck high": 0.3403190491085393,
+     "Jester": 0.326556146387238,
+     "win cheaply": 0.25070378479824834,
+     "duck low": 0.06693775414451048,
+     "win big": 0.014075695964967157,
+     "Wizard": 0.0014075695964967157
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "a Wizard is winning",
+     "follow": "no suit to follow"
+    },
+    "n": 5295,
+    "plays": {
+     "duck high": 0.7533522190745987,
+     "duck low": 0.21850802644003778,
+     "Jester": 0.018130311614730877,
+     "Wizard": 0.010009442870632672
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "trump is winning",
+     "follow": "can follow, nothing but a Wizard wins"
+    },
+    "n": 2367,
+    "plays": {
+     "duck high": 0.7782002534854245,
+     "duck low": 0.19349387410223912,
+     "Jester": 0.02830587241233629
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "a Wizard is winning",
+     "follow": "can't follow"
+    },
+    "n": 2147,
+    "plays": {
+     "duck high": 0.7941313460642757,
+     "duck low": 0.16767582673497905,
+     "Jester": 0.021891010712622262,
+     "Wizard": 0.016301816488122962
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "only Jesters so far",
+     "follow": "no suit to follow"
+    },
+    "n": 1758,
+    "plays": {
+     "win cheaply": 0.5540386803185438,
+     "Jester": 0.24516496018202502,
+     "win big": 0.20022753128555176,
+     "Wizard": 0.0005688282138794084
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "off-suit is winning",
+     "follow": "can't follow"
+    },
+    "n": 1717,
+    "plays": {
+     "duck high": 0.6324985439720443,
+     "duck low": 0.22481071636575423,
+     "Jester": 0.1025043680838672,
+     "win cheaply (trump in)": 0.029120559114735003,
+     "win big (trump in)": 0.010483401281304601,
+     "Wizard": 0.0005824111822947001
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "a Wizard is winning",
+     "follow": "can follow"
+    },
+    "n": 1107,
+    "plays": {
+     "duck high": 0.8157181571815718,
+     "duck low": 0.15989159891598917,
+     "Wizard": 0.013550135501355014,
+     "Jester": 0.01084010840108401
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "trump is winning",
+     "follow": "can follow"
+    },
+    "n": 384,
+    "plays": {
+     "Jester": 0.5078125,
+     "win cheaply": 0.3932291666666667,
+     "duck high": 0.0859375,
+     "win big": 0.013020833333333334
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "trump is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 3203,
+    "plays": {
+     "duck high": 0.7265064002497659,
+     "duck low": 0.2560099906337808,
+     "Jester": 0.017483609116453323
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "off-suit is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 2326,
+    "plays": {
+     "duck high": 0.6754084264832331,
+     "duck low": 0.2764402407566638,
+     "Jester": 0.04815133276010318
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "a Wizard is winning",
+     "follow": "can't follow"
+    },
+    "n": 2165,
+    "plays": {
+     "duck high": 0.7367205542725174,
+     "duck low": 0.223094688221709,
+     "Jester": 0.023094688221709007,
+     "Wizard": 0.017090069284064664
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "off-suit is winning",
+     "follow": "can follow, nothing but a Wizard wins"
+    },
+    "n": 2113,
+    "plays": {
+     "duck high": 0.7491717936583058,
+     "duck low": 0.21769995267392334,
+     "Jester": 0.03312825366777094
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "a Wizard is winning",
+     "follow": "no suit to follow"
+    },
+    "n": 1861,
+    "plays": {
+     "duck high": 0.7608812466415905,
+     "duck low": 0.20419129500268673,
+     "Jester": 0.017732401934443847,
+     "Wizard": 0.017195056421278884
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "trump is winning",
+     "follow": "can follow, nothing but a Wizard wins"
+    },
+    "n": 1463,
+    "plays": {
+     "duck high": 0.7539302802460697,
+     "duck low": 0.22146274777853725,
+     "Jester": 0.02460697197539303
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "a Wizard is winning",
+     "follow": "can follow"
+    },
+    "n": 1199,
+    "plays": {
+     "duck high": 0.8323603002502085,
+     "duck low": 0.1451209341117598,
+     "Wizard": 0.013344453711426188,
+     "Jester": 0.009174311926605505
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "off-suit is winning",
+     "follow": "can follow"
+    },
+    "n": 893,
+    "plays": {
+     "duck high": 0.4154535274356103,
+     "Jester": 0.3012318029115342,
+     "win cheaply": 0.12541993281075028,
+     "duck low": 0.10302351623740201,
+     "win big": 0.051511758118701005,
+     "Wizard": 0.0033594624860022394
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "off-suit is winning",
+     "follow": "can't follow"
+    },
+    "n": 325,
+    "plays": {
+     "duck high": 0.6430769230769231,
+     "duck low": 0.2,
+     "Jester": 0.13846153846153847,
+     "win big (trump in)": 0.012307692307692308,
+     "win cheaply (trump in)": 0.006153846153846154
     }
    },
    {
     "situation": {
      "need": "over",
-     "seat": "middle",
-     "trick": "off-suit is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
+     "seat": "lead",
+     "trick": "\u2014",
+     "follow": "\u2014"
     },
-    "n": 301,
+    "n": 2518,
     "plays": {
-     "duck high": 0.4750830564784053,
-     "duck low": 0.4750830564784053,
-     "Jester": 0.046511627906976744,
-     "Wizard": 0.0033222591362126247
+     "lead off-suit low": 0.8137410643367752,
+     "lead trump low": 0.07307386814932486,
+     "lead off-suit high (K+)": 0.05242255758538523,
+     "Jester": 0.035742652899126294,
+     "lead trump high (J+)": 0.023431294678316124,
+     "Wizard": 0.0015885623510722795
     }
    }
   ],
@@ -2386,14 +2404,14 @@
      "trick": "\u2014",
      "follow": "\u2014"
     },
-    "n": 599,
+    "n": 554,
     "plays": {
-     "Wizard": 0.4991652754590985,
-     "lead trump high (J+)": 0.2604340567612688,
-     "lead off-suit high (K+)": 0.12520868113522537,
-     "lead off-suit low": 0.07512520868113523,
-     "lead trump low": 0.038397328881469114,
-     "Jester": 0.001669449081803005
+     "Wizard": 0.4187725631768953,
+     "lead trump high (J+)": 0.22743682310469315,
+     "lead off-suit low": 0.16606498194945848,
+     "lead off-suit high (K+)": 0.14259927797833935,
+     "lead trump low": 0.04151624548736462,
+     "Jester": 0.0036101083032490976
     }
    },
    {
@@ -2403,13 +2421,13 @@
      "trick": "off-suit is winning",
      "follow": "can't follow"
     },
-    "n": 847,
+    "n": 971,
     "plays": {
-     "win cheaply (trump in)": 0.8500590318772137,
-     "Wizard": 0.09090909090909091,
-     "win big (trump in)": 0.05667060212514758,
-     "duck high": 0.0011806375442739079,
-     "Jester": 0.0011806375442739079
+     "win cheaply (trump in)": 0.9114315139031925,
+     "Wizard": 0.04325437693099897,
+     "win big (trump in)": 0.04016477857878476,
+     "duck high": 0.003089598352214212,
+     "Jester": 0.0020597322348094747
     }
    },
    {
@@ -2419,12 +2437,12 @@
      "trick": "off-suit is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 623,
+    "n": 733,
     "plays": {
-     "Wizard": 0.9341894060995185,
-     "duck low": 0.04173354735152488,
-     "duck high": 0.019261637239165328,
-     "Jester": 0.004815409309791332
+     "Wizard": 0.8894952251023193,
+     "duck low": 0.06002728512960437,
+     "duck high": 0.04365620736698499,
+     "Jester": 0.0068212824010914054
     }
    },
    {
@@ -2434,13 +2452,28 @@
      "trick": "trump is winning",
      "follow": "can follow"
     },
-    "n": 415,
+    "n": 318,
     "plays": {
-     "win cheaply": 0.5614457831325301,
-     "Wizard": 0.3397590361445783,
-     "win big": 0.09397590361445783,
-     "duck high": 0.0024096385542168677,
-     "Jester": 0.0024096385542168677
+     "win cheaply": 0.5125786163522013,
+     "Wizard": 0.389937106918239,
+     "win big": 0.09119496855345911,
+     "duck high": 0.0031446540880503146,
+     "Jester": 0.0031446540880503146
+    }
+   },
+   {
+    "situation": {
+     "need": "need all",
+     "seat": "middle",
+     "trick": "trump is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 308,
+    "plays": {
+     "Wizard": 0.9123376623376623,
+     "duck high": 0.03896103896103896,
+     "duck low": 0.032467532467532464,
+     "Jester": 0.016233766233766232
     }
    },
    {
@@ -2450,31 +2483,14 @@
      "trick": "\u2014",
      "follow": "\u2014"
     },
-    "n": 25751,
+    "n": 28401,
     "plays": {
-     "lead off-suit low": 0.46336064618849754,
-     "lead off-suit high (K+)": 0.18492485728709565,
-     "Wizard": 0.18216768280843462,
-     "lead trump low": 0.12628635781134714,
-     "lead trump high (J+)": 0.03269775931031805,
-     "Jester": 0.010562696594307017
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "middle",
-     "trick": "off-suit is winning",
-     "follow": "can follow"
-    },
-    "n": 22376,
-    "plays": {
-     "win cheaply": 0.46523060421880585,
-     "win big": 0.19596889524490527,
-     "Wizard": 0.161601716124419,
-     "duck high": 0.11802824454772971,
-     "Jester": 0.04107079013228459,
-     "duck low": 0.01809974973185556
+     "lead off-suit low": 0.51441850639062,
+     "lead off-suit high (K+)": 0.20911235519876062,
+     "lead trump low": 0.12654483997042357,
+     "Wizard": 0.10172177036019858,
+     "lead trump high (J+)": 0.037252209429245446,
+     "Jester": 0.010950318650751734
     }
    },
    {
@@ -2484,12 +2500,29 @@
      "trick": "off-suit is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 21305,
+    "n": 24309,
     "plays": {
-     "duck high": 0.5697723539075334,
-     "duck low": 0.2917624970664163,
-     "Wizard": 0.09833372447782211,
-     "Jester": 0.040131424548228115
+     "duck high": 0.5803200460734708,
+     "duck low": 0.28429799662676375,
+     "Wizard": 0.10794355999835452,
+     "Jester": 0.027438397301411
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "middle",
+     "trick": "off-suit is winning",
+     "follow": "can follow"
+    },
+    "n": 22016,
+    "plays": {
+     "win cheaply": 0.5322946947674418,
+     "win big": 0.22819767441860464,
+     "Wizard": 0.12191133720930232,
+     "duck high": 0.0930686773255814,
+     "Jester": 0.01653343023255814,
+     "duck low": 0.007994186046511628
     }
    },
    {
@@ -2499,12 +2532,12 @@
      "trick": "off-suit is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 12087,
+    "n": 13824,
     "plays": {
-     "duck low": 0.5034334408869033,
-     "duck high": 0.24886241416397784,
-     "Wizard": 0.22420782659055183,
-     "Jester": 0.023496318358567057
+     "duck low": 0.5013020833333334,
+     "duck high": 0.2769820601851852,
+     "Wizard": 0.19169560185185186,
+     "Jester": 0.03002025462962963
     }
    },
    {
@@ -2514,14 +2547,61 @@
      "trick": "off-suit is winning",
      "follow": "can't follow"
     },
-    "n": 11866,
+    "n": 11903,
     "plays": {
-     "win cheaply (trump in)": 0.3992920950615203,
-     "win big (trump in)": 0.23689533119838194,
-     "duck high": 0.1908815101972021,
-     "duck low": 0.08503286701500085,
-     "Wizard": 0.05764368784763189,
-     "Jester": 0.030254508680262936
+     "win cheaply (trump in)": 0.4890363773838528,
+     "win big (trump in)": 0.28253381500462066,
+     "duck high": 0.13954465260858606,
+     "Wizard": 0.03679744602201126,
+     "duck low": 0.03578929681592876,
+     "Jester": 0.01629841216500042
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "middle",
+     "trick": "trump is winning",
+     "follow": "can follow, nothing but a Wizard wins"
+    },
+    "n": 9959,
+    "plays": {
+     "duck high": 0.3961241088462697,
+     "duck low": 0.3321618636409278,
+     "Wizard": 0.17321016166281755,
+     "Jester": 0.09850386584998494
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "middle",
+     "trick": "trump is winning",
+     "follow": "can follow"
+    },
+    "n": 8849,
+    "plays": {
+     "win cheaply": 0.487738727539835,
+     "win big": 0.1543677251666855,
+     "duck high": 0.13978980675782574,
+     "Jester": 0.12984518024635552,
+     "Wizard": 0.06961238558029156,
+     "duck low": 0.018646174709006667
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "middle",
+     "trick": "trump is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 7796,
+    "plays": {
+     "duck low": 0.40879938429964086,
+     "duck high": 0.3952026680348897,
+     "Wizard": 0.16097998973832733,
+     "Jester": 0.03501795792714212
     }
    },
    {
@@ -2531,59 +2611,12 @@
      "trick": "a Wizard is winning",
      "follow": "no suit to follow"
     },
-    "n": 10256,
+    "n": 6125,
     "plays": {
-     "duck low": 0.93652496099844,
-     "Jester": 0.050799531981279254,
-     "duck high": 0.012382995319812793,
-     "Wizard": 0.00029251170046801873
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "middle",
-     "trick": "trump is winning",
-     "follow": "can follow"
-    },
-    "n": 8615,
-    "plays": {
-     "win cheaply": 0.473476494486361,
-     "duck high": 0.1881601857225769,
-     "win big": 0.13847939640162507,
-     "Jester": 0.10829947765525247,
-     "Wizard": 0.06291352292513058,
-     "duck low": 0.028670922809053975
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "middle",
-     "trick": "trump is winning",
-     "follow": "can follow, nothing but a Wizard wins"
-    },
-    "n": 7971,
-    "plays": {
-     "duck high": 0.4778572324676954,
-     "duck low": 0.34173880316146027,
-     "Wizard": 0.09120562037385523,
-     "Jester": 0.08919834399698909
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "middle",
-     "trick": "trump is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 6121,
-    "plays": {
-     "duck low": 0.4095735990851168,
-     "duck high": 0.3937265152752818,
-     "Wizard": 0.17350106191798725,
-     "Jester": 0.023198823721614116
+     "duck low": 0.9128163265306123,
+     "Jester": 0.07134693877551021,
+     "duck high": 0.0156734693877551,
+     "Wizard": 0.00016326530612244898
     }
    },
    {
@@ -2593,12 +2626,12 @@
      "trick": "a Wizard is winning",
      "follow": "can follow"
     },
-    "n": 5495,
+    "n": 5417,
     "plays": {
-     "duck low": 0.762147406733394,
-     "duck high": 0.15868971792538672,
-     "Jester": 0.07734303912647862,
-     "Wizard": 0.0018198362147406734
+     "duck low": 0.7271552519844933,
+     "duck high": 0.16540520583348717,
+     "Jester": 0.10393206571903267,
+     "Wizard": 0.003507476462986893
     }
    },
    {
@@ -2608,12 +2641,12 @@
      "trick": "a Wizard is winning",
      "follow": "can't follow"
     },
-    "n": 3667,
+    "n": 3650,
     "plays": {
-     "duck low": 0.9056449413689664,
-     "Jester": 0.0763566948459231,
-     "duck high": 0.016907553858740116,
-     "Wizard": 0.00109080992637033
+     "duck low": 0.9052054794520548,
+     "Jester": 0.07753424657534247,
+     "duck high": 0.01643835616438356,
+     "Wizard": 0.0008219178082191781
     }
    },
    {
@@ -2623,12 +2656,12 @@
      "trick": "only Jesters so far",
      "follow": "no suit to follow"
     },
-    "n": 1789,
+    "n": 1809,
     "plays": {
-     "win big": 0.4130799329234209,
-     "win cheaply": 0.3320290665176076,
-     "Wizard": 0.22302962548910005,
-     "Jester": 0.03186137506987144
+     "win big": 0.4267551133222775,
+     "win cheaply": 0.35765616362631286,
+     "Wizard": 0.18352681039248203,
+     "Jester": 0.032061912658927584
     }
    },
    {
@@ -2637,171 +2670,171 @@
      "seat": "middle",
      "trick": "trump is winning",
      "follow": "can't follow"
+    },
+    "n": 1521,
+    "plays": {
+     "win cheaply (trump in)": 0.6594345825115056,
+     "win big (trump in)": 0.16699539776462854,
+     "duck high": 0.08547008547008547,
+     "duck low": 0.06443129520052597,
+     "Wizard": 0.014464168310322156,
+     "Jester": 0.009204470742932281
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "off-suit is winning",
+     "follow": "can follow, nothing but a Wizard wins"
+    },
+    "n": 6294,
+    "plays": {
+     "duck high": 0.4760088973625675,
+     "duck low": 0.32411820781696854,
+     "Wizard": 0.1700031776294884,
+     "Jester": 0.02986971719097553
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "trump is winning",
+     "follow": "can follow, nothing but a Wizard wins"
+    },
+    "n": 4212,
+    "plays": {
+     "duck high": 0.387701804368471,
+     "duck low": 0.31362773029439694,
+     "Wizard": 0.2402659069325736,
+     "Jester": 0.0584045584045584
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "a Wizard is winning",
+     "follow": "can follow"
+    },
+    "n": 3753,
+    "plays": {
+     "duck low": 0.743138822275513,
+     "duck high": 0.1550759392486011,
+     "Jester": 0.09752198241406874,
+     "Wizard": 0.004263256061817213
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "off-suit is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 2662,
+    "plays": {
+     "duck low": 0.5075131480090158,
+     "duck high": 0.23403456048084148,
+     "Wizard": 0.22501878287002253,
+     "Jester": 0.03343350864012021
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "a Wizard is winning",
+     "follow": "can't follow"
+    },
+    "n": 2369,
+    "plays": {
+     "duck low": 0.9168425495989869,
+     "Jester": 0.0671169269734065,
+     "duck high": 0.015196285352469396,
+     "Wizard": 0.0008442380751371887
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "trump is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 2363,
+    "plays": {
+     "duck low": 0.40880236986881086,
+     "duck high": 0.30596699111299197,
+     "Wizard": 0.2467202708421498,
+     "Jester": 0.038510368176047395
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "off-suit is winning",
+     "follow": "can follow"
+    },
+    "n": 2293,
+    "plays": {
+     "win cheaply": 0.6432621020497166,
+     "win big": 0.1264718709114697,
+     "Wizard": 0.113388573920628,
+     "duck high": 0.08416921064108156,
+     "Jester": 0.02311382468382032,
+     "duck low": 0.009594417793283908
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "off-suit is winning",
+     "follow": "can't follow"
+    },
+    "n": 1733,
+    "plays": {
+     "win cheaply (trump in)": 0.4997114829774957,
+     "win big (trump in)": 0.29890363531448355,
+     "duck high": 0.13791113675706868,
+     "duck low": 0.030005770340450086,
+     "Wizard": 0.02827466820542412,
+     "Jester": 0.0051933064050779
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "a Wizard is winning",
+     "follow": "no suit to follow"
+    },
+    "n": 1594,
+    "plays": {
+     "duck low": 0.9222082810539524,
+     "Jester": 0.056461731493099125,
+     "duck high": 0.02070263488080301,
+     "Wizard": 0.0006273525721455458
+    }
+   },
+   {
+    "situation": {
+     "need": "need more",
+     "seat": "last",
+     "trick": "trump is winning",
+     "follow": "can follow"
     },
     "n": 1255,
     "plays": {
-     "win cheaply (trump in)": 0.5370517928286852,
-     "duck high": 0.14741035856573706,
-     "win big (trump in)": 0.14103585657370518,
-     "duck low": 0.11872509960159362,
-     "Jester": 0.02948207171314741,
-     "Wizard": 0.026294820717131476
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "off-suit is winning",
-     "follow": "can follow, nothing but a Wizard wins"
-    },
-    "n": 5718,
-    "plays": {
-     "duck high": 0.5197621545995104,
-     "duck low": 0.3280867436166492,
-     "Wizard": 0.09811122770199371,
-     "Jester": 0.0540398740818468
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "trump is winning",
-     "follow": "can follow, nothing but a Wizard wins"
-    },
-    "n": 3596,
-    "plays": {
-     "duck high": 0.4649610678531702,
-     "duck low": 0.339265850945495,
-     "Wizard": 0.13181312569521692,
-     "Jester": 0.06395995550611791
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "a Wizard is winning",
-     "follow": "can follow"
-    },
-    "n": 3376,
-    "plays": {
-     "duck low": 0.7695497630331753,
-     "duck high": 0.14691943127962084,
-     "Jester": 0.07849526066350711,
-     "Wizard": 0.005035545023696682
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "a Wizard is winning",
-     "follow": "no suit to follow"
-    },
-    "n": 2729,
-    "plays": {
-     "duck low": 0.9402711615976548,
-     "Jester": 0.04470502015390253,
-     "duck high": 0.014657383657017223,
-     "Wizard": 0.00036643459142543056
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "off-suit is winning",
-     "follow": "can follow"
-    },
-    "n": 2470,
-    "plays": {
-     "win cheaply": 0.5004048582995951,
-     "Wizard": 0.1757085020242915,
-     "duck high": 0.1408906882591093,
-     "win big": 0.11417004048582996,
-     "Jester": 0.04817813765182186,
-     "duck low": 0.020647773279352227
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "off-suit is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 2346,
-    "plays": {
-     "duck low": 0.5528559249786871,
-     "duck high": 0.23060528559249788,
-     "Wizard": 0.1875532821824382,
-     "Jester": 0.028985507246376812
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "a Wizard is winning",
-     "follow": "can't follow"
-    },
-    "n": 2093,
-    "plays": {
-     "duck low": 0.9010989010989011,
-     "Jester": 0.08122312470138557,
-     "duck high": 0.016244624940277116,
-     "Wizard": 0.001433349259436216
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "trump is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 1842,
-    "plays": {
-     "duck low": 0.4554831704668838,
-     "duck high": 0.3311617806731813,
-     "Wizard": 0.1758957654723127,
-     "Jester": 0.03745928338762215
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "off-suit is winning",
-     "follow": "can't follow"
-    },
-    "n": 1752,
-    "plays": {
-     "win cheaply (trump in)": 0.4075342465753425,
-     "win big (trump in)": 0.2631278538812785,
-     "duck high": 0.1980593607305936,
-     "duck low": 0.06906392694063927,
-     "Wizard": 0.043949771689497714,
-     "Jester": 0.0182648401826484
-    }
-   },
-   {
-    "situation": {
-     "need": "need more",
-     "seat": "last",
-     "trick": "trump is winning",
-     "follow": "can follow"
-    },
-    "n": 1368,
-    "plays": {
-     "win cheaply": 0.5957602339181286,
-     "duck high": 0.19444444444444445,
-     "win big": 0.11403508771929824,
-     "duck low": 0.04093567251461988,
-     "Wizard": 0.04093567251461988,
-     "Jester": 0.013888888888888888
+     "win cheaply": 0.6621513944223107,
+     "duck high": 0.18326693227091634,
+     "win big": 0.100398406374502,
+     "duck low": 0.027091633466135457,
+     "Wizard": 0.020717131474103586,
+     "Jester": 0.006374501992031873
     }
    },
    {
@@ -2811,14 +2844,14 @@
      "trick": "trump is winning",
      "follow": "can't follow"
     },
-    "n": 686,
+    "n": 763,
     "plays": {
-     "win cheaply (trump in)": 0.6574344023323615,
-     "win big (trump in)": 0.15743440233236153,
-     "duck high": 0.08892128279883382,
-     "duck low": 0.0597667638483965,
-     "Wizard": 0.023323615160349854,
-     "Jester": 0.013119533527696793
+     "win cheaply (trump in)": 0.7247706422018348,
+     "win big (trump in)": 0.16120576671035386,
+     "duck high": 0.07339449541284404,
+     "duck low": 0.028833551769331587,
+     "Wizard": 0.007863695937090432,
+     "Jester": 0.003931847968545216
     }
    },
    {
@@ -2828,14 +2861,14 @@
      "trick": "\u2014",
      "follow": "\u2014"
     },
-    "n": 26362,
+    "n": 24601,
     "plays": {
-     "lead off-suit low": 0.660572035505652,
-     "lead trump low": 0.1893255443441317,
-     "Jester": 0.12487671648585084,
-     "lead trump high (J+)": 0.01642515742356422,
-     "lead off-suit high (K+)": 0.006865943403383658,
-     "Wizard": 0.0019346028374174948
+     "lead off-suit low": 0.6403398235844071,
+     "lead trump low": 0.21259298402503962,
+     "Jester": 0.13023860818665908,
+     "lead trump high (J+)": 0.011788138693549043,
+     "lead off-suit high (K+)": 0.004308767936262754,
+     "Wizard": 0.0007316775740823544
     }
    },
    {
@@ -2845,12 +2878,12 @@
      "trick": "off-suit is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 14940,
+    "n": 15527,
     "plays": {
-     "duck low": 0.4679384203480589,
-     "duck high": 0.45829986613119145,
-     "Jester": 0.07356091030789826,
-     "Wizard": 0.00020080321285140563
+     "duck high": 0.675790558382173,
+     "duck low": 0.2667611257808978,
+     "Jester": 0.057190700070844334,
+     "Wizard": 0.0002576157660848844
     }
    },
    {
@@ -2860,12 +2893,44 @@
      "trick": "trump is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 13633,
+    "n": 13381,
     "plays": {
-     "duck high": 0.5002567299933983,
-     "duck low": 0.4433360228856451,
-     "Jester": 0.056260544267586005,
-     "Wizard": 0.00014670285337049806
+     "duck high": 0.7199013526642254,
+     "duck low": 0.25603467603318136,
+     "Jester": 0.023989238472460952,
+     "Wizard": 7.47328301322771e-05
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "off-suit is winning",
+     "follow": "can follow, nothing but a Wizard wins"
+    },
+    "n": 11131,
+    "plays": {
+     "duck high": 0.7757613871170604,
+     "duck low": 0.17806127032611624,
+     "Jester": 0.046087503368969544,
+     "Wizard": 8.98391878537418e-05
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "middle",
+     "trick": "off-suit is winning",
+     "follow": "can follow"
+    },
+    "n": 9444,
+    "plays": {
+     "duck high": 0.3519695044472681,
+     "Jester": 0.3044260906395595,
+     "win cheaply": 0.2740364252435409,
+     "duck low": 0.05167301990681914,
+     "win big": 0.017259635747564592,
+     "Wizard": 0.0006353240152477764
     }
    },
    {
@@ -2875,44 +2940,12 @@
      "trick": "a Wizard is winning",
      "follow": "no suit to follow"
     },
-    "n": 10652,
+    "n": 7161,
     "plays": {
-     "duck high": 0.5636500187758168,
-     "duck low": 0.3837776943297033,
-     "Jester": 0.04769057453999249,
-     "Wizard": 0.00488171235448742
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "off-suit is winning",
-     "follow": "can follow"
-    },
-    "n": 10611,
-    "plays": {
-     "duck high": 0.33012911129959477,
-     "Jester": 0.321553105268118,
-     "win cheaply": 0.26199227217038923,
-     "duck low": 0.05437753274903402,
-     "win big": 0.030157383846951276,
-     "Wizard": 0.001790594665912732
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "middle",
-     "trick": "off-suit is winning",
-     "follow": "can follow, nothing but a Wizard wins"
-    },
-    "n": 9980,
-    "plays": {
-     "duck high": 0.6228456913827656,
-     "duck low": 0.3007014028056112,
-     "Jester": 0.07635270541082165,
-     "Wizard": 0.0001002004008016032
+     "duck high": 0.7416561932690965,
+     "duck low": 0.22999581064097194,
+     "Jester": 0.021924312246892893,
+     "Wizard": 0.006423683843038682
     }
    },
    {
@@ -2922,12 +2955,12 @@
      "trick": "a Wizard is winning",
      "follow": "can't follow"
     },
-    "n": 4976,
+    "n": 4515,
     "plays": {
-     "duck high": 0.577371382636656,
-     "duck low": 0.35852090032154343,
-     "Jester": 0.05164790996784566,
-     "Wizard": 0.012459807073954984
+     "duck high": 0.7767441860465116,
+     "duck low": 0.19091915836101883,
+     "Jester": 0.023255813953488372,
+     "Wizard": 0.009080841638981174
     }
    },
    {
@@ -2937,12 +2970,11 @@
      "trick": "trump is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 3861,
+    "n": 4070,
     "plays": {
-     "duck high": 0.6664076664076664,
-     "duck low": 0.28593628593628595,
-     "Jester": 0.0473970473970474,
-     "Wizard": 0.000259000259000259
+     "duck high": 0.7714987714987716,
+     "duck low": 0.19926289926289925,
+     "Jester": 0.02923832923832924
     }
    },
    {
@@ -2952,12 +2984,12 @@
      "trick": "a Wizard is winning",
      "follow": "can follow"
     },
-    "n": 3157,
+    "n": 2777,
     "plays": {
-     "duck high": 0.6236933797909407,
-     "duck low": 0.2793791574279379,
-     "Jester": 0.08742477035159962,
-     "Wizard": 0.009502692429521698
+     "duck high": 0.8239106949945985,
+     "duck low": 0.15088224702916816,
+     "Jester": 0.017284839755131436,
+     "Wizard": 0.00792221822110191
     }
    },
    {
@@ -2967,14 +2999,14 @@
      "trick": "off-suit is winning",
      "follow": "can't follow"
     },
-    "n": 3098,
+    "n": 2550,
     "plays": {
-     "duck high": 0.5248547449967721,
-     "duck low": 0.2921239509360878,
-     "Jester": 0.13879922530664945,
-     "win cheaply (trump in)": 0.03260167850225952,
-     "win big (trump in)": 0.010974822466107165,
-     "Wizard": 0.0006455777921239509
+     "duck high": 0.6701960784313725,
+     "duck low": 0.19137254901960785,
+     "Jester": 0.1,
+     "win cheaply (trump in)": 0.03019607843137255,
+     "win big (trump in)": 0.00784313725490196,
+     "Wizard": 0.000392156862745098
     }
    },
    {
@@ -2984,12 +3016,12 @@
      "trick": "only Jesters so far",
      "follow": "no suit to follow"
     },
-    "n": 2016,
+    "n": 2046,
     "plays": {
-     "win cheaply": 0.5515873015873016,
-     "win big": 0.2693452380952381,
-     "Jester": 0.17807539682539683,
-     "Wizard": 0.000992063492063492
+     "win cheaply": 0.5918866080156403,
+     "Jester": 0.23558162267839688,
+     "win big": 0.17204301075268819,
+     "Wizard": 0.0004887585532746823
     }
    },
    {
@@ -2999,14 +3031,13 @@
      "trick": "trump is winning",
      "follow": "can follow"
     },
-    "n": 620,
+    "n": 502,
     "plays": {
-     "Jester": 0.4790322580645161,
-     "win cheaply": 0.31451612903225806,
-     "duck high": 0.1693548387096774,
-     "win big": 0.03064516129032258,
-     "duck low": 0.0032258064516129032,
-     "Wizard": 0.0032258064516129032
+     "Jester": 0.4442231075697211,
+     "win cheaply": 0.4123505976095618,
+     "duck high": 0.12749003984063745,
+     "win big": 0.013944223107569721,
+     "duck low": 0.00199203187250996
     }
    },
    {
@@ -3016,11 +3047,12 @@
      "trick": "trump is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 3663,
+    "n": 3572,
     "plays": {
-     "duck high": 0.5012285012285013,
-     "duck low": 0.43161343161343163,
-     "Jester": 0.06715806715806716
+     "duck high": 0.719484882418813,
+     "duck low": 0.2522396416573348,
+     "Jester": 0.027995520716685332,
+     "Wizard": 0.0002799552071668533
     }
    },
    {
@@ -3030,12 +3062,56 @@
      "trick": "a Wizard is winning",
      "follow": "can't follow"
     },
-    "n": 2976,
+    "n": 2974,
     "plays": {
-     "duck high": 0.5584677419354839,
-     "duck low": 0.38205645161290325,
-     "Jester": 0.04872311827956989,
-     "Wizard": 0.010752688172043012
+     "duck high": 0.7471418964357768,
+     "duck low": 0.21889710827168796,
+     "Jester": 0.02051109616677875,
+     "Wizard": 0.013449899125756557
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "off-suit is winning",
+     "follow": "can't follow, nothing but a Wizard wins"
+    },
+    "n": 2469,
+    "plays": {
+     "duck high": 0.6528959092750102,
+     "duck low": 0.29526123936816523,
+     "Jester": 0.05184285135682463
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "off-suit is winning",
+     "follow": "can follow, nothing but a Wizard wins"
+    },
+    "n": 2283,
+    "plays": {
+     "duck high": 0.7547087166009636,
+     "duck low": 0.20630749014454666,
+     "Jester": 0.038545773105562856,
+     "Wizard": 0.0004380201489268506
+    }
+   },
+   {
+    "situation": {
+     "need": "made it",
+     "seat": "last",
+     "trick": "a Wizard is winning",
+     "follow": "can follow"
+    },
+    "n": 1905,
+    "plays": {
+     "duck high": 0.8304461942257217,
+     "duck low": 0.13910761154855644,
+     "Jester": 0.02204724409448819,
+     "Wizard": 0.008398950131233596
     }
    },
    {
@@ -3045,56 +3121,12 @@
      "trick": "a Wizard is winning",
      "follow": "no suit to follow"
     },
-    "n": 2602,
+    "n": 1810,
     "plays": {
-     "duck high": 0.5780169100691775,
-     "duck low": 0.37432744043043814,
-     "Jester": 0.03843197540353574,
-     "Wizard": 0.009223674096848577
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "off-suit is winning",
-     "follow": "can follow, nothing but a Wizard wins"
-    },
-    "n": 2431,
-    "plays": {
-     "duck high": 0.5915261209378856,
-     "duck low": 0.3039901275195393,
-     "Jester": 0.10448375154257507
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "off-suit is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 2319,
-    "plays": {
-     "duck high": 0.45321259163432515,
-     "duck low": 0.4514877102199224,
-     "Jester": 0.0944372574385511,
-     "Wizard": 0.0008624407072013799
-    }
-   },
-   {
-    "situation": {
-     "need": "made it",
-     "seat": "last",
-     "trick": "a Wizard is winning",
-     "follow": "can follow"
-    },
-    "n": 1857,
-    "plays": {
-     "duck high": 0.6472805600430802,
-     "duck low": 0.2606354334948842,
-     "Jester": 0.07754442649434572,
-     "Wizard": 0.014539579967689823
+     "duck high": 0.7679558011049724,
+     "duck low": 0.2110497237569061,
+     "Jester": 0.013259668508287293,
+     "Wizard": 0.0077348066298342545
     }
    },
    {
@@ -3104,11 +3136,11 @@
      "trick": "trump is winning",
      "follow": "can follow, nothing but a Wizard wins"
     },
-    "n": 1814,
+    "n": 1773,
     "plays": {
-     "duck high": 0.6080485115766262,
-     "duck low": 0.33461962513781696,
-     "Jester": 0.05733186328555678
+     "duck high": 0.7490129723632262,
+     "duck low": 0.2188381274675691,
+     "Jester": 0.032148900169204735
     }
    },
    {
@@ -3118,14 +3150,14 @@
      "trick": "off-suit is winning",
      "follow": "can follow"
     },
-    "n": 948,
+    "n": 776,
     "plays": {
-     "duck high": 0.42510548523206754,
-     "Jester": 0.3080168776371308,
-     "win cheaply": 0.12236286919831224,
-     "duck low": 0.07489451476793249,
-     "win big": 0.05590717299578059,
-     "Wizard": 0.013713080168776372
+     "duck high": 0.46262886597938147,
+     "Jester": 0.28350515463917525,
+     "win cheaply": 0.1211340206185567,
+     "duck low": 0.10438144329896908,
+     "win big": 0.027061855670103094,
+     "Wizard": 0.001288659793814433
     }
    },
    {
@@ -3135,14 +3167,13 @@
      "trick": "off-suit is winning",
      "follow": "can't follow"
     },
-    "n": 422,
+    "n": 352,
     "plays": {
-     "duck high": 0.590047393364929,
-     "duck low": 0.24407582938388625,
-     "Jester": 0.13507109004739337,
-     "win big (trump in)": 0.018957345971563982,
-     "win cheaply (trump in)": 0.0071090047393364926,
-     "Wizard": 0.004739336492890996
+     "duck high": 0.6704545454545454,
+     "duck low": 0.1875,
+     "Jester": 0.11931818181818182,
+     "win big (trump in)": 0.014204545454545454,
+     "win cheaply (trump in)": 0.008522727272727272
     }
    },
    {
@@ -3152,43 +3183,14 @@
      "trick": "\u2014",
      "follow": "\u2014"
     },
-    "n": 3339,
+    "n": 2591,
     "plays": {
-     "lead off-suit low": 0.8298891883797544,
-     "lead trump low": 0.10332434860736747,
-     "lead off-suit high (K+)": 0.034141958670260555,
-     "lead trump high (J+)": 0.018568433662773286,
-     "Jester": 0.013477088948787063,
-     "Wizard": 0.0005989817310572028
-    }
-   },
-   {
-    "situation": {
-     "need": "over",
-     "seat": "middle",
-     "trick": "trump is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
-    },
-    "n": 472,
-    "plays": {
-     "duck low": 0.5084745762711864,
-     "duck high": 0.4851694915254237,
-     "Jester": 0.006355932203389831
-    }
-   },
-   {
-    "situation": {
-     "need": "over",
-     "seat": "middle",
-     "trick": "a Wizard is winning",
-     "follow": "no suit to follow"
-    },
-    "n": 402,
-    "plays": {
-     "duck high": 0.527363184079602,
-     "duck low": 0.4154228855721393,
-     "Wizard": 0.04228855721393035,
-     "Jester": 0.014925373134328358
+     "lead off-suit low": 0.8236202238517947,
+     "lead trump low": 0.0856812041682748,
+     "lead off-suit high (K+)": 0.04438440756464686,
+     "Jester": 0.02277113083751447,
+     "lead trump high (J+)": 0.021613276727132383,
+     "Wizard": 0.0019297568506368198
     }
    },
    {
@@ -3198,11 +3200,11 @@
      "trick": "off-suit is winning",
      "follow": "can't follow, nothing but a Wizard wins"
     },
-    "n": 394,
+    "n": 306,
     "plays": {
-     "duck low": 0.5862944162436549,
-     "duck high": 0.383248730964467,
-     "Jester": 0.030456852791878174
+     "duck high": 0.6176470588235294,
+     "duck low": 0.3790849673202614,
+     "Jester": 0.0032679738562091504
     }
    }
   ]

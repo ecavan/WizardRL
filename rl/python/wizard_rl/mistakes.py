@@ -29,7 +29,7 @@ import numpy as np
 import torch
 
 from . import ACT_BID, GAME, PHASE, WizardEnv
-from .net import load_qnet
+from .net import load_brain
 from .playchart import SIZE, describe
 from .winprob import load_winprob
 
@@ -75,12 +75,19 @@ def situation(r) -> str:
     return f"{need}, {'last to play' if seat == 'last' else 'mid-trick'}, {trick}, {follow}"
 
 
+def lost(x: float, digits: int = 1) -> str:
+    """A cost as a signed number: −3.2 for points given up. (+ if the yardstick network rates the
+    departure higher than the bot's own move, which happens when a policy and the points network
+    disagree.)"""
+    return f"−{x:.{digits}f}" if x >= 0 else f"+{-x:.{digits}f}"
+
+
 def section(title, rows, top):
     lines = [f"### {title}", "", "| Situation | Mistake | Points | Win chance | Per game | Times it was an option |",
              "| --- | --- | ---: | ---: | ---: | ---: |"]
     for r in rows[:top]:
-        lines.append(f"| {situation(r)} | {r['mistake']} | −{r['points']:.1f} | −{r['win']:.2f}% | "
-                     f"−{r['per_game']:.1f} | {r['count']:,} |")
+        lines.append(f"| {situation(r)} | {r['mistake']} | {lost(r['points'])} | {lost(r['win'], 2)}% | "
+                     f"{lost(r['per_game'])} | {r['count']:,} |")
     return lines + [""]
 
 
@@ -98,10 +105,12 @@ def collect(net, wp, players: int, games: int, temp: float, seed: int = 21):
     while done < games:
         obs, legal, _ = env.observe()
         o_t, l_t = torch.from_numpy(obs), torch.from_numpy(legal)
-        pts = (net(o_t) * 100.0).masked_fill(~l_t, float("-inf"))
+        # the points each option is worth; the bot's move (a two-brain bot's policy may differ
+        # from the top score, and a "mistake" is a departure from what the bot plays)
+        pts = (getattr(net, "points", net)(o_t) * 100.0).masked_fill(~l_t, float("-inf"))
         prob = torch.softmax(pts / temp, 1)
         act = torch.multinomial(prob, 1, generator=gen).squeeze(1)
-        best = pts.argmax(1)
+        best = net(o_t).masked_fill(~l_t, float("-inf")).argmax(1)
         pts_np, prob_np = pts.numpy(), prob.numpy()
         for i in np.flatnonzero(legal.sum(1) > 1):
             o = obs[i]
@@ -142,8 +151,9 @@ def to_markdown(data: dict, top: int = 25) -> str:
     md = ["# Wizard mistake chart", "",
           f"What departing from `{data['model']}`'s choice costs, for a human-like player "
           f"(picks with probabilities softmax(expected points / {data['temp']:g})), in full games with everyone "
-          "bidding at once. **Points**: expected points lost that round, as the network sees it. "
-          "**Win chance**: chance of winning the game lost (a rough reading, see `mistakes.py`). "
+          "bidding at once. **Points**: expected points lost that round, as "
+          + (f"`{data['evaluator']}` (a round-points network) sees it. " if data.get("evaluator") else "the network sees it. ")
+          + "**Win chance**: chance of winning the game lost (a rough reading, see `mistakes.py`). "
           "**Per game**: what it costs the human-like player over a whole game (how likely they are "
           "to pick it × what it costs, summed over the game); the habit lists are sorted by it. Every "
           "option at every decision is costed, so rare blunders show up too.", ""]
@@ -186,8 +196,9 @@ def main(argv=None) -> None:
     p.add_argument("--temp", type=float, default=3.0, help="how loosely the human-like player picks")
     p.add_argument("--top", type=int, default=25)
     p.add_argument("--out", default="charts")
+    p.add_argument("--evaluator", default=None, help="for a PPO model: the DMC points network it was anchored to")
     a = p.parse_args(argv)
-    net = load_qnet(a.model).eval()
+    net = load_brain(a.model, a.evaluator).eval()
     wp = load_winprob(a.winprob)
     os.makedirs(a.out, exist_ok=True)
     out = {}
@@ -209,6 +220,8 @@ def main(argv=None) -> None:
                            mistakes=table)
         print(f"{n} players: {games:,} games; lost per game {out[str(n)]['lost_per_game']}", flush=True)
     data = dict(model=os.path.basename(a.model), temp=a.temp, tables=out)
+    if a.evaluator:
+        data["evaluator"] = os.path.basename(a.evaluator)
     with open(os.path.join(a.out, "mistake_chart.json"), "w") as f:
         json.dump(data, f, indent=1)
     with open(os.path.join(a.out, "mistake_chart.md"), "w") as f:

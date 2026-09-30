@@ -1,5 +1,5 @@
 {
- "model": "simul1.pt",
+ "model": "ppo5.pt",
  "situations": [
   {
    "title": "Clubs led on your right, you have no clubs: trump in with the A, the J, or throw off? (hearts trump, you bid 1)",
@@ -25,22 +25,26 @@
     {
      "card": "9\u2660",
      "points": 14.6,
-     "make": 0.622
+     "make": 0.622,
+     "pick": true
     },
     {
      "card": "4\u2666",
      "points": 14.1,
-     "make": 0.62
+     "make": 0.62,
+     "pick": false
     },
     {
      "card": "A\u2665",
      "points": 10.3,
-     "make": 0.52
+     "make": 0.52,
+     "pick": false
     },
     {
      "card": "J\u2665",
      "points": 9.8,
-     "make": 0.511
+     "make": 0.511,
+     "pick": false
     }
    ]
   },
@@ -68,22 +72,26 @@
     {
      "card": "9\u2660",
      "points": 31.2,
-     "make": 0.804
+     "make": 0.804,
+     "pick": true
     },
     {
      "card": "4\u2666",
      "points": 30.0,
-     "make": 0.791
+     "make": 0.791,
+     "pick": false
     },
     {
      "card": "J\u2665",
      "points": 29.0,
-     "make": 0.78
+     "make": 0.78,
+     "pick": false
     },
     {
      "card": "A\u2665",
      "points": 27.8,
-     "make": 0.763
+     "make": 0.763,
+     "pick": false
     }
    ]
   },
@@ -111,22 +119,26 @@
     {
      "card": "9\u2660",
      "points": -10.5,
-     "make": 0.086
+     "make": 0.086,
+     "pick": true
     },
     {
      "card": "4\u2666",
      "points": -14.1,
-     "make": 0.066
+     "make": 0.066,
+     "pick": false
     },
     {
      "card": "A\u2665",
      "points": -17.9,
-     "make": 0.024
+     "make": 0.024,
+     "pick": false
     },
     {
      "card": "J\u2665",
      "points": -19.2,
-     "make": 0.026
+     "make": 0.026,
+     "pick": false
     }
    ]
   },
@@ -154,12 +166,14 @@
     {
      "card": "A\u2663",
      "points": 19.8,
-     "make": 0.73
+     "make": 0.73,
+     "pick": true
     },
     {
      "card": "J\u2663",
      "points": 15.7,
-     "make": 0.646
+     "make": 0.646,
+     "pick": false
     }
    ]
   },
@@ -189,12 +203,14 @@
     {
      "card": "A\u2663",
      "points": 26.3,
-     "make": 0.896
+     "make": 0.896,
+     "pick": true
     },
     {
      "card": "J\u2663",
      "points": 18.5,
-     "make": 0.702
+     "make": 0.702,
+     "pick": false
     }
    ]
   },
@@ -222,12 +238,14 @@
     {
      "card": "3\u2665",
      "points": 17.2,
-     "make": 0.663
+     "make": 0.663,
+     "pick": true
     },
     {
      "card": "K\u2665",
      "points": 14.9,
-     "make": 0.615
+     "make": 0.615,
+     "pick": false
     }
    ]
   },
@@ -255,22 +273,26 @@
     {
      "card": "2\u2663",
      "points": 28.4,
-     "make": 0.918
+     "make": 0.918,
+     "pick": false
     },
     {
      "card": "9\u2666",
      "points": 27.3,
-     "make": 0.912
+     "make": 0.912,
+     "pick": true
     },
     {
      "card": "Jes",
      "points": 23.4,
-     "make": 0.838
+     "make": 0.838,
+     "pick": false
     },
     {
      "card": "A\u2665",
      "points": 7.8,
-     "make": 0.516
+     "make": 0.516,
+     "pick": false
     }
    ]
   },
@@ -300,12 +322,14 @@
     {
      "card": "3\u2660",
      "points": 12.4,
-     "make": 0.836
+     "make": 0.836,
+     "pick": true
     },
     {
      "card": "Q\u2660",
      "points": -5.7,
-     "make": 0.169
+     "make": 0.169,
+     "pick": false
     }
    ]
   },
@@ -332,27 +356,32 @@
     {
      "card": "2\u2666",
      "points": 33.5,
-     "make": 0.873
+     "make": 0.873,
+     "pick": true
     },
     {
      "card": "4\u2660",
      "points": 32.9,
-     "make": 0.873
+     "make": 0.873,
+     "pick": false
     },
     {
      "card": "7\u2663",
      "points": 31.1,
-     "make": 0.858
+     "make": 0.858,
+     "pick": false
     },
     {
      "card": "Wiz",
      "points": 29.3,
-     "make": 0.804
+     "make": 0.804,
+     "pick": false
     },
     {
      "card": "A\u2665",
      "points": 27.8,
-     "make": 0.811
+     "make": 0.811,
+     "pick": false
     }
    ]
   },
@@ -379,27 +408,32 @@
     {
      "card": "3\u2666",
      "points": 2.0,
-     "make": 0.412
+     "make": 0.412,
+     "pick": false
     },
     {
      "card": "5\u2660",
      "points": 1.9,
-     "make": 0.395
+     "make": 0.395,
+     "pick": true
     },
     {
      "card": "9\u2663",
      "points": -2.6,
-     "make": 0.304
+     "make": 0.304,
+     "pick": false
     },
     {
      "card": "Jes",
      "points": -3.0,
-     "make": 0.325
+     "make": 0.325,
+     "pick": false
     },
     {
      "card": "K\u2665",
      "points": -6.3,
-     "make": 0.193
+     "make": 0.193,
+     "pick": false
     }
    ]
   }

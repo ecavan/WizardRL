@@ -315,16 +315,21 @@ making it. For example, "one card, K♥, hearts trump, 4 players, leading". Edit
 
 ```sh
 python -m wizard_rl.bidchart runs/first/best.pt --out charts --logs runs/chartdata   # 3, 4, 5 and 6 players
+python -m wizard_rl.bidchart models/ppo5.pt --evaluator models/arche2.pt --rounds 200000 --out charts  # the current charts
 ```
+
+A PPO model needs `--evaluator`, a DMC points network (every chart command accepts it). The bid
+and play charts only use the moves, so any points network will do there.
 
 See [Bid charts](#bid-charts) below.
 
 ### Play charts ("post-flop")
 
 ```sh
-python -m wizard_rl.playchart models/simul1.pt --players 3,4,5,6 --out charts   # how the bot plays its cards
-python -m wizard_rl.playexplore models/simul1.pt --out charts/play_situations.md  # ask about specific decisions
-python -m wizard_rl.mistakes models/simul1.pt --players 3,4,5,6 --out charts      # what mistakes cost
+E="--evaluator models/simul1.pt"   # points in plain round points (see below)
+python -m wizard_rl.playchart models/ppo5.pt $E --players 3,4,5,6 --out charts   # how the bot plays its cards
+python -m wizard_rl.playexplore models/ppo5.pt $E --out charts/play_situations.md  # ask about specific decisions
+python -m wizard_rl.mistakes models/ppo5.pt $E --players 3,4,5,6 --out charts      # what mistakes cost
 ```
 
 See [Play charts](#play-charts-how-to-play-after-bidding) and [What mistakes cost](#what-mistakes-cost)
@@ -519,6 +524,9 @@ still comes from how it plays the cards.
 
 ## Bid charts
 
+**The current charts come from the best bot, `ppo5`.** (They were first made from `simul1`; the
+card values barely moved, see below.)
+
 `python -m wizard_rl.bidchart MODEL` has the bot play 200,000 rounds against itself at each table
 size (everyone bidding at once). It records every hand and how many tricks it took. Then it fits
 a value for **every card**: Wizard, Jester, each rank of trump (A, K, ... 2), and each rank of
@@ -530,7 +538,7 @@ This is done separately for each table size and range of hand sizes (1, 2, 3–4
 their own table, where every suit is an off-suit.
 
 **Choosing the chart's form.** Each option was tested on 30% of hands held out from the fit
-(4 players shown):
+(`simul1`'s hands, 4 players shown):
 
 | Chart | Average miss (tricks) | Chart bid exactly right | Same bid as the bot |
 | --- | --- | --- | --- |
@@ -541,14 +549,20 @@ their own table, where every suit is an off-suit.
 
 - **Rounding.** Tuning the cut-off to maximize points instead of rounding at .5 added only 0.2
   points per round (the best cut-off is about .45), so the chart just rounds.
-- **The bot's own bids still earn more** (26.5 vs 23.7 points per round at 4 players, with the
-  same play). They weigh everything the chart can't: which cards go together, seat, and the rest
-  of the table.
+- **The bot's own bids still earn more** (for `simul1`: 26.5 vs 23.7 points per round at 4
+  players, with the same play). They weigh everything the chart can't: which cards go together,
+  seat, and the rest of the table.
+- **`ppo5` vs `simul1`.** The card values are nearly the same: most move by 0.03 or less, and a
+  Wizard in big hands is worth a little more (1.16 vs 1.08 tricks at 11–15 cards, 4 players).
+  What changed is the table: in `ppo5`'s own games bids are harder to make (70% made at 4 players,
+  vs 73.5% at `simul1` tables), because every seat fights harder for tricks and pushes the
+  others over. So the chart's exact-hit rate is a few points lower (62% vs 65% at 5–7 cards);
+  that's the harder table, not a worse chart.
 
 **Jesters (and Wizards) beyond tricks.** A Jester is worth about zero tricks, but it's far from
 useless: you can always duck a trick with it. So the chart also measures how much each one raises
 your chance of **making your bid**, compared with holding another card instead. At 4 players it's
-+26% in a 1-card round down to +10% in the big rounds, more than a Wizard (+19% to +8%).
++26% in a 1-card round down to +9% in the big rounds, more than a Wizard (+18% to +5%).
 
 It writes these files to `--out` (the current ones are in [`rl/charts/`](rl/charts/)):
 
@@ -587,14 +601,21 @@ kind of play. Some patterns (4 players):
 
 | Situation | What the bot does |
 | --- | --- |
-| Leading, you still need tricks | lead a low off-suit card 52%, a high off-suit 21%, low trump 11%, a Wizard 10% |
-| Leading, you need every trick left | lead a Wizard 45%, high trump 26% |
-| Following, you need tricks and can win | win as cheaply as possible (44–62%); trump in cheaply when you can't follow (47–64%) |
-| A Wizard is winning, you need tricks | throw your lowest card (72–89%), sometimes a Jester |
-| You've made your bid exactly | when nothing you hold can win, dump your highest card (51–72%); when you could win, play a Jester (40%) or duck high (30%) |
+| Leading, you still need tricks | lead a low off-suit card 56%, a high off-suit 21%, low trump 11%, a Wizard 6% |
+| Leading, you need every trick left | lead a Wizard 34%, high trump 23%, a low off-suit 23% |
+| Following, you need tricks and can win | win as cheaply as possible (48–68%); trump in cheaply when you can't follow (57–68%) |
+| A Wizard is winning, you need tricks | throw your lowest card (70–86%), sometimes a Jester (11–19%) |
+| You've made your bid exactly | when nothing you hold can win, dump your highest card (55–82%); when you could win, play a Jester (37%) or duck high (33–37%) |
 
-`playexplore` answers specific first-trick questions with the bot's expected points and chance of
-making your bid for every card you could play (`charts/play_situations.md`). For example:
+(`ppo5`. Compared with `simul1` it leads Wizards less when it still needs tricks, 6% vs 10%, and
+when it needs every trick left, 34% vs 45%, saving them for later.)
+
+`playexplore` answers specific first-trick questions with the expected points and chance of making
+your bid for every card you could play, and marks the card the bot plays
+(`charts/play_situations.md`). The points come from `simul1`, a pure round-points network; `ppo5`'s
+own points network also carries the win bonus it was trained with, and hasn't seen lone rounds
+since, so its numbers read oddly there. `ppo5` plays `simul1`'s top-scoring card in 8 of the 10
+situations; the other two are near-ties (1.1 and 0.1 points). For example:
 
 - **Clubs led on your right, you have no clubs, hearts trump, you hold A♥ J♥ 9♠ 4♦ and bid 1:**
   throw off the 9♠ (+14.6). Trumping in with the A♥ (+10.3) or the J♥ (+9.8) is worse, because
@@ -607,9 +628,9 @@ making your bid for every card you could play (`charts/play_situations.md`). For
 `mistakes` plays full games with a human-like player in every seat (it picks each move with
 probability proportional to exp(points / 3), between `@soft2` and `@soft4` on the
 [strength curve](#strength-curve-the-bot-against-imperfect-versions-of-itself)). At every decision
-it costs **every** option other than the bot's favourite two ways:
+it costs **every** option other than the bot's move two ways:
 
-- **Points**: expected points lost that round (the bot's own estimate).
+- **Points**: expected points lost that round, measured by `simul1` (plain round points).
 - **Win chance**: chance of winning the game lost. It's your margins with each option's expected
   points, run through the win-probability model, with the other players' rounds taken as even.
   So it's a rough reading.
@@ -623,20 +644,25 @@ has three lists per table size:
 - **Biggest mistakes**: the worst single choices, whether or not people make them.
 - **Bidding**: bidding one or two more or fewer than the bot, by hand size.
 
-Over a game this player gives up about 9 points in bidding and 92 in card play at 4 players (3
-players: 14 and 201; 5: 6 and 49; 6: 4 and 29). That's a sanity check: the bot beats `@soft2`
-tables by 52 points a game and `@soft4` tables by 117. **Most of the points go in card play, not
-bidding.** Some findings (4 players):
+Measured against `ppo5`'s moves, this player gives up about 5 points a game in bidding and 50 in
+card play at 4 players (3 players: 7 and 82; 5: 4 and 28; 6: 3 and 16). **Most of the points go in
+card play, not bidding.**
+
+The first version, with `simul1` both choosing and grading, said 9 and 92 at 4 players. Part of
+that was the network grading its own picks: a network's favourite move always looks best by its
+own estimate, so noise in its estimates inflates the cost of every departure. Grading one
+network's moves with another removes most of that bias, so the new numbers are the better
+reading. Some findings (4 players):
 
 | Situation | Mistake | Costs |
 | --- | --- | ---: |
-| You lead and still need tricks | a low off-suit card where the bot cashes its K or A | 3.8 points; the costliest habit over a game |
-| Mid-trick, you need tricks, you can win cheaply | a Wizard or a Jester instead | 8 points |
+| You lead and still need tricks | a low off-suit card where the bot cashes its K or A | 3.5 points; the costliest habit over a game |
+| Mid-trick, you need tricks, you can win cheaply | a Wizard or a Jester instead | 7–8 points |
 | A Wizard is already winning | playing your own Wizard (it can't win; it's just thrown away) | 19–30 points |
-| Last to play, you can't follow, you need tricks | a Wizard or a Jester instead of a cheap trump | 18 points |
+| Last to play, you can't follow, you need tricks | a Wizard or a Jester instead of a cheap trump | 17–18 points |
 | You've made your bid, mid-trick, you can follow | taking the trick cheaply where the bot plays a Jester or ducks high | 12–14 points |
-| You've made your bid and lead | a high off-suit card instead of a low one | 10.5 points |
-| 13+ cards | bidding 2+ more than the bot | 100 points |
+| You've made your bid and lead | a high off-suit card instead of a low one | 10 points |
+| 13+ cards | bidding 2+ more than the bot | 99 points |
 
 `python -m wizard_rl.mistakes render charts/mistake_chart.json` rewrites the markdown from the
 JSON; `--temp` sets how loosely the human-like player picks.

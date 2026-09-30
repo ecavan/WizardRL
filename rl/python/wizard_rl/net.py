@@ -84,3 +84,37 @@ def best_device() -> torch.device:
     if torch.backends.mps.is_available():
         return torch.device("mps")
     return torch.device("cpu")
+
+
+class TwoBrain(nn.Module):
+    """A PPO policy that chooses plus the DMC points network that scores (as in a two-brain
+    `.wznet`). Calling it gives the policy's logits, so "the best legal output" is the move the
+    bot plays; `both` and `points` give the points network's scores, for anything that needs
+    expected points (the advisor, move costs)."""
+
+    def __init__(self, policy: nn.Module, evaluator: QNet):
+        super().__init__()
+        self.policy, self.evaluator = policy, evaluator
+        self.features = max(policy.features, evaluator.features)
+
+    def forward(self, obs: torch.Tensor) -> torch.Tensor:
+        return self.policy(obs)[0]
+
+    def both(self, obs: torch.Tensor):
+        return self.evaluator.both(obs)
+
+    def points(self, obs: torch.Tensor) -> torch.Tensor:
+        return self.evaluator(obs)
+
+
+def load_brain(path: str, evaluator: str | None = None) -> nn.Module:
+    """A DMC network, or (for a PPO checkpoint) a TwoBrain of it and `evaluator`."""
+    ck = torch.load(path, map_location="cpu", weights_only=False)
+    if "pi.weight" not in ck["model"]:
+        return load_qnet(path)
+    if not evaluator:
+        raise SystemExit(f"{path} is a PPO policy: give --evaluator DMC.pt (the points network it was anchored to)")
+    from .ppo import PolicyNet
+    pol = PolicyNet(**ck["net"])
+    pol.load_state_dict(ck["model"])
+    return TwoBrain(pol.eval(), load_qnet(evaluator)).eval()

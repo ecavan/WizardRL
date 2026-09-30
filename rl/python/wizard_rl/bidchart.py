@@ -29,7 +29,7 @@ import numpy as np
 import torch
 
 from . import WizardEnv
-from .net import load_qnet, pick_actions
+from .net import load_brain, pick_actions
 
 RANKS = ["A", "K", "Q", "J", "10", "9", "8", "7", "6", "5", "4", "3", "2"]  # high to low
 # One value per rank (not buckets): tested on held-out hands, per-rank values predict tricks
@@ -223,8 +223,9 @@ def main(argv=None) -> None:
     p.add_argument("--players", default="3,4,5,6")
     p.add_argument("--rounds", type=int, default=150_000, help="rounds of self-play per table size")
     p.add_argument("--logs", default=None, help="folder to save the self-play hands in (and reuse them from next time)")
+    p.add_argument("--evaluator", default=None, help="for a PPO model: the DMC points network it was anchored to")
     a = p.parse_args(argv)
-    net = load_qnet(a.model)
+    net = load_brain(a.model, a.evaluator)
     os.makedirs(a.out, exist_ok=True)
     md = ["# Wizard bid chart", "",
           f"Made from `{os.path.basename(a.model)}` playing {a.rounds:,} rounds against itself at each table size, "

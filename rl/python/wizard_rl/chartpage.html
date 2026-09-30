@@ -91,6 +91,7 @@ tr.first-acc th, tr.first-acc td { border-top: 1px solid var(--line); padding-to
 .p-leadhigh { background: color-mix(in oklab, var(--heat) 80%, var(--ink)); } .p-leadlow { background: color-mix(in oklab, var(--heat) 30%, var(--surface)); }
 .plays { font-size: 12px; color: var(--muted); }
 .plays b { color: var(--ink); }
+.plays-tag { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--heat); margin-left: 4px; }
 .sitinline { display: none; font-size: 12px; color: var(--muted); margin-bottom: 2px; }
 @media (max-width: 640px) {
   #mistable .sitcol, #mistable .pgcol { display: none; }
@@ -173,7 +174,7 @@ footer p { margin: 0; }
     </section>
     <section class="panel" aria-labelledby="sit-h">
       <h2 id="sit-h">Example decisions</h2>
-      <p class="sub">The bot's expected points for the round, and your chance of making your bid, for each card you could play (first trick of a round, 4 players).</p>
+      <p class="sub">Expected points for the round and your chance of making your bid, for each card you could play (first trick of a round, 4 players). <b>Plays</b> marks the card the bot actually plays.</p>
       <div id="situations" class="situations"></div>
     </section>
   </div>
@@ -418,7 +419,7 @@ const DATA = /*DATA*/null;
     const sits = (DATA.situations && DATA.situations.situations) || [];
     $("situations").innerHTML = sits.map((x) => {
       const best = x.plays[0].points;
-      const trs = x.plays.map((p, i) => `<tr class="${i === 0 ? "best" : ""}"><td>${suitHtml(p.card)}</td><td>${p.points >= 0 ? "+" : "−"}${Math.abs(p.points).toFixed(1)}</td><td>${i === 0 ? "best" : (p.points - best).toFixed(1)}</td><td>${p.make == null ? "" : Math.round(p.make * 100) + "%"}</td></tr>`).join("");
+      const trs = x.plays.map((p, i) => `<tr class="${i === 0 ? "best" : ""}"><td>${suitHtml(p.card)}${p.pick ? ' <span class="plays-tag">plays</span>' : ""}</td><td>${p.points >= 0 ? "+" : "−"}${Math.abs(p.points).toFixed(1)}</td><td>${i === 0 ? "best" : (p.points - best).toFixed(1)}</td><td>${p.make == null ? "" : Math.round(p.make * 100) + "%"}</td></tr>`).join("");
       return `<div class="sit"><h3>${x.title}</h3><div class="meta">Trump: ${x.trump ? SUITS[["s", "h", "d", "c"].indexOf(x.trump)][1] : "none"} · your hand: ${x.hand.join(" ")} · trick so far: ${x.trick.join(" ") || "you lead"}</div>
         <table><thead><tr><td>Play</td><td>Points</td><td>vs best</td><td>Make bid</td></tr></thead><tbody>${trs}</tbody></table></div>`;
     }).join("");
@@ -432,6 +433,7 @@ const DATA = /*DATA*/null;
     return `${NEEDTEXT[need]}, ${seat === "last" ? "last to play" : "mid-trick"}, ${trick}, ${follow}`;
   }
 
+  const lost = (x, d) => (x >= 0 ? "−" : "+") + Math.abs(x).toFixed(d);
   function renderMistakes() {
     seg($("miskind"), [["habits", "Costliest habits"], ["big", "Biggest mistakes"], ["bid", "Bidding"]], state.mis, (v) => { state.mis = v; render(); });
     const t = DATA.mistakes && DATA.mistakes.tables[String(state.players)];
@@ -450,7 +452,7 @@ const DATA = /*DATA*/null;
     let h = `<thead><tr><th class="sitcol">Situation</th><th>Mistake</th><th class="num">Points</th><th class="num">Win chance</th><th class="num pgcol">Per game</th></tr></thead><tbody>`;
     for (const r of rows) {
       const v = state.mis === "habits" ? r.per_game : r.points;
-      h += `<tr><td class="sitcol">${misSituation(r)}</td><td><div class="sitinline">${misSituation(r)}</div><div class="plays">${r.mistake.replace(/^bot: (.*) \/ you: (.*)$/, "bot: <b>$1</b> · you: <b>$2</b>")}</div><div class="bar"><span class="p-win" style="width:${(100 * v / max).toFixed(1)}%"></span></div></td><td class="num">−${r.points.toFixed(1)}</td><td class="num">−${r.win.toFixed(1)}%</td><td class="num pgcol">−${r.per_game.toFixed(1)}</td></tr>`;
+      h += `<tr><td class="sitcol">${misSituation(r)}</td><td><div class="sitinline">${misSituation(r)}</div><div class="plays">${r.mistake.replace(/^bot: (.*) \/ you: (.*)$/, "bot: <b>$1</b> · you: <b>$2</b>")}</div><div class="bar"><span class="p-win" style="width:${Math.max(0, 100 * v / max).toFixed(1)}%"></span></div></td><td class="num">${lost(r.points, 1)}</td><td class="num">${lost(r.win, 1)}%</td><td class="num pgcol">${lost(r.per_game, 1)}</td></tr>`;
     }
     $("mistable").innerHTML = h + "</tbody>";
   }
