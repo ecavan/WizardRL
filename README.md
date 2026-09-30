@@ -361,6 +361,32 @@ Sanity checks that pass: the bot only ever sees its own cards (a test enforces i
 copies of itself it wins exactly 25.0% with a margin of exactly 0; the Python evaluation and the
 Rust full-game simulator agree.
 
+### Every bot we trained, side by side
+
+Full games, 3–6 players pooled, 800 duplicate games per cell. Each cell: the row player's win
+rate (fair share 22%) and its margin over the rest of the table per game, ± 95% interval.
+
+| player \ table of | `simul1` | `simul1@soft2` | `simul1@soft4` | counting (floor) |
+| --- | --- | --- | --- | --- |
+| **simul1**: round points, self-play | 22% ± 1%, 0 (check) | 33% ± 2%, +36 ± 6 | 50% ± 4%, +98 ± 9 | 72% ± 6%, +228 ± 33 |
+| **game2**: + win bonus ([playing to win](#playing-to-win-the-game)) | 23% ± 2%, +3 ± 7 | 36% ± 3%, +49 ± 7 | 50% ± 1%, +95 ± 9 | 72% ± 3%, +225 ± 31 |
+| **arche1**: + win bonus, vs habit players ([styles](#player-styles)) | 25% ± 3%, +5 ± 2 | 35–38%, +45 | 49–54%, +94 to +106 | 69% ± 3%, +210 ± 29 |
+| **ppo3**: PPO on `simul1`, vs habit players | 23% ± 3%, +8 ± 4 | 36–37%, +52 to +56 | 51–53%, +108 to +110 | 71% ± 5%, +227 ± 31 |
+| **ppo4**: PPO on `arche1`, vs habit players | 24% ± 2%, **+10 ± 3** | 37% ± 1%, +51 ± 6 | 52% ± 3%, +109 ± 16 | 70% ± 5%, +210 ± 30 |
+
+(Where a cell shows a range, the bot was in two league runs. Against the `@soft` tables, which
+sample their moves, the two runs differed by up to 5%, more than the printed intervals: read
+those columns as ± 5%. The `simul1` column is exact replay and the most reliable.)
+
+- **Best overall: `ppo4`** (`models/ppo4.pt`), the two ideas that worked, stacked: the DMC bot
+  trained against habit players (`arche1`), then fine-tuned with anchored PPO. It beats a table
+  of `simul1` by 10 points a game and exploits habits hardest (see [Player styles](#player-styles)).
+- **Every gain is a few percent.** Against strong, careful opponents, `simul1` was already close
+  to as good as these methods get. The extra training pays most against players with habits,
+  which is what real tables have.
+- The PPO bots (`ppo3`, `ppo4`) are Python-only for now: the Rust `play`/`watch`, the advisor
+  and the charts use DMC networks, whose outputs are points.
+
 ### The current network: `models/simul1` (bids all at once)
 
 Built on `night1` with 290M more decisions of self-play with simultaneous bids.
@@ -615,8 +641,12 @@ but the move the bot actually plays (its most likely one) is clearly better than
 The exploiter test found a similar +0.5, which suggests `simul1` still has about half a point a
 round of headroom that more training can capture.
 
-- **We keep the DMC bot.** Its outputs are expected points, which the advisor, the charts and
-  the look-ahead search rely on, and the PPO gain is small. If an adapting opponent (like the
+- **Idea 2, PPO for exploitation**, is in [Player styles](#player-styles): anchored PPO
+  fine-tuned against habit players in full games (`ppo3`, `ppo4`). Stacked on the habit-trained
+  DMC bot, it gives the strongest bot here (`ppo4`, see
+  [every bot side by side](#every-bot-we-trained-side-by-side)).
+- **We keep a DMC bot for the tools.** Its outputs are expected points, which the advisor, the
+  charts and the look-ahead search rely on. If an adapting opponent (like the
   exploiter below) can take a lot off a predictable bot, mixing may earn its keep. That's worth
   re-testing then.
 
@@ -720,7 +750,28 @@ so the comparison is sharp. The imagined rounds all advance together, so the net
 big batches. That takes about a second per game on one core. Play after the bid is the plain
 network.
 
-<!-- SEARCH -->
+**Result: no gain.** One search bot (`search:models/simul1.wznet:32:3`) against a table of plain
+`simul1`, full games, about 200 duplicate games per table size:
+
+| Players | Search bot's margin per game | Search bot's win rate | Fair share |
+| --- | --- | --- | --- |
+| 3 | −4 ± 15 | 28.6 ± 5.0% | 33.3% |
+| 4 | −8 ± 9 | 20.2 ± 3.8% | 25% |
+| 5 | −2 ± 6 | 17.5 ± 3.6% | 20% |
+| 6 | −1 ± 5 | 16.1 ± 2.5% | 16.7% |
+
+Level at best, slightly worse at 3–4 players. The likely reasons:
+
+- **The network already knows what the search finds.** The imagined rounds are played by the same
+  network, so they can only confirm what its bid values already say. The network learned those
+  values from hundreds of millions of decisions; 32 imagined deals are a much noisier estimate.
+- **Nothing to condition on.** Bids are simultaneous, so there's no information in other players'
+  bids to shape the imagined deals. In games like bridge, where search shines, the auction says a
+  lot about the hidden hands.
+
+So the plain network stays the bidder. Search would be worth another look with a separate,
+stronger rollout policy, or at 3 players with many more samples.
+
 
 ## Player styles
 
@@ -741,7 +792,43 @@ the bot learns to read the table during a game and adjust. For example, against 
 can take tricks off them to push them further over. `--vs-style` measures it against a whole
 table of one style.
 
-<!-- STYLES -->
+**Result: it learns to exploit habits.** `arche1` started from `simul1` and trained for 60M
+decisions of full games against a mix of habit players (overbid, underbid, early-wizard, wild,
+`@soft4` and plain; 75% of the other seats), with the points + win bonus reward. `ppo3` is idea 2
+from the PPO section: PPO fine-tuning of `simul1`, anchored to it, against the same habit players,
+same reward, 20M decisions. `ppo4` stacks the two: the same PPO fine-tuning, but starting from
+and anchored to `arche1`. 4 players, 1,000 duplicate games per cell, a whole table of one style:
+
+| player \ table of | overbid | underbid | early-wizard | wild | `@soft4` | plain `simul1` |
+| --- | --- | --- | --- | --- | --- | --- |
+| **simul1** (never saw a habit) | 69% ± 2%, +184 ± 7 | 59% ± 1%, +110 ± 4 | 43% ± 4%, +60 ± 5 | 68% ± 2%, +175 ± 6 | 58% ± 3%, +117 ± 5 | 25% ± 0%, 0 ± 0 |
+| **arche1** (DMC vs habits) | 79% ± 1%, +208 ± 6 | 67% ± 1%, +134 ± 4 | 50% ± 2%, +81 ± 5 | 74% ± 2%, +193 ± 7 | 65% ± 4%, +133 ± 6 | 27% ± 2%, +1 ± 7 |
+| **ppo3** (PPO on `simul1` vs habits) | 78% ± 2%, +206 ± 6 | 62% ± 4%, +130 ± 8 | 45% ± 2%, +76 ± 3 | 78% ± 2%, +200 ± 6 | 64% ± 3%, +128 ± 3 | 26% ± 2%, +8 ± 6 |
+| **ppo4** (PPO on `arche1` vs habits) | **81% ± 1%, +219 ± 2** | **67% ± 1%, +147 ± 4** | 49% ± 3%, +81 ± 5 | 77% ± 2%, +196 ± 9 | 63% ± 2%, +129 ± 5 | **28% ± 1%, +6 ± 4** |
+
+Each cell: win rate (fair share 25%) and margin over the rest of the table per game.
+
+- **Every habit gets punished harder.** Against overbidders `arche1` wins 79% of games where
+  `simul1` wins 69%, and against the early-Wizard player (the hardest to beat, since an early
+  Wizard is not a big mistake) 50% vs 43%. Margins go up by 16–24 points a game.
+- **Nothing is given up against good players.** Against plain `simul1` tables both are level or
+  slightly ahead (27% and 26% wins, fair 25%). Exploiting habits did not make them exploitable.
+- **DMC and PPO learn about the same.** The DMC bot is a bit better against underbidders and the
+  early-Wizard player; PPO is a bit better against wild players and against plain `simul1`
+  (+8 ± 6 a game).
+- **Stacking them is best.** `ppo4` has the biggest edge against overbidders (+219 a game) and
+  underbidders (+147), and is still ahead against plain `simul1` tables (28% wins).
+
+```sh
+S=overbid,underbid,early-wizard,wild,soft4,plain
+W="--game --game-reward wpa --wpa-weight 2 --winprob models/winprob.pt"
+python -m wizard_rl.train $W --styles $S --style-net models/simul1.pt --init models/simul1.pt \
+    --reference models/simul1.pt --out runs/arche1 --until 6e7 --lr 2e-4 --lr-final 3e-5 --lr-decay 6e7
+python -m wizard_rl.export runs/arche1/best.pt models/arche1.pt
+python -m wizard_rl.ppo $W --styles $S --style-net models/simul1.pt --init models/arche1.pt \
+    --anchor models/arche1.pt --kl 0.1 --reference models/simul1.pt --out runs/ppo4 --decisions 2e7
+python -m wizard_rl.export runs/ppo4/best.pt models/ppo4.pt
+```
 
 ---
 
@@ -809,7 +896,9 @@ The engine side (`crates/wizard/src`):
 ## What's next
 
 - An app to play against it and get advice at the table.
-- Longer runs and a bigger network, if the results keep improving with more training.
+- Export the PPO bots to Rust (play by their most likely move), so `play` and `watch` can use `ppo4`.
+- Longer habit training: `arche1` ran 60M decisions and `ppo4` 20M; both were still improving.
+- A bigger network, if the results keep improving with more training.
 
 ---
 

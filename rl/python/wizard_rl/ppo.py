@@ -130,6 +130,11 @@ def main(argv=None) -> None:
     p.add_argument("--mix", default="0.7,0.2,0.1", help="other seats: learner,frozen,counting weights")
     p.add_argument("--game", action="store_true", help="full games, rewarded by winning (as in train --game)")
     p.add_argument("--win-weight", type=float, default=1.0)
+    p.add_argument("--game-reward", choices=["win", "wpa"], default="win",
+                   help="with --game: 'win' (see --win-weight) or 'wpa' = round score + --wpa-weight x win "
+                        "probability added (as in train --game-reward wpa)")
+    p.add_argument("--winprob", default=None, help="win-probability model for --game-reward wpa")
+    p.add_argument("--wpa-weight", type=float, default=2.0)
     p.add_argument("--styles", default=None,
                    help="exploitation: most other seats are --style-net with these habits "
                         "(overbid,underbid,early-wizard,wild,softN,plain); no frozen copies of the policy")
@@ -144,6 +149,12 @@ def main(argv=None) -> None:
     a = p.parse_args(argv)
     if a.hours is None and a.decisions is None:
         p.error("give --hours or --decisions")
+    wp = None
+    if a.game and a.game_reward == "wpa":
+        if not a.winprob:
+            p.error("--game-reward wpa needs --winprob")
+        from .winprob import load_winprob, wpa_returns
+        wp = load_winprob(a.winprob)
     if a.threads:
         torch.set_num_threads(a.threads)
     device = best_device() if a.device == "auto" else torch.device(a.device)
@@ -262,7 +273,8 @@ def main(argv=None) -> None:
             torch.save(dict(model=pol.state_dict(), net=pol.config(), decisions=decisions, edge=score), os.path.join(a.out, "best.pt"))
         save_latest(score)
 
-    print(f"PPO on {device}; players {players}; out {a.out}", flush=True)
+    reward = "lone rounds, round score" if not a.game else (f"full games, round score + {a.wpa_weight:g} x win probability added" if wp else "full games, win reward")
+    print(f"PPO on {device}; players {players}; {reward}; out {a.out}", flush=True)
     if not resumed:
         tick()
     while True:
@@ -288,7 +300,8 @@ def main(argv=None) -> None:
             env.step(acts.numpy(), aux.numpy())
             d = env.drain()
             if len(d[1]):
-                buf.append((d[0], d[1], d[2], d[4], d[5]))
+                ret = d[2] if wp is None else wpa_returns(wp, env.last_context(), a.wpa_weight)
+                buf.append((d[0], d[1], ret, d[4], d[5]))
                 buffered += len(d[1])
         # ---- learn from a full rollout
         if buffered >= a.rollout:
