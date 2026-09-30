@@ -314,9 +314,11 @@ See [Bid charts](#bid-charts) below.
 ```sh
 python -m wizard_rl.playchart models/simul1.pt --players 3,4,5,6 --out charts   # how the bot plays its cards
 python -m wizard_rl.playexplore models/simul1.pt --out charts/play_situations.md  # ask about specific decisions
+python -m wizard_rl.mistakes models/simul1.pt --players 3,4,5,6 --out charts      # what mistakes cost
 ```
 
-See [Play charts](#play-charts-how-to-play-after-bidding) below.
+See [Play charts](#play-charts-how-to-play-after-bidding) and [What mistakes cost](#what-mistakes-cost)
+below.
 
 ### The PPO learner
 
@@ -526,6 +528,45 @@ making your bid for every card you could play (`charts/play_situations.md`). For
   later.
 - **A Wizard is led:** throw your worst card. Wasting the trump ace under it costs 20 points.
 
+## What mistakes cost
+
+`mistakes` plays full games with a human-like player in every seat (it picks each move with
+probability proportional to exp(points / 3), between `@soft2` and `@soft4` on the
+[strength curve](#strength-curve-the-bot-against-imperfect-versions-of-itself)). At every decision
+it costs **every** option other than the bot's favourite two ways:
+
+- **Points**: expected points lost that round (the bot's own estimate).
+- **Win chance**: chance of winning the game lost. It's your margins with each option's expected
+  points, run through the win-probability model, with the other players' rounds taken as even.
+  So it's a rough reading.
+
+Each option is described in play-chart words ("bot: duck high / you: trump in") and tagged with
+the situation. The chart (`charts/mistake_chart.md`, and the **Mistakes** view of the chart page)
+has three lists per table size:
+
+- **Costliest habits**: what adds up over a game for this player (how likely they are to do it ×
+  what it costs).
+- **Biggest mistakes**: the worst single choices, whether or not people make them.
+- **Bidding**: bidding one or two more or fewer than the bot, by hand size.
+
+Over a game this player gives up about 9 points in bidding and 92 in card play at 4 players (3
+players: 14 and 201; 5: 6 and 49; 6: 4 and 29). That's a sanity check: the bot beats `@soft2`
+tables by 52 points a game and `@soft4` tables by 117. **Most of the points go in card play, not
+bidding.** Some findings (4 players):
+
+| Situation | Mistake | Costs |
+| --- | --- | ---: |
+| You lead and still need tricks | a low off-suit card where the bot cashes its K or A | 3.8 points; the costliest habit over a game |
+| Mid-trick, you need tricks, you can win cheaply | a Wizard or a Jester instead | 8 points |
+| A Wizard is already winning | playing your own Wizard (it can't win; it's just thrown away) | 19–30 points |
+| Last to play, you can't follow, you need tricks | a Wizard or a Jester instead of a cheap trump | 18 points |
+| You've made your bid, mid-trick, you can follow | taking the trick cheaply where the bot plays a Jester or ducks high | 12–14 points |
+| You've made your bid and lead | a high off-suit card instead of a low one | 10.5 points |
+| 13+ cards | bidding 2+ more than the bot | 100 points |
+
+`python -m wizard_rl.mistakes render charts/mistake_chart.json` rewrites the markdown from the
+JSON; `--temp` sets how loosely the human-like player picks.
+
 ## A learner that outputs probabilities (PPO)
 
 The DMC bot always plays its single best-scoring move. A **policy** learner instead outputs a
@@ -729,6 +770,7 @@ rl/
     playchart.py           play charts: how the bot plays its cards, by situation
     playexplore.py         the bot's view of specific card-play decisions
     winprob.py             win probability from the score situation; the WPA reward
+    mistakes.py            the mistake chart: what departing from the bot costs
     distill.py             copy a network into a smaller one
     styles.py              habits for opponent seats (overbid, underbid, early Wizards, wild)
     kuhn.py                learner check on Kuhn poker

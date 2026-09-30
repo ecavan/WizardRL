@@ -20,11 +20,21 @@ def render(json_path: str, full: bool = True) -> str:
         data = json.load(f)
     # The play chart and the play situations, if they sit next to the bid chart.
     here = os.path.dirname(json_path)
-    for key, name in (("play", "play_chart.json"), ("situations", "play_situations.json")):
+    for key, name in (("play", "play_chart.json"), ("situations", "play_situations.json"),
+                      ("mistakes", "mistake_chart.json")):
         path = os.path.join(here, name)
         if os.path.exists(path):
             with open(path) as f:
                 data[key] = json.load(f)
+    if "mistakes" in data:  # the page shows the top of each list; leave out the long tail
+        for t in data["mistakes"]["tables"].values():
+            rows = [r for r in t["mistakes"] if r["count"] >= 200]
+            keep = set()
+            for kind in ("bid", "play"):
+                mine = [i for i, r in enumerate(rows) if r["kind"] == kind]
+                keep.update(sorted(mine, key=lambda i: -rows[i]["per_game"])[:60])
+                keep.update(sorted(mine, key=lambda i: -rows[i]["points"])[:60])
+            t["mistakes"] = [rows[i] for i in sorted(keep)]
     with open(TEMPLATE) as f:
         page = f.read()
     page = page.replace("/*DATA*/null", json.dumps(data, separators=(",", ":")))

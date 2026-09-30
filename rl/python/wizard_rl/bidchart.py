@@ -75,7 +75,7 @@ def collect(net, players: int, rounds: int, seed: int = 7, tables: int = 256) ->
         if len(r["hand"]):
             logs.append(r)
             got += len(r["hand"])
-    return {k: np.concatenate([l[k] for l in logs]) for k in logs[0]}
+    return {k: np.concatenate([x[k] for x in logs]) for k in logs[0]}
 
 
 def fit(x: np.ndarray, y: np.ndarray, cols: list[int]) -> tuple[np.ndarray, float, int]:

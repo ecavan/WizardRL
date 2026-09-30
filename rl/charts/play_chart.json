@@ -71,7 +71,7 @@
      "need": "need all",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 411,
     "plays": {
@@ -183,7 +183,7 @@
      "need": "need more",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 8055,
     "plays": {
@@ -260,7 +260,7 @@
      "need": "need more",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "can follow, nothing but a Wizard wins"
+     "follow": "can follow"
     },
     "n": 1417,
     "plays": {
@@ -275,7 +275,7 @@
      "need": "need more",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
+     "follow": "can't follow"
     },
     "n": 937,
     "plays": {
@@ -371,7 +371,7 @@
      "need": "need more",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 4252,
     "plays": {
@@ -416,7 +416,7 @@
      "need": "need more",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "can follow, nothing but a Wizard wins"
+     "follow": "can follow"
     },
     "n": 2754,
     "plays": {
@@ -448,7 +448,7 @@
      "need": "need more",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
+     "follow": "can't follow"
     },
     "n": 1607,
     "plays": {
@@ -527,7 +527,7 @@
      "need": "made it",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 4708,
     "plays": {
@@ -620,7 +620,7 @@
      "need": "made it",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
+     "follow": "can't follow"
     },
     "n": 769,
     "plays": {
@@ -635,7 +635,7 @@
      "need": "made it",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "can follow, nothing but a Wizard wins"
+     "follow": "can follow"
     },
     "n": 335,
     "plays": {
@@ -665,7 +665,7 @@
      "need": "made it",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 2436,
     "plays": {
@@ -708,7 +708,7 @@
      "need": "made it",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
+     "follow": "can't follow"
     },
     "n": 1538,
     "plays": {
@@ -755,7 +755,7 @@
      "need": "made it",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "can follow, nothing but a Wizard wins"
+     "follow": "can follow"
     },
     "n": 658,
     "plays": {
@@ -853,7 +853,7 @@
      "need": "need all",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 419,
     "plays": {
@@ -900,7 +900,7 @@
      "need": "need all",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 626,
     "plays": {
@@ -1059,7 +1059,7 @@
      "need": "need more",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 4165,
     "plays": {
@@ -1215,7 +1215,7 @@
      "need": "need more",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 4487,
     "plays": {
@@ -1245,7 +1245,7 @@
      "need": "need more",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "can follow, nothing but a Wizard wins"
+     "follow": "can follow"
     },
     "n": 1874,
     "plays": {
@@ -1277,7 +1277,7 @@
      "need": "need more",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
+     "follow": "can't follow"
     },
     "n": 1013,
     "plays": {
@@ -1339,7 +1339,7 @@
      "need": "made it",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 2185,
     "plays": {
@@ -1433,7 +1433,7 @@
      "need": "made it",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 2365,
     "plays": {
@@ -1510,7 +1510,7 @@
      "need": "made it",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
+     "follow": "can't follow"
     },
     "n": 715,
     "plays": {
@@ -1704,7 +1704,7 @@
      "need": "need more",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 10535,
     "plays": {
@@ -1766,7 +1766,7 @@
      "need": "need more",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "can follow, nothing but a Wizard wins"
+     "follow": "can follow"
     },
     "n": 3206,
     "plays": {
@@ -1796,7 +1796,7 @@
      "need": "need more",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
+     "follow": "can't follow"
     },
     "n": 2065,
     "plays": {
@@ -1875,7 +1875,7 @@
      "need": "need more",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 3722,
     "plays": {
@@ -1890,7 +1890,7 @@
      "need": "need more",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "can follow, nothing but a Wizard wins"
+     "follow": "can follow"
     },
     "n": 3078,
     "plays": {
@@ -1952,7 +1952,7 @@
      "need": "need more",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
+     "follow": "can't follow"
     },
     "n": 1871,
     "plays": {
@@ -2048,7 +2048,7 @@
      "need": "made it",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 7660,
     "plays": {
@@ -2095,7 +2095,7 @@
      "need": "made it",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
+     "follow": "can't follow"
     },
     "n": 2312,
     "plays": {
@@ -2156,7 +2156,7 @@
      "need": "made it",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "can follow, nothing but a Wizard wins"
+     "follow": "can follow"
     },
     "n": 1275,
     "plays": {
@@ -2202,7 +2202,7 @@
      "need": "made it",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 2505,
     "plays": {
@@ -2231,7 +2231,7 @@
      "need": "made it",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
+     "follow": "can't follow"
     },
     "n": 2254,
     "plays": {
@@ -2274,7 +2274,7 @@
      "need": "made it",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "can follow, nothing but a Wizard wins"
+     "follow": "can follow"
     },
     "n": 1143,
     "plays": {
@@ -2352,7 +2352,7 @@
      "need": "over",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 312,
     "plays": {
@@ -2529,7 +2529,7 @@
      "need": "need more",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 10256,
     "plays": {
@@ -2591,7 +2591,7 @@
      "need": "need more",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "can follow, nothing but a Wizard wins"
+     "follow": "can follow"
     },
     "n": 5495,
     "plays": {
@@ -2606,7 +2606,7 @@
      "need": "need more",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
+     "follow": "can't follow"
     },
     "n": 3667,
     "plays": {
@@ -2683,7 +2683,7 @@
      "need": "need more",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "can follow, nothing but a Wizard wins"
+     "follow": "can follow"
     },
     "n": 3376,
     "plays": {
@@ -2698,7 +2698,7 @@
      "need": "need more",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 2729,
     "plays": {
@@ -2745,7 +2745,7 @@
      "need": "need more",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
+     "follow": "can't follow"
     },
     "n": 2093,
     "plays": {
@@ -2873,7 +2873,7 @@
      "need": "made it",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 10652,
     "plays": {
@@ -2920,7 +2920,7 @@
      "need": "made it",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
+     "follow": "can't follow"
     },
     "n": 4976,
     "plays": {
@@ -2950,7 +2950,7 @@
      "need": "made it",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "can follow, nothing but a Wizard wins"
+     "follow": "can follow"
     },
     "n": 3157,
     "plays": {
@@ -3028,7 +3028,7 @@
      "need": "made it",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "can't follow, nothing but a Wizard wins"
+     "follow": "can't follow"
     },
     "n": 2976,
     "plays": {
@@ -3043,7 +3043,7 @@
      "need": "made it",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 2602,
     "plays": {
@@ -3087,7 +3087,7 @@
      "need": "made it",
      "seat": "last",
      "trick": "a Wizard is winning",
-     "follow": "can follow, nothing but a Wizard wins"
+     "follow": "can follow"
     },
     "n": 1857,
     "plays": {
@@ -3181,7 +3181,7 @@
      "need": "over",
      "seat": "middle",
      "trick": "a Wizard is winning",
-     "follow": "no suit to follow, nothing but a Wizard wins"
+     "follow": "no suit to follow"
     },
     "n": 402,
     "plays": {

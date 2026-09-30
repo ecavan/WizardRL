@@ -85,7 +85,6 @@ def describe(o: np.ndarray, action: int, legal: np.ndarray):
     n = int(np.argmax(o[PLAYERS:PLAYERS + 4])) + 3
     t = int(np.argmax(o[TRUMP:TRUMP + 5]))
     trump = t if t < 4 else None
-    size = int(round(o[SIZE] * 20))
     left = int(round(o[TRICKS_LEFT] * 20))
     bid = int(round(o[BIDS] * 20))
     won = int(round(o[WON] * 20))
@@ -146,7 +145,9 @@ def describe(o: np.ndarray, action: int, legal: np.ndarray):
         plain = [c for c in losers if not is_jes(c)]
         play = "duck high" if strength(card, trump) == max(strength(c, trump) for c in plain) else "duck low"
     has_winner = any(not is_wiz(c) for c in winners)
-    sit = dict(need=ns, seat=pos, trick=trick, follow=follow + ("" if has_winner else ", nothing but a Wizard wins"))
+    # With a Wizard already winning nothing can take the trick, so the note only matters otherwise.
+    note = "" if has_winner or is_wiz(w) else ", nothing but a Wizard wins"
+    sit = dict(need=ns, seat=pos, trick=trick, follow=follow + note)
     return sit, play
 
 

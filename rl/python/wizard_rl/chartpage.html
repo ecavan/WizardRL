@@ -91,6 +91,11 @@ tr.first-acc th, tr.first-acc td { border-top: 1px solid var(--line); padding-to
 .p-leadhigh { background: color-mix(in oklab, var(--heat) 80%, var(--ink)); } .p-leadlow { background: color-mix(in oklab, var(--heat) 30%, var(--surface)); }
 .plays { font-size: 12px; color: var(--muted); }
 .plays b { color: var(--ink); }
+.sitinline { display: none; font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+@media (max-width: 640px) {
+  #mistable .sitcol, #mistable .pgcol { display: none; }
+  #mistable .sitinline { display: block; }
+}
 .situations { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
 .sit { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 6px; min-width: 0; }
 .sit h3 { font-size: 14px; margin: 0; font-weight: 700; text-wrap: balance; }
@@ -173,6 +178,16 @@ footer p { margin: 0; }
     </section>
   </div>
 
+  <div id="mistakeview" class="playview" hidden>
+    <section class="panel" aria-labelledby="mis-h">
+      <h2 id="mis-h">What mistakes cost</h2>
+      <p class="sub" id="mis-sub"></p>
+      <div class="seg" id="miskind" role="group" aria-label="Which mistakes"></div>
+      <div class="tablewrap"><table id="mistable" class="playtable"></table></div>
+      <p class="note"><b>Points</b>: expected points lost that round when you make this choice instead of the bot's, as the bot sees it. <b>Win chance</b>: chance of winning the whole game lost (a rough reading: your margins with each option's expected points, the other players' rounds taken as even). <b>Per game</b>: what the habit costs a human-like player over a game (how likely they are to do it × what it costs). A Wizard played when a Wizard is already winning can't take the trick; it just throws your Wizard away.</p>
+    </section>
+  </div>
+
   <footer>
     <p id="how"></p>
     <p><b>Reading the accuracy rows.</b> <i>Chart bid made</i>: how often the rounded chart total was exactly the tricks the bot went on to take. <i>Bot's own bid made</i>: the same for the bot's real bids, which also weigh everything else it can see. <i>Average miss</i>: how far the chart total lands from the tricks taken, in tricks.</p>
@@ -199,6 +214,7 @@ const DATA = /*DATA*/null;
     suit: load("suit", 1), // trump suit index into SUITS, or -1 for no trump
     view: load("view", "bid"),
     need: "need more",
+    mis: "habits",
     prec: load("prec", "q"),
     size: 5,
     // cards held: "s:R" for suit index s and rank R, plus how many Wizards and Jesters
@@ -408,15 +424,52 @@ const DATA = /*DATA*/null;
     }).join("");
   }
 
+  const NEEDTEXT = { "need all": "need every trick left", "need more": "need more tricks", "made it": "made your bid", "over": "already over" };
+  function misSituation(r) {
+    if (r.kind === "bid") return r.situation[0];
+    const [need, seat, trick, follow] = r.situation;
+    if (seat === "lead") return `${NEEDTEXT[need]}, you lead`;
+    return `${NEEDTEXT[need]}, ${seat === "last" ? "last to play" : "mid-trick"}, ${trick}, ${follow}`;
+  }
+
+  function renderMistakes() {
+    seg($("miskind"), [["habits", "Costliest habits"], ["big", "Biggest mistakes"], ["bid", "Bidding"]], state.mis, (v) => { state.mis = v; render(); });
+    const t = DATA.mistakes && DATA.mistakes.tables[String(state.players)];
+    if (!t) { $("mis-sub").textContent = ""; $("mistable").innerHTML = "<tr><td>No mistake chart for this table size yet.</td></tr>"; return; }
+    const lp = t.lost_per_game, all = t.mistakes;
+    $("mis-sub").innerHTML = `${state.players} players · a human-like player (picks with probabilities softmax(points / ${DATA.mistakes.temp})) gives up about <b>${Math.round(lp.bid.points)} points a game in bidding</b> and <b>${Math.round(lp.play.points)} in card play</b> against the bot's choices`;
+    const plays = all.filter((r) => r.kind === "play" && !r.mistake.includes("a different card"));
+    let rows;
+    if (state.mis === "bid") rows = all.filter((r) => r.kind === "bid").slice(0, 16);
+    else if (state.mis === "habits") rows = plays.slice(0, 20);
+    else {
+      const common = Math.max(50, Math.floor(plays.reduce((a, r) => a + r.count, 0) / 1000));
+      rows = plays.filter((r) => r.count >= common).sort((a, b) => b.points - a.points).slice(0, 20);
+    }
+    const max = Math.max(...rows.map((r) => state.mis === "habits" ? r.per_game : r.points), 1e-9);
+    let h = `<thead><tr><th class="sitcol">Situation</th><th>Mistake</th><th class="num">Points</th><th class="num">Win chance</th><th class="num pgcol">Per game</th></tr></thead><tbody>`;
+    for (const r of rows) {
+      const v = state.mis === "habits" ? r.per_game : r.points;
+      h += `<tr><td class="sitcol">${misSituation(r)}</td><td><div class="sitinline">${misSituation(r)}</div><div class="plays">${r.mistake.replace(/^bot: (.*) \/ you: (.*)$/, "bot: <b>$1</b> · you: <b>$2</b>")}</div><div class="bar"><span class="p-win" style="width:${(100 * v / max).toFixed(1)}%"></span></div></td><td class="num">−${r.points.toFixed(1)}</td><td class="num">−${r.win.toFixed(1)}%</td><td class="num pgcol">−${r.per_game.toFixed(1)}</td></tr>`;
+    }
+    $("mistable").innerHTML = h + "</tbody>";
+  }
+
   function render() {
-    seg($("view"), [["bid", "Bidding"], ["play", "Card play"]], state.view, (v) => { state.view = v; save("view", v); render(); });
+    const views = [["bid", "Bidding"], ["play", "Card play"]].concat(DATA.mistakes ? [["mistakes", "Mistakes"]] : []);
+    if (!views.some(([k]) => k === state.view)) state.view = "bid";
+    seg($("view"), views, state.view, (v) => { state.view = v; save("view", v); render(); });
     $("bidview").hidden = state.view !== "bid";
     $("playview").hidden = state.view !== "play";
+    $("mistakeview").hidden = state.view !== "mistakes";
     document.querySelectorAll(".bidonly").forEach((el) => { el.hidden = state.view !== "bid"; });
-    $("lede").innerHTML = state.view === "play"
+    $("lede").innerHTML = state.view === "mistakes"
+      ? "Which departures from the bot's play cost the most, in points and in chance of winning the game. <b>Costliest habits</b>: what adds up over a game for a typical player. <b>Biggest mistakes</b>: the worst single choices, whether or not people make them."
+      : state.view === "play"
       ? "Bidding is the pre-flop; this is the post-flop: how the bot plays its cards once the bids are in, by where you stand against your bid, your seat in the trick and what's winning it. <b>Find your situation, see what the bot does.</b>"
       : bidLede;
     if (state.view === "play") { renderControls(); renderPlay(); return; }
+    if (state.view === "mistakes") { renderControls(); renderMistakes(); return; }
     renderControls();
     trimHand();
     renderChart();
