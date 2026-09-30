@@ -361,6 +361,41 @@ Sanity checks that pass: the bot only ever sees its own cards (a test enforces i
 copies of itself it wins exactly 25.0% with a margin of exactly 0; the Python evaluation and the
 Rust full-game simulator agree.
 
+### The best bot: `ppo5` (the long run)
+
+The recipe that worked, run 3–4 times longer: the DMC bot trained against habit players with
+the points + win bonus reward, continued from `arche1` for 200M more decisions (`arche2`), then
+anchored PPO fine-tuning on top of it for 60M decisions (`ppo5`, `models/ppo5.pt`).
+
+Full games, 3–6 players pooled, 1,200 duplicate games per cell (fair share 22%). The `ppo4`
+column is a table of the previous best bot:
+
+| player \ table of | `simul1` | `ppo4` (previous best) | `simul1@soft4` | counting (floor) |
+| --- | --- | --- | --- | --- |
+| **simul1** | 22% ± 1%, 0 (check) | 20% ± 1%, −9 ± 4 | 47% ± 2%, +87 ± 6 | 71% ± 3%, +214 ± 30 |
+| **ppo4** | 25% ± 1%, +11 ± 3 | 22%, 0 (check) | 53% ± 2%, +105 ± 9 | 69% ± 3%, +197 ± 24 |
+| **arche2** (DMC, long run) | 24% ± 2%, +7 ± 3 | 23% ± 0%, +1 ± 2 | 51% ± 3%, +98 ± 12 | 70% ± 3%, +200 ± 24 |
+| **ppo5** (PPO on `arche2`) | **27% ± 1%, +18 ± 5** | **23% ± 1%, +5 ± 4** | 53% ± 4%, +108 ± 14 | 70% ± 3%, +206 ± 27 |
+
+Against habit players, 4 players, 1,000 duplicate games per cell (fair share 25%):
+
+| player \ table of | overbid | underbid | early-wizard | wild | `@soft4` | plain `simul1` |
+| --- | --- | --- | --- | --- | --- | --- |
+| **simul1** | 69%, +184 | 59%, +110 | 43%, +60 | 68%, +175 | 58%, +117 | 25%, 0 |
+| **ppo4** | 81%, +220 | 67%, +141 | 50%, +83 | 77%, +195 | 62%, +125 | 28%, +6 |
+| **arche2** | 82%, +214 | 68%, +147 | 51%, +86 | 75%, +194 | 66%, +129 | 30%, +8 |
+| **ppo5** | **82%, +222** | **73%, +154** | **57%, +95** | 76%, +198 | **68%, +137** | **31%, +19** |
+
+(Intervals are ± 1–3% on the win rates and ± 3–10 points on the margins; see `runs/styles_league3.md`.)
+
+- **`ppo5` is the best bot on every table that matters.** Against the original bot it wins 27%
+  of games (fair 22%) and +18 points a game, and it beats a table of the previous best (`ppo4`)
+  by +5 ± 4. Against the early-Wizard player, the hardest habit to exploit, it wins 57% where
+  `simul1` wins 43%.
+- **Longer training helped, mostly through PPO.** The longer DMC run alone (`arche2`) is level
+  with `ppo4` (+1 ± 2 against it); the extra PPO on top is what moved it ahead.
+- It's still Python-only, like the other PPO bots.
+
 ### Every bot we trained, side by side
 
 Full games, 3–6 players pooled, 800 duplicate games per cell. Each cell: the row player's win
@@ -378,9 +413,10 @@ rate (fair share 22%) and its margin over the rest of the table per game, ± 95%
 sample their moves, the two runs differed by up to 5%, more than the printed intervals: read
 those columns as ± 5%. The `simul1` column is exact replay and the most reliable.)
 
-- **Best overall: `ppo4`** (`models/ppo4.pt`), the two ideas that worked, stacked: the DMC bot
+- **Best of these: `ppo4`** (`models/ppo4.pt`), the two ideas that worked, stacked: the DMC bot
   trained against habit players (`arche1`), then fine-tuned with anchored PPO. It beats a table
   of `simul1` by 10 points a game and exploits habits hardest (see [Player styles](#player-styles)).
+  The same recipe run longer gave `ppo5`, [above](#the-best-bot-ppo5-the-long-run).
 - **Every gain is a few percent.** Against strong, careful opponents, `simul1` was already close
   to as good as these methods get. The extra training pays most against players with habits,
   which is what real tables have.
@@ -896,8 +932,9 @@ The engine side (`crates/wizard/src`):
 ## What's next
 
 - An app to play against it and get advice at the table.
-- Export the PPO bots to Rust (play by their most likely move), so `play` and `watch` can use `ppo4`.
-- Longer habit training: `arche1` ran 60M decisions and `ppo4` 20M; both were still improving.
+- Export the PPO bots to Rust (play by their most likely move), so `play` and `watch` can use `ppo5`.
+- Even longer runs: `ppo5` was still improving at 60M decisions of PPO (+14 → +18 a game against
+  `simul1` over the last 30M).
 - A bigger network, if the results keep improving with more training.
 
 ---
