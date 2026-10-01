@@ -7,13 +7,15 @@ bids at the same time. Once trained, you can:
 - play against it, or have it whisper advice while you play, in the terminal;
 - ask what it would bid with any hand;
 - print **bid charts** (how many tricks each card is worth, by table size and round size);
-- measure it against simple bots and against other versions of itself.
+- measure it against simple bots and against other versions of itself;
+- use the **web app** (`app/`): learn from the charts, watch bots play, and play against bots at
+  six levels or with four different habits. It runs the Rust engine in the browser (WebAssembly).
 
 The game engine is Rust (`crates/wizard`). Training is Python and PyTorch (`rl/`). The two talk
 through a small bridge (`crates/wizard-py`). A trained network is a 3.5 MB file that runs
 in Rust with no Python needed.
 
-**Contents:** [Quick start](#quick-start) · [The rules it plays](#the-rules-it-plays) ·
+**Contents:** [Quick start](#quick-start) · [The app](#the-app) · [The rules it plays](#the-rules-it-plays) ·
 [How it learns](#how-it-learns) · [Commands](#commands) · [Results](#results) ·
 [Bid charts](#bid-charts) · [Probabilities vs best move (PPO)](#a-learner-that-outputs-probabilities-ppo) ·
 [Playing to win](#playing-to-win-the-game) · [How beatable is it?](#how-beatable-is-it) ·
@@ -45,6 +47,45 @@ python tests/test_bridge.py        # checks the bridge, a few seconds
 ```
 
 Every later session: `cd rl && source .venv/bin/activate`.
+
+---
+
+## The app
+
+`app/` is a web app (React, Vite, Tailwind) with three sections:
+
+- **Learn**: the bid chart, the card-play chart, what mistakes cost, and the rules.
+- **Watch**: pick 3 to 6 bots and watch a game, with commentary on each bid and card.
+- **Play**: choose who sits at the table (or a random easy, mixed or hard table) and play.
+  A coach can show the best bot's move and review yours. Games are saved in the browser.
+
+The opponents:
+
+| Player | Level |
+|---|---|
+| 🐣 Rookie Rae | counts high cards, no network |
+| 🙂 Casual Cal, 🃏 Club Clara, 🎯 Sharp Sam, 🦉 Expert Eve | the points network, picking less randomly at each level |
+| 🧙 The Wizard | `ppo5`, the best bot |
+| 📈 Olly, 🐢 Cleo, ⚡ Wendy, 🌪️ Wes | Sharp Sam with a habit: overbids, underbids, Wizards early, wild |
+
+Everything runs in the browser, so the app is a static site and works offline once loaded
+(it installs as a home-screen app on iPad and iPhone). The engine is
+`crates/wizard-wasm`, built to `app/src/wasm/`. The built files are committed, so building the
+site needs only Node.
+
+```sh
+cd app
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # the site, in app/dist
+
+# Only after changing the Rust engine, a model or the charts:
+npm run wasm       # rebuild app/src/wasm (needs Rust, the wasm32 target and wasm-bindgen-cli 0.2.100)
+npm run data       # copy models and chart data from rl/ into app/public
+```
+
+To deploy on Vercel: import the repo, set **Root Directory** to `app`, and deploy.
+`app/vercel.json` sets the build command and output folder.
 
 ---
 
@@ -926,6 +967,8 @@ README.md                  this guide
 crates/wizard/             the game: rules engine, bots, what the network sees, the batch
                            environment, and a trained network running in Rust (see its README)
 crates/wizard-py/          Python bindings for the engine (PyO3, built by maturin)
+crates/wizard-wasm/        the engine for the browser (WebAssembly), used by the app
+app/                       the web app: Learn, Watch, Play (React + Vite)
 rl/
   pyproject.toml           the Python package; builds the Rust bridge with maturin
   models/                  exported networks (.wznet) and slim checkpoints (.pt)
@@ -970,7 +1013,7 @@ The engine side (`crates/wizard/src`):
 
 ## What's next
 
-- An app to play against it and get advice at the table.
+- In the app: an advisor page where you enter a real table's cards and get the bot's advice.
 - Even longer runs: `ppo5` was still improving at 60M decisions of PPO (+14 → +18 a game against
   `simul1` over the last 30M).
 - A bigger network, if the results keep improving with more training.

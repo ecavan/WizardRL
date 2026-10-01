@@ -6,3 +6,5 @@ __pycache__/
 *.so
 *.egg-info/
 Claude outputs/
+app/node_modules/
+app/dist/

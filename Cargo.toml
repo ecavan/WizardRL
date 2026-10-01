@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/wizard"]
+members = ["crates/wizard", "crates/wizard-wasm"]
 # Built by maturin from rl/ (a Python extension; it links against Python).
 exclude = ["crates/wizard-py"]
 
