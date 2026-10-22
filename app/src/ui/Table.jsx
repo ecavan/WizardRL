@@ -93,8 +93,8 @@ export function Trick({ st, names, shown, cardW = 58 }) {
   );
 }
 
-/** Your hand: tap a legal card to play it. */
-export function YourHand({ st, seat, onPlay, hint, cardW = 66 }) {
+/** Your hand: tap a legal card to play it (tapping one you can't play calls `onIllegal`). */
+export function YourHand({ st, seat, onPlay, onIllegal, hint, cardW = 66 }) {
   const hand = sortHand(st.hands[seat] || [], st.trump);
   const myTurn = st.phase.kind === 'play' && st.phase.seat === seat;
   const legal = new Set(st.legal.filter((k) => k >= 25).map(codeCard));
@@ -103,7 +103,7 @@ export function YourHand({ st, seat, onPlay, hint, cardW = 66 }) {
       {hand.map((c) => {
         const ok = myTurn && legal.has(c);
         return <Card key={c} c={c} w={cardW} trump={st.trump} dim={myTurn && !ok} hint={hint === c}
-          onClick={ok ? () => onPlay(cardCode(c)) : undefined} />;
+          onClick={ok ? () => onPlay(cardCode(c)) : myTurn && onIllegal ? () => onIllegal(c) : undefined} />;
       })}
     </div>
   );

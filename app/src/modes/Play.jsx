@@ -8,7 +8,7 @@ import { Game, useEngine } from '../lib/engine.js';
 import { usePrefs, PACE } from '../lib/prefs.js';
 import { TABLES, byId, pickRandom, seatNames, seatSpec } from '../lib/players.js';
 import { load, save, drop } from '../lib/store.js';
-import { codeKind, codeBid, codeCard, bidCode, SUIT_NAME } from '../lib/cards.js';
+import { codeKind, codeBid, codeCard, bidCode, SUIT_NAME, isJester, isWizard, suitOf } from '../lib/cards.js';
 import { Seat, Trick, TrumpInfo, YourHand, Scoreboard, History } from '../ui/Table.jsx';
 import { CardText, SuitSym } from '../ui/Card.jsx';
 import { Seg, Sheet, Toggle, fmtPts, pct } from '../ui/kit.jsx';
@@ -109,6 +109,7 @@ function PlayGame({ table, onExit, onRematch }) {
   const [review, setReview] = useState(null); // the coach's note on your last move
   const [hint, setHint] = useState(null); // the bot's view of the current decision
   const [sheet, setSheet] = useState(null); // 'round' | 'history' | 'menu'
+  const [nope, setNope] = useState(null); // why the card you tapped can't be played
   const timer = useRef(null);
 
   const persist = useCallback(() => {
@@ -136,7 +137,14 @@ function PlayGame({ table, onExit, onRematch }) {
   useEffect(() => { if (st.roundOver) setSheet('round'); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const myTurn = !st.roundOver && st.phase.kind !== 'done' && st.phase.seat === you;
-  useEffect(() => { setHint(null); }, [st.round, st.tricksDone, st.phase.kind, st.trick.length]);
+  useEffect(() => { setHint(null); setNope(null); }, [st.round, st.tricksDone, st.phase.kind, st.trick.length]);
+
+  /** A card you can't play: you must follow the suit that was led (a Wizard or a Jester is always fine). */
+  function illegal() {
+    const led = st.trick.map(([, c]) => c).find((c) => !isJester(c));
+    if (led == null || isWizard(led)) return;
+    setNope(`Follow suit: ${SUIT_NAME[suitOf(led)]} were led and you have one, so play a ${SUIT_NAME[suitOf(led)].replace(/s$/, '')} (or a Wizard or a Jester).`);
+  }
 
   function act(code) {
     if (!myTurn) return;
@@ -191,11 +199,12 @@ function PlayGame({ table, onExit, onRematch }) {
                   {st.bids[you] != null ? <>bid <b className="num">{st.bids[you]}</b> · won <b className="num">{st.won[you]}</b></> : 'no bid yet'}
                 </div>
               </div>
-              {myTurn && <div className="mt-2 text-sm font-semibold text-violet-200">{phase === 'bid' ? `Your bid: how many tricks will you take with these ${st.round} card${st.round > 1 ? 's' : ''}?` : phase === 'trump' ? 'A Wizard was turned up: you name trump.' : 'Your turn: tap a card to play it.'}</div>}
+              {myTurn && <div className="mt-2 text-sm font-semibold text-violet-200">{phase === 'bid' ? `Your bid: how many tricks will you take with ${st.round > 1 ? `these ${st.round} cards` : 'this card'}?` : phase === 'trump' ? 'A Wizard was turned up: you name trump.' : 'Your turn: tap a card to play it.'}</div>}
               {myTurn && phase === 'bid' && <BidPicker st={st} hint={hint} onBid={(b) => act(bidCode(b))} />}
               {myTurn && phase === 'trump' && <TrumpPicker onPick={(s) => act(s)} />}
             </div>
-            <YourHand st={st} seat={you} onPlay={act} hint={hint && phase === 'play' ? codeCard(hint.pick) : null} cardW={handW} />
+            {nope && myTurn && phase === 'play' && <div className="text-sm text-amber-200 text-center fade-up" role="status">{nope}</div>}
+            <YourHand st={st} seat={you} onPlay={act} onIllegal={illegal} hint={hint && phase === 'play' ? codeCard(hint.pick) : null} cardW={handW} />
           </div>
         </div>
 
