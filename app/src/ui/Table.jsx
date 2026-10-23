@@ -35,7 +35,8 @@ function BidChip({ st, s, viewer }) {
     return <span className="bidchip opacity-60">no bid</span>;
   }
   const playing = st.phase.kind === 'play' || st.roundOver;
-  const cls = playing ? (won > bid ? 'over' : won === bid ? 'made' : '') : '';
+  if (!playing) return <span className="bidchip" title={`bid ${bid}`}>bid {bid}</span>;
+  const cls = won > bid ? 'over' : won === bid ? 'made' : '';
   return <span className={`bidchip ${cls}`} title={`bid ${bid}, won ${won} so far`}>won {won}/{bid}</span>;
 }
 
@@ -93,13 +94,14 @@ export function Trick({ st, names, shown, cardW = 58 }) {
   );
 }
 
-/** Your hand: tap a legal card to play it (tapping one you can't play calls `onIllegal`). */
-export function YourHand({ st, seat, onPlay, onIllegal, hint, cardW = 66 }) {
+/** Your hand: tap a legal card to play it (tapping one you can't play calls `onIllegal`; tapping
+ * the hand when it isn't your turn to play calls `onWait`). */
+export function YourHand({ st, seat, onPlay, onIllegal, onWait, hint, cardW = 66 }) {
   const hand = sortHand(st.hands[seat] || [], st.trump);
   const myTurn = st.phase.kind === 'play' && st.phase.seat === seat;
   const legal = new Set(st.legal.filter((k) => k >= 25).map(codeCard));
   return (
-    <div className="hand justify-center" style={{ gap: 6 }}>
+    <div className="hand justify-center" style={{ gap: 6 }} onClick={!myTurn ? onWait : undefined}>
       {hand.map((c) => {
         const ok = myTurn && legal.has(c);
         return <Card key={c} c={c} w={cardW} trump={st.trump} dim={myTurn && !ok} hint={hint === c}

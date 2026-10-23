@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Game, useEngine } from '../lib/engine.js';
-import { usePrefs, PACE } from '../lib/prefs.js';
+import { usePrefs, getPrefs, PACE } from '../lib/prefs.js';
 import { TABLES, byId, pickRandom, seatNames, seatSpec } from '../lib/players.js';
 import { load, save, drop } from '../lib/store.js';
 import { codeKind, codeBid, codeCard, bidCode, SUIT_NAME, isJester, isWizard, suitOf } from '../lib/cards.js';
@@ -110,7 +110,10 @@ function PlayGame({ table, onExit, onRematch }) {
   const [hint, setHint] = useState(null); // the bot's view of the current decision
   const [sheet, setSheet] = useState(null); // 'round' | 'history' | 'menu'
   const [nope, setNope] = useState(null); // why the card you tapped can't be played
+  const [waitTap, setWaitTap] = useState(false); // you tapped your hand while it wasn't your turn to play
   const timer = useRef(null);
+  const sumTimer = useRef(null);
+  useEffect(() => () => clearTimeout(sumTimer.current), []);
 
   const persist = useCallback(() => {
     save(KEY, { ids: table.ids, simultaneous: table.simultaneous, seed: table.seed, log: game.log(), over: game.gameOver() });
@@ -120,7 +123,11 @@ function PlayGame({ table, onExit, onRematch }) {
     const s = game.state(you);
     setSt(s);
     setShown(ev.trick ? ev.trick : { plays: s.trick });
-    if (ev.roundOver) setSheet('round');
+    if (ev.roundOver) {
+      // let the last trick show for a beat before the round summary covers it
+      clearTimeout(sumTimer.current);
+      sumTimer.current = setTimeout(() => setSheet('round'), (PACE[getPrefs().pace] || PACE.normal) * 1.8 + 300);
+    }
     persist();
   }, [game, persist]);
 
@@ -138,6 +145,16 @@ function PlayGame({ table, onExit, onRematch }) {
 
   const myTurn = !st.roundOver && st.phase.kind !== 'done' && st.phase.seat === you;
   useEffect(() => { setHint(null); setNope(null); }, [st.round, st.tricksDone, st.phase.kind, st.trick.length]);
+  useEffect(() => { setWaitTap(false); }, [myTurn, st.round]);
+
+  /** You tapped your hand when there's no card to play yet: say what the game is waiting for. */
+  function waiting() {
+    if (st.roundOver || st.phase.kind === 'done') return null;
+    const p = st.phase;
+    if (p.seat === you) return p.kind === 'bid' ? 'Make your bid first: tap a number above.' : p.kind === 'trump' ? 'Name trump first: pick a suit above.' : null;
+    return `Waiting for ${names[p.seat]} to ${p.kind === 'bid' ? 'bid' : p.kind === 'trump' ? 'name trump' : 'play'}. Your turn is coming.`;
+  }
+  const waitMsg = waitTap ? waiting() : null;
 
   /** A card you can't play: you must follow the suit that was led (a Wizard or a Jester is always fine). */
   function illegal() {
@@ -203,8 +220,14 @@ function PlayGame({ table, onExit, onRematch }) {
               {myTurn && phase === 'bid' && <BidPicker st={st} hint={hint} onBid={(b) => act(bidCode(b))} />}
               {myTurn && phase === 'trump' && <TrumpPicker onPick={(s) => act(s)} />}
             </div>
+            {st.gameOver && sheet !== 'round' && (
+              <div className="flex items-center justify-center gap-3 flex-wrap text-sm text-ink-100">
+                Game over. <button className="btn btn-primary btn-sm" onClick={() => setSheet('round')}>See final scores</button>
+              </div>
+            )}
             {nope && myTurn && phase === 'play' && <div className="text-sm text-amber-200 text-center fade-up" role="status">{nope}</div>}
-            <YourHand st={st} seat={you} onPlay={act} onIllegal={illegal} hint={hint && phase === 'play' ? codeCard(hint.pick) : null} cardW={handW} />
+            {waitMsg && <div className="text-sm text-amber-200 text-center fade-up" role="status">{waitMsg}</div>}
+            <YourHand st={st} seat={you} onPlay={act} onIllegal={illegal} onWait={() => setWaitTap(true)} hint={hint && phase === 'play' ? codeCard(hint.pick) : null} cardW={handW} />
           </div>
         </div>
 
@@ -294,7 +317,7 @@ function HintView({ hint, phase }) {
   const label = (o) => (codeKind(o.code) === 'bid' ? `Bid ${codeBid(o.code)}` : codeKind(o.code) === 'trump' ? SUIT_NAME[o.code] : <CardText c={codeCard(o.code)} />);
   return (
     <div className="fade-up space-y-2">
-      <div className="text-sm">The Wizard plays <b className="text-amber-300">{label(pick)}</b> here.</div>
+      <div className="text-sm">The Wizard {phase === 'bid' ? 'bids' : phase === 'trump' ? 'names' : 'plays'} <b className="text-amber-300">{label(pick)}</b> here.</div>
       <table className="w-full text-sm num">
         <thead><tr className="text-[11px] text-ink-300"><th className="text-left font-semibold">Option</th><th className="text-right font-semibold">Expected</th><th className="text-right font-semibold">Makes bid</th></tr></thead>
         <tbody>
@@ -323,7 +346,7 @@ function reviewOf(code, adv) {
   if (gap < 1.5) return <span className="text-ink-100">Fine: the Wizard prefers {label(pick)}, but it's a near tie.</span>;
   return (
     <span className={gap >= 8 ? 'text-rose-300' : 'text-amber-300'}>
-      {gap >= 8 ? 'Costly: the' : 'The'} Wizard would {codeKind(code) === 'bid' ? '' : 'play '}{label(pick)} ({fmtPts(pick.points)} vs {fmtPts(mine.points)}): about {Math.round(gap)} points better.
+      {gap >= 8 ? 'Costly: the' : 'The'} Wizard would {codeKind(code) === 'bid' ? '' : codeKind(code) === 'trump' ? 'name ' : 'play '}{label(pick)} ({fmtPts(pick.points)} vs {fmtPts(mine.points)}): about {Math.round(gap)} points better.
     </span>
   );
 }
@@ -333,11 +356,15 @@ function RoundSummary({ st, names, you }) {
   if (!r) return null;
   const order = [...Array(st.players).keys()].sort((a, b) => st.totals[b] - st.totals[a]);
   const best = Math.max(...st.totals);
+  const winners = order.filter((s) => st.totals[s] === best);
+  const others = winners.filter((s) => s !== you).map((s) => names[s]);
+  const verdict = winners.length === 1 ? (winners[0] === you ? 'You win!' : `${names[winners[0]]} wins`)
+    : winners.includes(you) ? `You tie for first with ${others.join(' and ')}!` : `${others.join(' and ')} tie for first`;
   return (
     <div className="space-y-3">
       {st.gameOver && (
         <div className={`verdict ${st.totals[you] === best ? 'v-good' : 'v-info'}`}>
-          <div className="text-lg font-semibold text-white">{st.totals[you] === best ? 'You win!' : `${names[order[0]]} wins`}</div>
+          <div className="text-lg font-semibold text-white">{verdict}</div>
           <div className="text-sm text-ink-200">You finished {ordinal(order.indexOf(you) + 1)} with {st.totals[you]} points.</div>
         </div>
       )}
